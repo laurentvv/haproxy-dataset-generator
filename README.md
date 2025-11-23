@@ -1,127 +1,184 @@
 # HAProxy LLM Dataset Generator & Fine-tuning Pipeline
 
-Ce projet fournit un pipeline complet pour créer un dataset de haute qualité pour le fine-tuning de modèles de langage (LLM), en se basant sur la documentation officielle de HAProxy.
+[![Python Version](https://img.shields.io/badge/python-3.13+-blue.svg)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Le processus se déroule en trois grandes étapes :
-1.  **Extraction** : Le contenu des pages de documentation HAProxy est extrait et structuré en sections Markdown.
-2.  **Génération de Q/R** : Un modèle LLM local puissant (`qwen3:14b` via Ollama) est utilisé pour générer des paires Question/Réponse pertinentes à partir de chaque section Markdown.
-3.  **Fine-tuning** : Le dataset généré est utilisé pour fine-tuner un modèle plus petit et plus efficace (ex: Gemma-2-9b, Llama-3-8B) directement sur Google Colab.
+Ce projet fournit un pipeline complet pour créer un dataset de haute qualité pour le fine-tuning de modèles de langage (LLM), en se basant sur la documentation officielle de HAProxy. L'objectif est de produire un modèle spécialisé dans les questions-réponses liées à la configuration, l'administration et l'utilisation d'HAProxy.
 
-## Structure du projet
+## 🚀 Fonctionnalités
+
+- **Extraction automatisée** de la documentation HAProxy
+- **Génération de Q/R** à l'aide de modèles LLM locaux (Ollama)
+- **Dataset enrichi** avec titres, contenus et contextes complets
+- **Pipeline de fine-tuning** prêt pour Google Colab
+- **Support de multiples modèles** pour le fine-tuning (Gemma, Llama, etc.)
+
+## 📁 Structure du projet
 
 ```
-.
+haproxy-dataset-generator/
 ├── README.md
 ├── pyproject.toml
+├── TODO.md
+├── uv.lock
 ├── scripts/
-│   ├── extract_to_markdown.py
-│   └── generate_qa_with_ollama.py
+│   ├── extract_to_markdown.py      # Extraction de la doc HAProxy
+│   └── generate_qa_with_ollama.py  # Génération des paires Q/R
+├── training/
+│   └── finetune_haproxy_on_colab.ipynb  # Notebook pour fine-tuning
 ├── data/
-│   ├── sections.jsonl         (généré par l'étape 1)
-│   └── haproxy_dataset_qa.jsonl (généré par l'étape 2)
-├── Notebook.md                (instructions pour fine-tuning sur Colab)
-└── requirements.txt
+│   ├── sections.jsonl              # Sections extraites de la doc
+│   └── haproxy_dataset_qa.jsonl    # Dataset final Q/R enrichi
+└── .env.example                    # Exemple de fichier de configuration
 ```
 
----
+## 🛠 Prérequis
 
-## Prérequis
+- Python 3.13+
+- [uv](https://github.com/astral-sh/uv) (gestionnaire de paquets Python)
+- [Ollama](https://ollama.com/) (pour exécuter les modèles LLM localement)
+- Modèle `qwen3:14b` installé via Ollama (pour la génération de Q/R)
 
-Avant de commencer, assurez-vous d'avoir les outils suivants installés sur votre machine locale :
+### Installation des outils
 
-1.  **Python 3.13+**
-2.  **uv** : Un gestionnaire de paquets et d'environnements Python très rapide.
-    ```bash
-    # Sur macOS et Linux
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+#### uv
+```bash
+# Sur macOS et Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-    # Sur Windows (PowerShell)
-    powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-    ```
-3.  **Ollama** : Pour exécuter des modèles LLM localement.
-    *   Suivez les instructions d'installation sur [ollama.com](https://ollama.com/).
-    *   Une fois installé, démarrez le serveur Ollama.
-    *   Téléchargez le modèle `qwen3:14b`
-        ```bash
-        ollama pull qwen3:14b
-        ```
+# Sur Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 
----
+#### Ollama
+Suivez les instructions d'installation sur [ollama.com](https://ollama.com/), puis démarrez le service :
+```bash
+ollama serve
+```
 
-## Étape 1 : Installation et Configuration de l'Environnement
+#### Téléchargement du modèle
+```bash
+ollama pull qwen3:14b
+```
 
-Ce projet utilise `uv` pour gérer un environnement virtuel et installer les dépendances de manière reproductible.
+## 🛠 Installation
 
-1.  **Cloner ce dépôt** (si vous l'avez sur un Git) ou créez les fichiers localement.
+1. **Cloner le dépôt**
+   ```bash
+   git clone <URL_DU_DEPOT>
+   cd haproxy-dataset-generator
+   ```
 
-2.  **Créer et activer l'environnement virtuel avec uv** :
-    ```bash
-    # Crée un environnement virtuel dans un dossier .venv et l'active immédiatement
-    uv venv
-    
-    # Active l'environnement
-    # Sur macOS et Linux :
-    source .venv/bin/activate
-    # Sur Windows (Command Prompt) :
-    .venv\Scripts\activate
-    # Sur Windows (PowerShell) :
-    .venv\Scripts\Activate.ps1
-    ```
+2. **Créer l'environnement virtuel avec uv**
+   ```bash
+   # Crée un environnement virtuel dans un dossier .venv
+   uv venv
 
-3.  **Installer les dépendances du projet** :
-    Le fichier `pyproject.toml` liste toutes les dépendances nécessaires. La commande suivante les installera en suivant les spécifications du fichier pyproject.toml.
-    ```bash
-    # Installe le projet en mode développement avec toutes ses dépendances
-    uv pip install -e .
-    
-    # Optionnel : pour installer aussi les dépendances de développement
-    uv pip install -e ".[dev]"
-    ```
-    *(Le flag `-e .` installe le projet en mode "editable", ce qui est une bonne pratique.)*
+   # Active l'environnement
+   # Sur macOS et Linux :
+   source .venv/bin/activate
+   # Sur Windows (Command Prompt) :
+   .venv\Scripts\activate
+   # Sur Windows (PowerShell) :
+   .venv\Scripts\Activate.ps1
+   ```
 
-4.  **Vérifier que les dépendances sont installées** :
-    ```bash
-    # Vérifie les paquets installés
-    uv pip list
-    ```
+3. **Installer les dépendances du projet**
+   ```bash
+   # Installe le projet en mode développement avec toutes ses dépendances
+   uv pip install -e .
+   ```
 
----
+4. **Configurer les variables d'environnement**
+   ```bash
+   # Copier le fichier exemple
+   cp .env.example .env
 
-## Étape 2 : Génération du Dataset
+   # Modifier les variables selon vos besoins (URL de la documentation HAProxy, etc.)
+   ```
 
-Cette étape est divisée en deux scripts Python à exécuter séquentiellement.
+## 🧱 Utilisation
 
-### 2.1. Extraction du contenu vers Markdown
+Le pipeline se compose de deux étapes principales suivies d'une étape de fine-tuning :
 
-Ce script récupère la documentation HAProxy, la découpe en sections (basées sur les balises `<h2>`) et convertit chaque section en format Markdown.
+### 1. Extraction de la documentation HAProxy
 
 ```bash
 python scripts/extract_to_markdown.py
 ```
 
-Le script va :
-1. Télécharger la documentation HAProxy à partir de l'URL spécifiée dans le fichier `.env` (variable `HAPROXY_DOCS_URL`)
-2. Extraire le contenu de chaque section (balises `<h2>`)
-3. Convertir le HTML en Markdown
-4. Sauvegarder les sections dans `data/sections.jsonl`
+Ce script :
+- Télécharge la documentation HAProxy à partir de l'URL spécifiée dans `.env`
+- Découpe le contenu en sections (balises `<h2>`)
+- Convertit chaque section en Markdown
+- Sauvegarde les sections structurées dans `data/sections.jsonl`
 
-### 2.2. Génération des paires Question/Réponse
-
-Ce script prend les sections extraites et utilise un LLM local pour générer des questions et réponses.
+### 2. Génération du dataset Question/Réponse
 
 ```bash
 python scripts/generate_qa_with_ollama.py
 ```
 
-Le script va :
-1. Lire les sections de `data/sections.jsonl`
-2. Pour chaque section, générer une question pertinente et une réponse détaillée à l'aide du modèle `qwen3:14b`
-3. Sauvegarder les paires Q/R dans `data/haproxy_dataset_qa.jsonl`
+Ce script :
+- Lit les sections extraites de `data/sections.jsonl`
+- Génère des paires Question/Réponse à l'aide du modèle `qwen3:14b`
+- Sauvegarde les paires enrichies (avec `title`, `content`) dans `data/haproxy_dataset_qa.jsonl`
 
----
+### 3. Fine-tuning du modèle
 
-## Étape 3 : Fine-tuning sur Google Colab
+Le dataset généré est prêt à être utilisé pour le fine-tuning d'un modèle plus léger et spécialisé. Le notebook `training/finetune_haproxy_on_colab.ipynb` vous guide à travers le processus de fine-tuning sur Google Colab en utilisant QLoRA (4-bit quantization) et LoRA (Low-Rank Adaptation).
 
-Le fichier `Notebook.md` contient les instructions étape par étape pour fine-tuner un modèle sur le dataset généré. 
+Le notebook inclut :
+- Chargement du dataset généré
+- Configuration du modèle de base (Gemma-2-9b-it, Llama-3-8B-Instruct, etc.)
+- Mise en place de la quantification 4-bit (QLoRA)
+- Configuration de LoRA
+- Entraînement du modèle
+- Sauvegarde du modèle fine-tuné
+- Test du modèle fine-tuné
 
-Vous pouvez copier-coller le contenu du fichier dans un notebook Google Colab pour effectuer le fine-tuning.
+Pour utiliser le notebook :
+1. Téléchargez ou clonez le dépôt sur votre Google Drive
+2. Ouvrez le fichier dans Google Colab
+3. Suivez les instructions pas à pas dans le notebook
+
+## 📊 Format du dataset
+
+Le dataset final `data/haproxy_dataset_qa.jsonl` contient des objets JSON avec les champs suivants :
+- `question`: La question générée par le LLM
+- `response`: La réponse détaillée générée par le LLM
+- `source`: URL de la section d'origine
+- `title`: Titre de la section d'origine
+- `content`: Contenu de la section d'origine (format Markdown)
+
+Exemple :
+```json
+{
+  "question": "Quelle est la directive 'bind' dans HAProxy et comment l'utiliser ?",
+  "response": "La directive 'bind' dans HAProxy est utilisée pour spécifier l'adresse IP et le port sur lesquels le proxy écoutera les connexions entrantes...",
+  "source": "https://docs.haproxy.org/3.2/intro.html",
+  "title": "3.1. What HAProxy is and isn't",
+  "content": "HAProxy is a TCP proxy : it can accept a TCP connection from a listening socket..."
+}
+```
+
+## 🤝 Contribution
+
+Les contributions sont les bienvenues ! Voici comment vous pouvez contribuer :
+
+1. Fork du projet
+2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/NouvelleFonctionnalite`)
+3. Committez vos changements (`git commit -m 'Ajouter une nouvelle fonctionnalité'`)
+4. Poussez vers la branche (`git push origin feature/NouvelleFonctionnalite`)
+5. Ouvrez une Pull Request
+
+## 📄 Licence
+
+Ce projet est distribué sous la licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+
+## 🙏 Remerciements
+
+- [HAProxy Technologies](https://www.haproxy.com/) pour la documentation ouverte
+- [Ollama](https://ollama.com/) pour les modèles LLM accessibles localement
+- [Google Colab](https://colab.research.google.com/) pour l'infrastructure de fine-tuning
+- [Hugging Face](https://huggingface.co/) pour les bibliothèques de machine learning

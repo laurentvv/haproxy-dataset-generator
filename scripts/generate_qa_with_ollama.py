@@ -74,6 +74,8 @@ Format de réponse:
                     except UnicodeEncodeError:
                         print(print_safe.encode('ascii', errors='replace').decode('ascii'))
                 qa_pair['source'] = section.get('url', '')
+                qa_pair['title'] = section.get('title', '')
+                qa_pair['content'] = section.get('content', '')
                 return qa_pair
 
         # Si on ne peut pas parser le JSON, retourner une version structurée
@@ -86,7 +88,9 @@ Format de réponse:
         return {
             "question": f"Quelles sont les informations importantes dans la section '{section['title']}'?",
             "response": content[:500] + "..." if len(content) > 500 else content,
-            "source": section.get('url', '')
+            "source": section.get('url', ''),
+            "title": section.get('title', ''),
+            "content": section.get('content', '')
         }
 
     except json.JSONDecodeError:
