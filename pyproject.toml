@@ -1,28 +1,38 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "haproxy-dataset-generator"
+name = "haproxy-chatbot"
 version = "0.1.0"
-description = "Pipeline to create a Q/A dataset from HAProxy docs using a local LLM."
-authors = [{name = "Author", email = "laurentvv@gmail.com"}]
-readme = "README.md"
-requires-python = ">=3.13"
+description = "Chatbot RAG hybride sur la documentation HAProxy 3.2"
+requires-python = ">=3.11"
+
 dependencies = [
-    "requests",
-    "beautifulsoup4",
-    "ollama"
+    # Core scraping
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+
+    # RAG : index hybride
+    "chromadb>=1.0.0",
+    "rank-bm25>=0.2.2",
+
+    # RAG : reranking
+    "flashrank>=0.2.0",
+
+    # LLM local
+    "ollama>=0.1.7",
+
+    # Interface
+    "gradio>=4.20.0",
+
+    # Utilitaires
+    "numpy>=1.24.0",
 ]
 
-[project.optional-dependencies]
+[project.scripts]
+scrape      = "01_scrape:main"
+ingest      = "02_ingest_v2:main"
+build-index = "03_build_index_v2:main"
+app         = "04_app:main"
+
+[dependency-groups]
 dev = [
-    "pytest>=6.0",
-    "pytest-cov>=2.0",
+    "ipython>=8.0.0",
 ]
-
-[tool.setuptools]
-# This is a script-based project, not a traditional package with modules
-# Don't auto-discover packages that include data/, training/ directories
-packages = []
-py-modules = []

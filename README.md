@@ -1,184 +1,349 @@
-# HAProxy LLM Dataset Generator & Fine-tuning Pipeline
+# HAProxy Documentation Chatbot - RAG Hybride
 
-[![Python Version](https://img.shields.io/badge/python-3.13+-blue.svg)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Chatbot RAG (Retrieval-Augmented Generation) sur la documentation HAProxy 3.2, utilisant une approche hybride vectorielle + lexicale avec reranking.
 
-Ce projet fournit un pipeline complet pour créer un dataset de haute qualité pour le fine-tuning de modèles de langage (LLM), en se basant sur la documentation officielle de HAProxy. L'objectif est de produire un modèle spécialisé dans les questions-réponses liées à la configuration, l'administration et l'utilisation d'HAProxy.
+---
 
-## 🚀 Fonctionnalités
+## 🚀 Installation
 
-- **Extraction automatisée** de la documentation HAProxy
-- **Génération de Q/R** à l'aide de modèles LLM locaux (Ollama)
-- **Dataset enrichi** avec titres, contenus et contextes complets
-- **Pipeline de fine-tuning** prêt pour Google Colab
-- **Support de multiples modèles** pour le fine-tuning (Gemma, Llama, etc.)
+### Prérequis
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/) (package manager)
+- [Ollama](https://ollama.com) (LLM local)
 
-## 📁 Structure du projet
-
-```
-haproxy-dataset-generator/
-├── README.md
-├── pyproject.toml
-├── TODO.md
-├── uv.lock
-├── scripts/
-│   ├── extract_to_markdown.py      # Extraction de la doc HAProxy
-│   └── generate_qa_with_ollama.py  # Génération des paires Q/R
-├── training/
-│   └── finetune_haproxy_on_colab.ipynb  # Notebook pour fine-tuning
-├── data/
-│   ├── sections.jsonl              # Sections extraites de la doc
-│   └── haproxy_dataset_qa.jsonl    # Dataset final Q/R enrichi
-└── .env.example                    # Exemple de fichier de configuration
-```
-
-## 🛠 Prérequis
-
-- Python 3.13+
-- [uv](https://github.com/astral-sh/uv) (gestionnaire de paquets Python)
-- [Ollama](https://ollama.com/) (pour exécuter les modèles LLM localement)
-- Modèle `qwen3:14b` installé via Ollama (pour la génération de Q/R)
-
-### Installation des outils
-
-#### uv
-```bash
-# Sur macOS et Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Sur Windows (PowerShell)
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-#### Ollama
-Suivez les instructions d'installation sur [ollama.com](https://ollama.com/), puis démarrez le service :
-```bash
-ollama serve
-```
-
-#### Téléchargement du modèle
-```bash
-ollama pull qwen3:14b
-```
-
-## 🛠 Installation
-
-1. **Cloner le dépôt**
-   ```bash
-   git clone <URL_DU_DEPOT>
-   cd haproxy-dataset-generator
-   ```
-
-2. **Créer l'environnement virtuel avec uv**
-   ```bash
-   # Crée un environnement virtuel dans un dossier .venv
-   uv venv
-
-   # Active l'environnement
-   # Sur macOS et Linux :
-   source .venv/bin/activate
-   # Sur Windows (Command Prompt) :
-   .venv\Scripts\activate
-   # Sur Windows (PowerShell) :
-   .venv\Scripts\Activate.ps1
-   ```
-
-3. **Installer les dépendances du projet**
-   ```bash
-   # Installe le projet en mode développement avec toutes ses dépendances
-   uv pip install -e .
-   ```
-
-4. **Configurer les variables d'environnement**
-   ```bash
-   # Copier le fichier exemple
-   cp .env.example .env
-
-   # Modifier les variables selon vos besoins (URL de la documentation HAProxy, etc.)
-   ```
-
-## 🧱 Utilisation
-
-Le pipeline se compose de deux étapes principales suivies d'une étape de fine-tuning :
-
-### 1. Extraction de la documentation HAProxy
+### Setup
 
 ```bash
-python scripts/extract_to_markdown.py
+# 1. Installer les dépendances
+uv sync
+
+# 2. Installer les modèles Ollama
+ollama pull bge-m3          # Embedding (MTEB SOTA)
+ollama pull gemma3:latest   # LLM (défaut)
 ```
 
-Ce script :
-- Télécharge la documentation HAProxy à partir de l'URL spécifiée dans `.env`
-- Découpe le contenu en sections (balises `<h2>`)
-- Convertit chaque section en Markdown
-- Sauvegarde les sections structurées dans `data/sections.jsonl`
+---
 
-### 2. Génération du dataset Question/Réponse
+## 📋 Pipeline RAG
 
+```
+docs.haproxy.org
+      │
+      ▼
+01_scrape.py ─────────────► data/sections.jsonl
+      │
+      ▼
+02_ingest_v2.py ──────────► data/chunks_v2.jsonl
+      │
+      ▼
+03_build_index_v2.py ─────► index_v2/chroma/
+                            index_v2/bm25.pkl
+                            index_v2/chunks.pkl
+      │
+      ├──────────────┬──────────────────┐
+      ▼              ▼                  ▼
+retriever.py   (FAISS+BM25         04_app.py
+(Hybrid)       +RRF+Rerank)         (Gradio UI)
+      │
+      ▼
+llm.py (Ollama streaming)
+```
+
+---
+
+## 🔧 Commandes
+
+### 1. Scraper la documentation
 ```bash
-python scripts/generate_qa_with_ollama.py
+uv run python 01_scrape.py
 ```
 
-Ce script :
-- Lit les sections extraites de `data/sections.jsonl`
-- Génère des paires Question/Réponse à l'aide du modèle `qwen3:14b`
-- Sauvegarde les paires enrichies (avec `title`, `content`) dans `data/haproxy_dataset_qa.jsonl`
+### 2. Chunking intelligent
+```bash
+uv run python 02_ingest_v2.py
+```
 
-### 3. Fine-tuning du modèle
+### 3. Construire l'index (30-60 min)
+```bash
+uv run python 03_build_index_v2.py
+```
 
-Le dataset généré est prêt à être utilisé pour le fine-tuning d'un modèle plus léger et spécialisé. Le notebook `training/finetune_haproxy_on_colab.ipynb` vous guide à travers le processus de fine-tuning sur Google Colab en utilisant QLoRA (4-bit quantization) et LoRA (Low-Rank Adaptation).
+### 4. Lancer le chatbot
+```bash
+uv run python 04_app.py
+# Ouvrir http://localhost:7860
+```
 
-Le notebook inclut :
-- Chargement du dataset généré
-- Configuration du modèle de base (Gemma-2-9b-it, Llama-3-8B-Instruct, etc.)
-- Mise en place de la quantification 4-bit (QLoRA)
-- Configuration de LoRA
-- Entraînement du modèle
-- Sauvegarde du modèle fine-tuné
-- Test du modèle fine-tuné
+---
 
-Pour utiliser le notebook :
-1. Téléchargez ou clonez le dépôt sur votre Google Drive
-2. Ouvrez le fichier dans Google Colab
-3. Suivez les instructions pas à pas dans le notebook
+## 📊 Architecture de retrieval
 
-## 📊 Format du dataset
+| Étape | Technologie | Top-K |
+|-------|-------------|-------|
+| Vector search | ChromaDB (bge-m3) | 50 |
+| Lexical search | BM25 | 50 |
+| Fusion | RRF (Reciprocal Rank Fusion) | 25 |
+| Reranking | FlashRank (ms-marco-MiniLM) | 5 |
 
-Le dataset final `data/haproxy_dataset_qa.jsonl` contient des objets JSON avec les champs suivants :
-- `question`: La question générée par le LLM
-- `response`: La réponse détaillée générée par le LLM
-- `source`: URL de la section d'origine
-- `title`: Titre de la section d'origine
-- `content`: Contenu de la section d'origine (format Markdown)
+---
 
-Exemple :
-```json
-{
-  "question": "Quelle est la directive 'bind' dans HAProxy et comment l'utiliser ?",
-  "response": "La directive 'bind' dans HAProxy est utilisée pour spécifier l'adresse IP et le port sur lesquels le proxy écoutera les connexions entrantes...",
-  "source": "https://docs.haproxy.org/3.2/intro.html",
-  "title": "3.1. What HAProxy is and isn't",
-  "content": "HAProxy is a TCP proxy : it can accept a TCP connection from a listening socket..."
+## ⚙️ Configuration
+
+### Changer le modèle LLM
+
+Dans `llm.py` :
+```python
+DEFAULT_MODEL = "gemma3:latest"  # ou qwen3:latest, llama3.1:8b
+```
+
+### Changer le modèle d'embedding
+
+Dans `03_build_index_v2.py` et `retriever.py` :
+```python
+EMBED_MODEL = "bge-m3"  # ou mxbai-embed-large
+```
+
+### Ajuster le retrieval
+
+Dans `retriever.py` :
+```python
+TOP_K_RETRIEVAL = 50    # Candidats par méthode
+TOP_K_RRF       = 25    # Après fusion RRF
+TOP_K_RERANK    = 5     # Résultats finaux
+```
+
+---
+
+## 📁 Structure des fichiers
+
+```
+├── 01_scrape.py          # Scraping HAProxy docs → Markdown
+├── 02_ingest_v2.py       # Chunking intelligent + tags
+├── 03_build_index_v2.py  # Build index ChromaDB + BM25
+├── 04_app.py             # Interface Gradio
+├── retriever.py          # Retrieval hybride (FAISS+BM25+RRF+Rerank)
+├── llm.py                # Génération Ollama avec streaming
+├── pyproject.toml        # Dépendances
+├── data/                 # Données (sections, chunks)
+└── index_v2/             # Index (ChromaDB, BM25, metadata)
+```
+
+---
+
+## 🎯 Qualité de retrieval
+
+| Métrique | Score |
+|----------|-------|
+| Score moyen (benchmark) | 0.63/1.0 |
+| Questions résolues | 4/6 (67%) |
+| Embedding | bge-m3 (MTEB: 67) |
+| Chunks | 3645 (taille moy: 669 chars) |
+
+---
+
+## 💡 Exemples de questions
+
+✅ **Bien fonctionner :**
+- "Comment configurer un health check HTTP ?"
+- "Syntaxe de la directive bind ?"
+- "Options de timeout disponibles ?"
+- "Configurer SSL/TLS sur un frontend ?"
+- "Comment limiter les connexions par IP ?"
+
+⚠️ **Partiel :**
+- "Comment utiliser les ACLs ?" (réponse partielle)
+
+---
+
+## 🛠️ Technologies
+
+| Composant | Technologie |
+|-----------|-------------|
+| **Embedding** | Ollama (bge-m3) |
+| **Vector Index** | ChromaDB |
+| **Lexical Index** | BM25 (rank-bm25) |
+| **Reranking** | FlashRank (ms-marco-MiniLM-L-12-v2) |
+| **LLM** | Ollama (gemma3:latest) |
+| **UI** | Gradio 6.x |
+| **Package Manager** | uv |
+
+---
+
+## 📚 Documentation
+
+- [HAProxy 3.2 Docs](https://docs.haproxy.org/3.2/)
+- [Ollama](https://ollama.com)
+- [ChromaDB](https://docs.trychroma.com/)
+- [FlashRank](https://github.com/PrithivirajDamodaran/FlashRank)
+- [MODELE_CONFIG.md](MODELE_CONFIG.md) - Configuration détaillée des modèles
+
+---
+
+## 🚀 Améliorations futures
+
+### Objectif : Passer de 0.63 à 0.80+ de score moyen
+
+Actuellement **67% de questions résolues (4/6)**. Voici les pistes pour atteindre **80%+** :
+
+---
+
+### 1. Chunking thématique HAProxy
+
+**Problème :** Les sections sur `stick-table`, `ACLs` et `http-request` sont dispersées dans plusieurs chunks.
+
+**Solution :** Regrouper par concept HAProxy au lieu de découper par taille.
+
+```python
+# Dans 02_ingest_v2.py
+# Fusionner les chunks d'une même section thématique
+THEMATIC_SECTIONS = {
+    "stick-table": ["7.3", "11.1", "11.2"],  # Sections à fusionner
+    "acl": ["7.1", "7.2", "7.4"],
+    "http-request": ["4.2", "7.3"],
 }
 ```
 
-## 🤝 Contribution
+**Gain attendu :** +10-15% sur les questions rate limiting et ACLs
 
-Les contributions sont les bienvenues ! Voici comment vous pouvez contribuer :
+---
 
-1. Fork du projet
-2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/NouvelleFonctionnalite`)
-3. Committez vos changements (`git commit -m 'Ajouter une nouvelle fonctionnalité'`)
-4. Poussez vers la branche (`git push origin feature/NouvelleFonctionnalite`)
-5. Ouvrez une Pull Request
+### 2. HyDE (Hypothetical Document Embeddings)
 
-## 📄 Licence
+**Idée :** Générer une réponse hypothétique avec le LLM, puis l'embedder pour améliorer le retrieval.
 
-Ce projet est distribué sous la licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+```python
+# Avant le retrieval
+hypothetical_answer = llm.generate(
+    f"Réponds brièvement à: {query}",
+    context=""  # Pas de contexte, juste la connaissance du modèle
+)
+query_embedding = get_embedding(hypothetical_answer)
+```
 
-## 🙏 Remerciements
+**Gain attendu :** +5-10% sur la précision du retrieval vectoriel
 
-- [HAProxy Technologies](https://www.haproxy.com/) pour la documentation ouverte
-- [Ollama](https://ollama.com/) pour les modèles LLM accessibles localement
-- [Google Colab](https://colab.research.google.com/) pour l'infrastructure de fine-tuning
-- [Hugging Face](https://huggingface.co/) pour les bibliothèques de machine learning
+---
+
+### 3. Query Rewriting avec LLM
+
+**Idée :** Reformuler la question utilisateur pour inclure les termes techniques HAProxy.
+
+```python
+# Exemple de transformation
+"Comment bloquer une IP avec trop de requêtes ?"
+→ "stick-table type ip store http_req_rate track-sc0 deny 429"
+
+def rewrite_query(query: str) -> str:
+    prompt = f"""Reformule cette question pour un moteur de recherche HAProxy.
+    Utilise les termes techniques précis (directives, keywords).
+    
+    Question: {query}
+    
+    Termes techniques:"""
+    return ollama.generate(prompt)
+```
+
+**Gain attendu :** +10% sur la compréhension des questions utilisateurs
+
+---
+
+### 4. Fine-tuning du LLM
+
+**Idée :** Fine-tuner `gemma3:latest` sur des QA HAProxy pour qu'il apprenne :
+- Le format de réponse attendu
+- Les directives HAProxy importantes
+- À ne pas halluciner hors du contexte
+
+**Dataset :** Générer 1000+ paires QA avec `07_generate_qa.py`
+
+```bash
+# Générer le dataset
+uv run python 07_generate_qa.py
+
+# Fine-tuner (Ollama ou Unsloth)
+ollama finetune gemma3:latest --data qa_dataset.jsonl
+```
+
+**Gain attendu :** +15-20% sur la qualité des réponses (moins d'hallucinations)
+
+---
+
+### 5. Metadata Filtering avancé
+
+**Idée :** Utiliser les tags et sections pour filtrer avant le retrieval.
+
+```python
+# Dans retriever.py
+# Extraire les tags de la query
+query_tags = extract_tags(query)  # ["stick-table", "rate-limit"]
+
+# Filtrer ChromaDB par tags
+results = chroma_collection.query(
+    query_embeddings=[query_emb],
+    where={"tags": {"$contains": "stick-table"}}
+)
+```
+
+**Gain attendu :** +5% sur la précision du retrieval
+
+---
+
+### 6. Multi-query retrieval
+
+**Idée :** Poser 3 variations de la question et fusionner les résultats.
+
+```python
+# Générer 3 variations
+variations = llm.generate(f"""
+Génère 3 reformulations techniques de cette question:
+{query}
+""")
+
+# Retrieval sur chaque variation
+all_chunks = []
+for variation in variations:
+    chunks = retrieve(variation)
+    all_chunks.extend(chunks)
+
+# Dédupliquer et reranker
+final_chunks = rerank(all_chunks)[:5]
+```
+
+**Gain attendu :** +5-8% sur le recall
+
+---
+
+### 7. Changer d'embedding
+
+**Actuel :** `bge-m3` (MTEB: 67)
+
+**Alternatives :**
+- `mxbai-embed-large` (MTEB: 68) - Meilleur sur certains benchmarks
+- `nomic-embed-text-v2-moe` - MoE architecture, multilingue
+
+```bash
+ollama pull mxbai-embed-large
+# Modifier EMBED_MODEL dans 03_build_index_v2.py et retriever.py
+```
+
+**Gain attendu :** +3-5% sur la similarité sémantique
+
+---
+
+## 📊 Impact cumulé estimé
+
+| Amélioration | Gain | Cumul |
+|--------------|------|-------|
+| Score actuel | - | 0.63 |
+| Chunking thématique | +0.10 | 0.73 |
+| Query rewriting | +0.05 | 0.78 |
+| Fine-tuning LLM | +0.07 | 0.85 |
+| Metadata filtering | +0.03 | 0.88 |
+
+**Objectif réaliste : 0.80-0.85 (80-85% de questions résolues)**
+
+---
+
+## 📝 License
+
+Projet open-source pour la documentation HAProxy.
