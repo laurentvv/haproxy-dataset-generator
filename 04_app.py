@@ -1,5 +1,5 @@
 """
-06_app.py - Interface Gradio : chatbot HAProxy avec RAG hybride
+04_app.py - Interface Gradio : chatbot HAProxy avec RAG hybride
 Lance avec : python 06_app.py
 
 Compatible Gradio 6.x - Format messages: {"role": "...", "content": "..."}
