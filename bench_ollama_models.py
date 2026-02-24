@@ -123,11 +123,27 @@ def get_ollama_url() -> str:
 
 
 def list_available_models() -> list[str]:
-    """Liste les modèles disponibles dans Ollama."""
+    """Liste les modèles disponibles dans Ollama (filtre embedding/OCR)."""
     try:
         response = requests.get(f"{get_ollama_url()}/api/tags", timeout=10)
         response.raise_for_status()
-        return [m["name"] for m in response.json().get("models", [])]
+        all_models = [m["name"] for m in response.json().get("models", [])]
+        
+        # Filtrer les modèles non pertinents
+        filtered_models = []
+        for model in all_models:
+            # Garder lfm2.5-thinking même si contient 'bf16'
+            if "lfm2.5-thinking" in model:
+                filtered_models.append(model)
+                continue
+            
+            # Exclure les patterns non pertinents
+            if any(pattern in model.lower() for pattern in EXCLUDED_PATTERNS):
+                continue
+            
+            filtered_models.append(model)
+        
+        return filtered_models
     except Exception as e:
         print(f"❌ Erreur liste modèles: {e}")
         return []
