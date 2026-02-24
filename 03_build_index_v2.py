@@ -58,20 +58,29 @@ def tokenize_haproxy(text: str) -> list[str]:
 
 
 def get_embedding(text: str) -> list[float]:
+    """Récupère l'embedding via Ollama avec retry et context manager."""
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = requests.post(
+            with requests.post(
                 f"{OLLAMA_URL}/api/embeddings",
                 json={"model": EMBED_MODEL, "prompt": text},
-                timeout=60,
-            )
-            response.raise_for_status()
-            return response.json()["embedding"]
+                timeout=120,
+            ) as response:
+                response.raise_for_status()
+                return response.json()["embedding"]
+        except requests.exceptions.ConnectionError:
+            if attempt == max_retries - 1:
+                raise
+            print(f"   Retry connexion ({attempt+1}/{max_retries})...")
+        except requests.exceptions.Timeout:
+            if attempt == max_retries - 1:
+                raise
+            print(f"   Retry timeout ({attempt+1}/{max_retries})...")
         except Exception as e:
             if attempt == max_retries - 1:
                 raise
-            print(f"   Retry ({attempt+1}/{max_retries})...")
+            print(f"   Retry ({attempt+1}/{max_retries}): {e}")
     return []
 
 

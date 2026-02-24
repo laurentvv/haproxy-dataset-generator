@@ -10,11 +10,14 @@ Pipeline :
   5. Reranking       -> flashrank cross-encoder, top-5 finaux
   6. Seuil confiance -> flag low_confidence si score < 0.25
 """
+import logging
 import os
 import pickle
 import re
 import numpy as np
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 try:
     import chromadb
@@ -181,15 +184,24 @@ def _load_indexes():
 def _get_embedding(text: str) -> list[float] | None:
     """Embedding de la query via Ollama."""
     try:
-        response = req.post(
+        with requests.post(
             f"{OLLAMA_URL}/api/embeddings",
             json={"model": EMBED_MODEL, "prompt": text},
-            timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()["embedding"]
-    except Exception as e:
-        print(f"[ERROR] Embedding query : {e}")
+            timeout=60,
+        ) as response:
+            response.raise_for_status()
+            return response.json()["embedding"]
+    except requests.exceptions.ConnectionError as e:
+        logger.error("Erreur de connexion Ollama pour l'embedding: %s", e)
+        return None
+    except requests.exceptions.Timeout as e:
+        logger.error("Timeout Ollama pour l'embedding: %s", e)
+        return None
+    except requests.exceptions.RequestException as e:
+        logger.error("Erreur requête Ollama pour l'embedding: %s", e)
+        return None
+    except (KeyError, ValueError) as e:
+        logger.error("Erreur parsing réponse Ollama: %s", e)
         return None
 
 

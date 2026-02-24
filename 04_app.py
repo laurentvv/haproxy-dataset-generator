@@ -57,12 +57,63 @@ except ImportError as e:
     raise
 
 
+# ── Sécurité ──────────────────────────────────────────────────────────────────
+# Scripts autorisés pour la réindexation (sécurité)
+ALLOWED_SCRIPTS = frozenset({
+    "01_scrape.py",
+    "02_ingest_v2.py",
+    "03_build_index_v2.py",
+})
+
+# Validation des inputs (sécurité)
+ALLOWED_MODELS = frozenset({
+    "gemma3:latest",
+    "gemma3n:latest",
+    "qwen3:latest",
+    "qwen3:4b",
+    "llama3.1:8b",
+    "lfm2.5-thinking:1.2b-bf16",
+})
+MAX_TOP_K = 20
+MAX_MESSAGE_LENGTH = 2000
+
+
+def validate_script_name(script_name: str) -> bool:
+    """Valide que le script est autorisé et existe."""
+    # Vérifier que le nom est dans la liste blanche
+    if script_name not in ALLOWED_SCRIPTS:
+        return False
+    
+    # Vérifier que le fichier existe dans le répertoire de base
+    script_path = (Path(__file__).parent / script_name).resolve()
+    base_dir = Path(__file__).parent.resolve()
+    
+    # Empêcher les path traversal (../)
+    if not str(script_path).startswith(str(base_dir)):
+        return False
+    
+    return script_path.exists()
+
+
+def validate_inputs(model_name: str, top_k: int, message: str) -> tuple[bool, str]:
+    """Valide les inputs utilisateur."""
+    if model_name not in ALLOWED_MODELS:
+        return False, f"Modèle non autorisé. Modèles disponibles: {', '.join(ALLOWED_MODELS)}"
+    
+    if not isinstance(top_k, int) or not (1 <= top_k <= MAX_TOP_K):
+        return False, f"top_k doit être entre 1 et {MAX_TOP_K}"
+    
+    if not message or not isinstance(message, str):
+        return False, "Message vide ou invalide"
+    
+    if len(message) > MAX_MESSAGE_LENGTH:
+        return False, f"Message trop long (max {MAX_MESSAGE_LENGTH} caractères)"
+    
+    return True, ""
+
+
 # ── CSS personnalisé ──────────────────────────────────────────────────────────
 CUSTOM_CSS = """
-.gradio-container { max-width: 1100px !important; margin: auto; }
-.app-title { text-align: center; padding: 10px 0 5px 0; }
-.app-title h1 { font-size: 1.8em; color: #2c3e50; margin: 0; }
-.app-title p  { color: #7f8c8d; margin: 4px 0 0 0; font-size: 0.9em; }
 .sources-box {
     background: #f8f9fa;
     border: 1px solid #dee2e6;
@@ -87,27 +138,38 @@ CUSTOM_CSS = """
 
 # ── State global ──────────────────────────────────────────────────────────────
 _indexes_loaded = False
+_index_error = None  # Stocke l'erreur de chargement si échec
 _index_lock     = threading.Lock()
 
 
-def ensure_indexes():
+def ensure_indexes() -> tuple[bool, str]:
     """Charge les index une seule fois de manière thread-safe."""
-    global _indexes_loaded
+    global _indexes_loaded, _index_error
+    
     with _index_lock:
-        if not _indexes_loaded:
-            try:
-                logger.info("Tentative de chargement des index...")
-                _load_indexes()
-                _indexes_loaded = True
-                logger.info("✅ Index chargés avec succès")
-                return True, "✅ Index chargés"
-            except FileNotFoundError as e:
-                logger.error("❌ Index introuvables: %s", e)
-                return False, f"❌ Index introuvables: {e}"
-            except Exception as e:
-                logger.error("❌ Erreur chargement index: %s", e)
-                return False, f"❌ Erreur: {e}"
-    return True, "✅ Index déjà chargés"
+        # Déjà chargé avec succès
+        if _indexes_loaded:
+            return True, "✅ Index chargés"
+        
+        # Erreur précédente - ne pas réessayer indéfiniment
+        if _index_error:
+            return False, f"❌ Erreur précédente: {_index_error}"
+        
+        try:
+            logger.info("Tentative de chargement des index...")
+            _load_indexes()
+            _indexes_loaded = True
+            _index_error = None
+            logger.info("✅ Index chargés avec succès")
+            return True, "✅ Index chargés"
+        except FileNotFoundError as e:
+            _index_error = f"Index introuvables: {e}"
+            logger.error("❌ Index introuvables: %s", e)
+            return False, f"❌ {_index_error}"
+        except Exception as e:
+            _index_error = str(e)
+            logger.error("❌ Erreur chargement index: %s", e)
+            return False, f"❌ Erreur: {_index_error}"
 
 
 def format_sources_markdown(sources: list[dict]) -> str:
@@ -182,6 +244,13 @@ def submit_message(
     # Extraire le texte du message (Gradio 6.x format)
     message_text = extract_message_text(message)
     logger.info("submit_message() - message='%s...'", message_text[:30] if message_text else "")
+    
+    # VALIDATION DES INPUTS
+    is_valid, error_msg = validate_inputs(model_name, top_k, message_text)
+    if not is_valid:
+        logger.warning("Validation échouée: %s", error_msg)
+        history.append({"role": "assistant", "content": f"❌ {error_msg}"})
+        return history
 
     if not message_text.strip():
         return history
@@ -283,14 +352,19 @@ def reindex_fn():
 
     logger.info("Début de la réindexation")
 
-    for script in ["01_scrape.py", "02_ingest_v2.py", "03_build_index_v2.py"]:
-        path = Path(__file__).parent / script
-        if not path.exists():
-            yield f"❌ Script introuvable : {script}"
+    # Liste ordonnée des scripts à exécuter
+    scripts = ["01_scrape.py", "02_ingest_v2.py", "03_build_index_v2.py"]
+
+    for script_name in scripts:
+        # VALIDATION DE SÉCURITÉ
+        if not validate_script_name(script_name):
+            yield f"❌ Script non autorisé ou introuvable : {script_name}"
+            logger.error("Tentative d'accès à un script non autorisé: %s", script_name)
             return
 
-        yield f"🔄 {script}..."
-        logger.info("Exécution de %s...", script)
+        path = Path(__file__).parent / script_name
+        yield f"🔄 {script_name}..."
+        logger.info("Exécution de %s...", script_name)
 
         try:
             result = subprocess.run(
@@ -299,19 +373,24 @@ def reindex_fn():
                 text=True,
                 cwd=str(Path(__file__).parent),
                 timeout=300,
+                check=False,  # Ne lève pas d'exception automatiquement
             )
         except subprocess.TimeoutExpired:
-            yield f"❌ Timeout pour {script}"
+            yield f"❌ Timeout pour {script_name}"
+            logger.error("Timeout pendant l'exécution de %s", script_name)
             return
         except Exception as e:
-            yield f"❌ Erreur pour {script}: {e}"
+            yield f"❌ Erreur pour {script_name}: {e}"
+            logger.error("Erreur pendant l'exécution de %s: %s", script_name, e)
             return
 
         if result.returncode != 0:
-            yield f"❌ Erreur dans {script}:\n{result.stderr[:500]}"
+            error_msg = result.stderr[:500] if result.stderr else "Erreur inconnue"
+            yield f"❌ Erreur dans {script_name}:\n{error_msg}"
+            logger.error("Échec de %s: %s", script_name, error_msg)
             return
 
-        yield f"✅ {script} terminé"
+        yield f"✅ {script_name} terminé"
 
     global _indexes_loaded
     _indexes_loaded = False
