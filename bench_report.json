@@ -1,0 +1,352 @@
+{
+  "timestamp": "2026-02-24 22:59:00",
+  "models_tested": 5,
+  "ranking_quality": [
+    {
+      "model": "gemma3:latest",
+      "avg_quality": 0.96,
+      "avg_time": 8.09,
+      "tokens_per_sec": 50.6
+    },
+    {
+      "model": "gemma3n:latest",
+      "avg_quality": 0.96,
+      "avg_time": 23.83,
+      "tokens_per_sec": 20.8
+    },
+    {
+      "model": "qwen3:latest",
+      "avg_quality": 0.96,
+      "avg_time": 92.32,
+      "tokens_per_sec": 8.7
+    },
+    {
+      "model": "lfm2.5-thinking:1.2b-bf16",
+      "avg_quality": 0.72,
+      "avg_time": 8.52,
+      "tokens_per_sec": 83.8
+    },
+    {
+      "model": "hf.co/tantk/Nanbeige4.1-3B-GGUF:Q4_K_M",
+      "avg_quality": 0.2,
+      "avg_time": 28.64,
+      "tokens_per_sec": 35.8
+    }
+  ],
+  "ranking_speed": [
+    {
+      "model": "lfm2.5-thinking:1.2b-bf16",
+      "tokens_per_sec": 83.8,
+      "avg_quality": 0.72
+    },
+    {
+      "model": "gemma3:latest",
+      "tokens_per_sec": 50.6,
+      "avg_quality": 0.96
+    },
+    {
+      "model": "hf.co/tantk/Nanbeige4.1-3B-GGUF:Q4_K_M",
+      "tokens_per_sec": 35.8,
+      "avg_quality": 0.2
+    },
+    {
+      "model": "gemma3n:latest",
+      "tokens_per_sec": 20.8,
+      "avg_quality": 0.96
+    },
+    {
+      "model": "qwen3:latest",
+      "tokens_per_sec": 8.7,
+      "avg_quality": 0.96
+    }
+  ],
+  "all_results": [
+    {
+      "model": "gemma3:latest",
+      "results": [
+        {
+          "question_id": "healthcheck",
+          "answer": "Pour configurer un health check HTTP dans HAProxy, vous utilisez l'option `httpchk`. Voici la syntaxe et un exemple :\n\n**Syntaxe:**\n\n```\noption httpchk [<method> <uri> [<version>]]\n```\n\n*   `<method>`...",
+          "answer_length": 1134,
+          "elapsed": 7.6776041984558105,
+          "tokens": 365,
+          "tokens_per_sec": 47.54,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "option httpchk",
+            "check",
+            "GET",
+            "server"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "bind",
+          "answer": "La syntaxe de la directive `bind` est la suivante :\n\n```\nbind [ip_addr]:port [ssl crt /path/to/cert.pem]\n```\n\n*   `ip_addr`: L'adresse IP à laquelle le frontend écoute.  Vous pouvez utiliser `*` pour ...",
+          "answer_length": 559,
+          "elapsed": 5.168645858764648,
+          "tokens": 182,
+          "tokens_per_sec": 35.21,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "bind",
+            "port",
+            "ssl",
+            "crt",
+            "frontend"
+          ],
+          "quality_score": 1.0
+        },
+        {
+          "question_id": "stick_table",
+          "answer": "Pour limiter les connexions par IP en utilisant `stick-table`, vous pouvez suivre ces étapes :\n\n1.  **Déclarez la `stick-table` :**  Utilisez la commande `stick-table` pour créer la table.  Spécifiez ...",
+          "answer_length": 2223,
+          "elapsed": 11.422215700149536,
+          "tokens": 680,
+          "tokens_per_sec": 59.53,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "stick-table",
+            "conn_rate",
+            "track-sc",
+            "deny",
+            "ip"
+          ],
+          "quality_score": 1.0
+        }
+      ],
+      "stats": {
+        "avg_quality": 0.96,
+        "avg_time": 8.09,
+        "avg_tokens_per_sec": 50.6,
+        "total_tokens": 1227,
+        "total_time": 24.27
+      }
+    },
+    {
+      "model": "gemma3n:latest",
+      "results": [
+        {
+          "question_id": "healthcheck",
+          "answer": "Pour configurer un health check HTTP dans HAProxy 3.2, vous devez utiliser l'option `httpchk`. Voici comment procéder, avec un exemple :\n\n**Syntaxe générale :**\n\n```\noption httpchk [<method> <uri> [<v...",
+          "answer_length": 1836,
+          "elapsed": 26.488548755645752,
+          "tokens": 548,
+          "tokens_per_sec": 20.69,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "option httpchk",
+            "check",
+            "GET",
+            "server"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "bind",
+          "answer": "La syntaxe de la directive `bind` est la suivante :\n\n```\nbind [ip_addr]:port [ssl crt /path/to/cert.pem]\n```\n\nElle permet de définir l'adresse IP et le port sur lesquels HAProxy doit écouter les conne...",
+          "answer_length": 467,
+          "elapsed": 9.767583847045898,
+          "tokens": 145,
+          "tokens_per_sec": 14.85,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "bind",
+            "port",
+            "ssl",
+            "crt",
+            "frontend"
+          ],
+          "quality_score": 1.0
+        },
+        {
+          "question_id": "stick_table",
+          "answer": "Pour limiter les connexions par IP avec stick-table dans HAProxy 3.2, vous pouvez utiliser la directive `stick-table` en combinaison avec `http-request deny` et un stick table qui suit le nombre de co...",
+          "answer_length": 2682,
+          "elapsed": 35.219372272491455,
+          "tokens": 793,
+          "tokens_per_sec": 22.52,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "stick-table",
+            "conn_rate",
+            "track-sc",
+            "deny",
+            "ip"
+          ],
+          "quality_score": 1.0
+        }
+      ],
+      "stats": {
+        "avg_quality": 0.96,
+        "avg_time": 23.83,
+        "avg_tokens_per_sec": 20.8,
+        "total_tokens": 1486,
+        "total_time": 71.48
+      }
+    },
+    {
+      "model": "qwen3:latest",
+      "results": [
+        {
+          "question_id": "healthcheck",
+          "answer": "### Configuration d'un health check HTTP dans HAProxy\n\n#### 1. **Activer le health check HTTP**\nUtilisez l'option `option httpchk` dans le bloc `backend` pour définir la méthode, l'URI et la version H...",
+          "answer_length": 1520,
+          "elapsed": 107.72743153572083,
+          "tokens": 943,
+          "tokens_per_sec": 8.75,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "option httpchk",
+            "check",
+            "GET",
+            "server"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "bind",
+          "answer": "La syntaxe de la directive `bind` dans HAProxy est la suivante :\n\n```\nbind [ip_addr]:port [ssl crt /path/to/cert.pem]\n```\n\n### Explication :\n- **`ip_addr`** : Adresse IP de liaison (peut être `*` pour...",
+          "answer_length": 631,
+          "elapsed": 51.2980751991272,
+          "tokens": 450,
+          "tokens_per_sec": 8.77,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "bind",
+            "port",
+            "ssl",
+            "crt",
+            "frontend"
+          ],
+          "quality_score": 1.0
+        },
+        {
+          "question_id": "stick_table",
+          "answer": "Pour limiter les connexions par IP avec `stick-table` dans HAProxy 3.2, suivez ces étapes :\n\n### 1. **Déclarer le `stick-table`**\nUtilisez la syntaxe `stick-table` pour définir un tableau de suivi.  \n...",
+          "answer_length": 1768,
+          "elapsed": 117.9243414402008,
+          "tokens": 1024,
+          "tokens_per_sec": 8.68,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "stick-table",
+            "conn_rate",
+            "track-sc",
+            "deny",
+            "ip"
+          ],
+          "quality_score": 1.0
+        }
+      ],
+      "stats": {
+        "avg_quality": 0.96,
+        "avg_time": 92.32,
+        "avg_tokens_per_sec": 8.7,
+        "total_tokens": 2417,
+        "total_time": 276.95
+      }
+    },
+    {
+      "model": "hf.co/tantk/Nanbeige4.1-3B-GGUF:Q4_K_M",
+      "results": [
+        {
+          "question_id": "healthcheck",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 27.2502658367157,
+          "tokens": 1024,
+          "tokens_per_sec": 37.58,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        },
+        {
+          "question_id": "bind",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 31.580435037612915,
+          "tokens": 1024,
+          "tokens_per_sec": 32.43,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        },
+        {
+          "question_id": "stick_table",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 27.077364921569824,
+          "tokens": 1024,
+          "tokens_per_sec": 37.82,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        }
+      ],
+      "stats": {
+        "avg_quality": 0.2,
+        "avg_time": 28.64,
+        "avg_tokens_per_sec": 35.8,
+        "total_tokens": 3072,
+        "total_time": 85.91
+      }
+    },
+    {
+      "model": "lfm2.5-thinking:1.2b-bf16",
+      "results": [
+        {
+          "question_id": "healthcheck",
+          "answer": "Pour configurer un health check HTTP dans HAProxy 3.2, utilisez l'option `option httpchk` avec le protocole GET sur l'URI spécifiée. Par exemple, pour vérifier le statut d'un serveur :  \n`option httpc...",
+          "answer_length": 580,
+          "elapsed": 8.134527683258057,
+          "tokens": 655,
+          "tokens_per_sec": 80.52,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "option httpchk",
+            "check",
+            "GET",
+            "server"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "bind",
+          "answer": "La directive **bind** permet de spécifier une adresse IP et un port pour un serveur. Sa syntaxe est :  \n`bind <IP_ADDRESS>:<PORT>`.  \nPar exemple : `bind 192.168.1.1:8080` crée un serveur écoutant sur...",
+          "answer_length": 293,
+          "elapsed": 9.926352262496948,
+          "tokens": 888,
+          "tokens_per_sec": 89.46,
+          "keyword_score": 0.4,
+          "found_keywords": [
+            "bind",
+            "port"
+          ],
+          "quality_score": 0.64
+        },
+        {
+          "question_id": "stick_table",
+          "answer": "Pour limiter les connexions par IP avec un stick-table, utilisez la configuration suivante :  \nstick-table type ip size 100k expire 60s store conn_limit(10). Cela enregistre le nombre maximal de conne...",
+          "answer_length": 291,
+          "elapsed": 7.501908302307129,
+          "tokens": 599,
+          "tokens_per_sec": 79.85,
+          "keyword_score": 0.4,
+          "found_keywords": [
+            "stick-table",
+            "ip"
+          ],
+          "quality_score": 0.64
+        }
+      ],
+      "stats": {
+        "avg_quality": 0.72,
+        "avg_time": 8.52,
+        "avg_tokens_per_sec": 83.8,
+        "total_tokens": 2142,
+        "total_time": 25.56
+      }
+    }
+  ]
+}

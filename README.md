@@ -344,6 +344,39 @@ ollama pull mxbai-embed-large
 
 ---
 
+## 🧪 Benchmark des modèles Ollama
+
+Un script de benchmark est inclus pour comparer les modèles Ollama :
+
+```bash
+uv run python bench_ollama_models.py
+```
+
+### Résultats du benchmark (5 modèles testés)
+
+| Rang | Modèle | Qualité | Vitesse | Temps | Recommandation |
+|------|--------|---------|---------|-------|----------------|
+| 🥇 | **gemma3:latest** | **0.96/1.0** | 50.6 tok/s | 8s | ✅ **MEILLEUR** |
+| 🥇 | gemma3n:latest | 0.96/1.0 | 20.8 tok/s | 24s | ⚠️ Lent |
+| 🥇 | qwen3:latest | 0.96/1.0 | 8.7 tok/s | 92s | ⚠️ Très lent |
+| 4️⃣ | lfm2.5-thinking:1.2b-bf16 | 0.72/1.0 | **83.8 tok/s** | 8s | ⚡ Rapide |
+| 5️⃣ | Nanbeige4.1-3B-GGUF | 0.20/1.0 | 35.8 tok/s | 29s | ❌ À éviter |
+
+### 🏆 Recommandations
+
+| Catégorie | Modèle | Pourquoi |
+|-----------|--------|----------|
+| ✅ **Meilleure qualité** | `gemma3:latest` | 0.96/1.0 + rapide (50 tok/s) |
+| ⚡ **Meilleure vitesse** | `lfm2.5-thinking:1.2b-bf16` | 83.8 tok/s + correct (0.72) |
+| 🎯 **Meilleur compromis** | **`gemma3:latest`** | Qualité max + vitesse correcte |
+
+### ⚠️ Modèles à éviter
+
+- **Nanbeige4.1-3B-GGUF** : Qualité 0.20/1.0 (réponses vides)
+- **qwen3:latest** : Très lent (92s vs 8s pour gemma3)
+
+---
+
 ## 📝 License
 
 Projet open-source pour la documentation HAProxy.

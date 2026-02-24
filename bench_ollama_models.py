@@ -56,18 +56,17 @@ TEST_QUESTIONS = [
 # ── Modèles à tester ──────────────────────────────────────────────────────────
 # Modèles de génération de texte (pas d'embedding, pas d'OCR, pas de vision)
 DEFAULT_MODELS = [
-    "gemma3:latest",      # 3.3 GB - Bon équilibre qualité/vitesse
-    "gemma3n:latest",     # 7.5 GB - Nouveau gemma (plus grand)
-    "qwen3:latest",       # 5.2 GB - Excellent en français
-    "qwen3-vl:4b",        # 3.3 GB - Version 4B (vision mais marche pour texte)
-    "lfm2.5-thinking:1.2b-bf16",  # 2.3 GB - Petit mais rapide
+    "gemma3:latest",                    # 3.3 GB - Bon équilibre qualité/vitesse
+    "gemma3n:latest",                   # 7.5 GB - Nouveau gemma (plus grand)
+    "qwen3:latest",                     # 5.2 GB - Excellent en français
+    "hf.co/tantk/Nanbeige4.1-3B-GGUF:Q4_K_M",  # 2.4 GB - Modèle GGUF compact
+    "lfm2.5-thinking:1.2b-bf16",        # 2.3 GB - Petit mais rapide
 ]
 
 # Modèles à exclure (embedding, OCR, etc.)
 EXCLUDED_PATTERNS = [
     "embed",        # bge-m3, mxbai-embed, qwen3-embedding, nomic-embed
     "ocr",          # glm-ocr
-    "bf16",         # Versions brutes non optimisées (sauf lfm2.5)
 ]
 
 
@@ -191,6 +190,11 @@ def load_model(model_name: str) -> bool:
         return False
 
 
+def is_gguf_model(model_name: str) -> bool:
+    """Vérifie si le modèle est au format GGUF."""
+    return "GGUF" in model_name or "gguf" in model_name.lower()
+
+
 def benchmark_model(
     model_name: str,
     questions: list[dict],
@@ -230,25 +234,48 @@ def benchmark_model(
         start_time = time.time()
         
         try:
-            response = requests.post(
-                f"{get_ollama_url()}/api/chat",
-                json={
-                    "model": model_name,
-                    "messages": messages,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.1,
-                        "top_p": 0.9,
-                        "repeat_penalty": 1.1,
-                        "num_predict": 1024,
+            # Les modèles GGUF utilisent l'endpoint /api/generate
+            if is_gguf_model(model_name):
+                # Construire un prompt simple pour GGUF
+                prompt = f"System: {SYSTEM_PROMPT}\n\nUser: {question}\n\nAssistant:"
+                response = requests.post(
+                    f"{get_ollama_url()}/api/generate",
+                    json={
+                        "model": model_name,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.1,
+                            "top_p": 0.9,
+                            "repeat_penalty": 1.1,
+                            "num_predict": 1024,
+                        },
                     },
-                },
-                timeout=300,
-            )
-            response.raise_for_status()
-            
-            response_data = response.json()
-            answer = response_data["message"]["content"]
+                    timeout=300,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+                answer = response_data.get("response", "")
+            else:
+                # Format standard pour les modèles natifs Ollama
+                response = requests.post(
+                    f"{get_ollama_url()}/api/chat",
+                    json={
+                        "model": model_name,
+                        "messages": messages,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.1,
+                            "top_p": 0.9,
+                            "repeat_penalty": 1.1,
+                            "num_predict": 1024,
+                        },
+                    },
+                    timeout=300,
+                )
+                response.raise_for_status()
+                response_data = response.json()
+                answer = response_data["message"]["content"]
             
             # Stats
             elapsed = time.time() - start_time
