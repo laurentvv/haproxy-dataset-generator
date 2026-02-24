@@ -451,7 +451,7 @@ def retrieve(
     print(f"[DEBUG] Seuil de confiance: {CONFIDENCE_THRESHOLD}")
     print(f"[DEBUG] Meilleur score de rerank: {best_score:.4f}")
     print(f"[DEBUG] low_confidence: {low_confidence}")
-    if verbose or True:
+    if verbose:
         print(f"[DEBUG] Scores de rerank pour tous les chunks:")
         for i, chunk in enumerate(final):
             score = chunk.get("rerank_score", 0)
