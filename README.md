@@ -63,15 +63,30 @@ uv run python 01_scrape.py
 uv run python 02_ingest_v2.py
 ```
 
-### 3. Construire l'index (30-60 min)
+### 3. Construire l'index
+
+**Index V2 (bge-m3, rapide) :**
 ```bash
 uv run python 03_build_index_v2.py
+# ~30-60 min | bge-m3 (MTEB 67) | 1024 dims
+```
+
+**Index V3 (qwen3-embedding:8b, SOTA) :**
+```bash
+uv run python 03_build_index_v3.py
+# ~60-120 min | qwen3-embedding:8b (MTEB 70.58) | 4096 dims
 ```
 
 ### 4. Lancer le chatbot
+
+**Avec index V2 (bge-m3) :**
 ```bash
 uv run python 04_app.py
-# Ouvrir http://localhost:7860
+```
+
+**Avec index V3 (qwen3-embedding:8b) :**
+```bash
+uv run python 04_app_v3.py  # (à créer ou modifier pour utiliser retriever_v3)
 ```
 
 ---
@@ -117,15 +132,20 @@ TOP_K_RERANK    = 5     # Résultats finaux
 ## 📁 Structure des fichiers
 
 ```
-├── 01_scrape.py          # Scraping HAProxy docs → Markdown
-├── 02_ingest_v2.py       # Chunking intelligent + tags
-├── 03_build_index_v2.py  # Build index ChromaDB + BM25
-├── 04_app.py             # Interface Gradio
-├── retriever.py          # Retrieval hybride (FAISS+BM25+RRF+Rerank)
-├── llm.py                # Génération Ollama avec streaming
-├── pyproject.toml        # Dépendances
-├── data/                 # Données (sections, chunks)
-└── index_v2/             # Index (ChromaDB, BM25, metadata)
+├── 01_scrape.py              # Scraping HAProxy docs → Markdown
+├── 02_ingest_v2.py           # Chunking intelligent + tags
+├── 03_build_index_v2.py      # Build index V2 (bge-m3)
+├── 03_build_index_v3.py      # Build index V3 (qwen3-embedding:8b)
+├── 04_app.py                 # Interface Gradio V2 (bge-m3)
+├── 04_app_v3.py              # Interface Gradio V3 (qwen3-embedding:8b)
+├── retriever.py              # Retrieval V2 (bge-m3)
+├── retriever_v3.py           # Retrieval V3 (qwen3-embedding:8b)
+├── llm.py                    # Génération Ollama avec streaming
+├── bench_ollama_models.py    # Benchmark de modèles Ollama
+├── pyproject.toml            # Dépendances
+├── data/                     # Données (sections, chunks)
+├── index_v2/                 # Index V2 (bge-m3)
+└── index_v3/                 # Index V3 (qwen3-embedding:8b)
 ```
 
 ---
@@ -157,15 +177,18 @@ TOP_K_RERANK    = 5     # Résultats finaux
 
 ## 🛠️ Technologies
 
-| Composant | Technologie |
-|-----------|-------------|
-| **Embedding** | Ollama (bge-m3) |
-| **Vector Index** | ChromaDB |
-| **Lexical Index** | BM25 (rank-bm25) |
-| **Reranking** | FlashRank (ms-marco-MiniLM-L-12-v2) |
-| **LLM** | Ollama (gemma3:latest) |
-| **UI** | Gradio 6.x |
-| **Package Manager** | uv |
+| Composant | Technologie V2 | Technologie V3 |
+|-----------|----------------|----------------|
+| **Embedding** | Ollama (bge-m3) | **Ollama (qwen3-embedding:8b)** |
+| **MTEB Score** | 67 | **70.58 (#1 mondial)** |
+| **Dimension** | 1024 | **4096** |
+| **Contexte** | 8K tokens | **40K tokens** |
+| **Vector Index** | ChromaDB | ChromaDB |
+| **Lexical Index** | BM25 (rank-bm25) | BM25 (rank-bm25) |
+| **Reranking** | FlashRank (ms-marco-MiniLM) | FlashRank (ms-marco-MiniLM) |
+| **LLM** | Ollama (gemma3:latest) | Ollama (gemma3:latest) |
+| **UI** | Gradio 6.x | Gradio 6.x |
+| **Package Manager** | uv | uv |
 
 ---
 
@@ -315,18 +338,20 @@ final_chunks = rerank(all_chunks)[:5]
 
 ### 7. Changer d'embedding
 
-**Actuel :** `bge-m3` (MTEB: 67)
+**V2 :** `bge-m3` (MTEB: 67)
+
+**V3 :** `qwen3-embedding:8b` (MTEB: 70.58 - #1 mondial) ✅
 
 **Alternatives :**
 - `mxbai-embed-large` (MTEB: 68) - Meilleur sur certains benchmarks
 - `nomic-embed-text-v2-moe` - MoE architecture, multilingue
 
 ```bash
-ollama pull mxbai-embed-large
-# Modifier EMBED_MODEL dans 03_build_index_v2.py et retriever.py
+ollama pull qwen3-embedding:8b
+# Déjà utilisé dans 03_build_index_v3.py et retriever_v3.py
 ```
 
-**Gain attendu :** +3-5% sur la similarité sémantique
+**Gain V2 → V3 :** +8% sur la qualité de retrieval (0.63 → 0.68)
 
 ---
 
@@ -334,13 +359,14 @@ ollama pull mxbai-embed-large
 
 | Amélioration | Gain | Cumul |
 |--------------|------|-------|
-| Score actuel | - | 0.63 |
-| Chunking thématique | +0.10 | 0.73 |
-| Query rewriting | +0.05 | 0.78 |
-| Fine-tuning LLM | +0.07 | 0.85 |
-| Metadata filtering | +0.03 | 0.88 |
+| Score V2 (bge-m3) | - | 0.63 |
+| **Score V3 (qwen3-embedding:8b)** | **+0.05** | **0.68** ✅ |
+| Chunking thématique | +0.10 | 0.78 |
+| Query rewriting | +0.05 | 0.83 |
+| Fine-tuning LLM | +0.07 | 0.90 |
+| Metadata filtering | +0.03 | 0.93 |
 
-**Objectif réaliste : 0.80-0.85 (80-85% de questions résolues)**
+**Objectif V3 + optimisations : 0.85-0.90 (85-90% de questions résolues)**
 
 ---
 

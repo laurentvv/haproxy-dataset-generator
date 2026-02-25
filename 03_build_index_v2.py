@@ -37,7 +37,7 @@ import requests
 
 # Config
 OLLAMA_URL   = "http://localhost:11434"
-EMBED_MODEL  = "bge-m3"  # Meilleur modèle embedding pour RAG (MTEB SOTA)
+EMBED_MODEL  = "qwen3-embedding:8b"  # MTEB #1 mondial (70.58) - 40K context
 CHUNKS_PATH  = Path("data/chunks_v2.jsonl")
 INDEX_DIR    = Path("index_v2")
 CHROMA_DIR   = INDEX_DIR / "chroma"
