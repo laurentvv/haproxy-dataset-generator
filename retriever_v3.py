@@ -356,7 +356,7 @@ def retrieve(
     
     logger.debug("Score V3 (qwen3-embedding:8b): %.4f | low_confidence=%s", best_score, low_confidence)
     
-    if verbose or True:
+    if verbose:
         print(f"[DEBUG V3] Scores de rerank:")
         for i, chunk in enumerate(final):
             score = chunk.get("rerank_score", 0)
