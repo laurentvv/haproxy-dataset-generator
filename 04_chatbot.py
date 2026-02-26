@@ -193,104 +193,60 @@ def build_ui():
         """)
 
         # ── Event wiring ────────────────────────────────────────────────────
-        # Gradio 6.x Chatbot pattern: separate add_user and bot functions
+        # Pattern: user_submit → chatbot update → respond streaming
 
-        def add_user(message, history):
+        def user_submit(message, history):
             """Add user message to history."""
             if not message or not message.strip():
-                return "", history
+                return "", history  # Skip empty
             return "", history + [{"role": "user", "content": message}]
 
-        def bot(history):
-            """Generate response from last user message (streaming)."""
-            if not history:
-                yield history
-                return
-            user_message = history[-1]["content"]
-
-            # Retrieval
-            try:
-                context_str, sources, low_confidence = retrieve_context_string(
-                    user_message, top_k=5
-                )
-            except Exception as e:
-                logger.error("Retrieval error: %s", e)
-                yield history + [{"role": "assistant", "content": f"❌ Error: {e}"}]
-                return
-
-            if low_confidence or not context_str:
-                yield history + [{"role": "assistant", "content": FALLBACK_RESPONSE}]
-                return
-
-            # Build LLM history from previous turns
-            llm_history = []
-            for i in range(len(history) - 1):
-                if (
-                    history[i].get("role") == "user"
-                    and history[i + 1].get("role") == "assistant"
-                ):
-                    llm_history.append(
-                        (history[i]["content"], history[i + 1]["content"])
-                    )
-            llm_history = llm_history[-3:]
-
-            # Stream response
-            response = ""
-            history.append({"role": "assistant", "content": "⏳ Thinking..."})
-            yield history
-
-            history.pop()
-            try:
-                for token in generate_response(
-                    question=user_message,
-                    context=context_str,
-                    model=DEFAULT_MODEL,
-                    history=llm_history,
-                    temperature=0.1,
-                ):
-                    response += token
-                    history.append({"role": "assistant", "content": response})
-                    yield history
-
-                # Add sources
-                if sources:
-                    response += "\n\n---\n\n**📚 Sources :**\n"
-                    for i, src in enumerate(sources):
-                        icon = "📝" if src.get("has_code") else "📄"
-                        title = src.get("title", "?")
-                        url = src.get("url", "#")
-                        response += f"{icon} [{i + 1}] [{title}]({url})\n"
-                    history[-1] = {"role": "assistant", "content": response}
-                    yield history
-
-            except Exception as e:
-                logger.error("Generation error: %s", e)
-                yield history + [{"role": "assistant", "content": f"❌ Error: {e}"}]
-
-        # Wire up events
+        # Submit on Enter
         msg.submit(
-            fn=add_user,
+            fn=user_submit,
             inputs=[msg, chatbot],
             outputs=[msg, chatbot],
         ).then(
-            fn=bot,
-            inputs=[chatbot],
+            fn=respond,
+            inputs=[msg, chatbot],
             outputs=[chatbot],
         )
 
+        # Submit on button click
         submit_btn.click(
-            fn=add_user,
+            fn=user_submit,
             inputs=[msg, chatbot],
             outputs=[msg, chatbot],
         ).then(
-            fn=bot,
-            inputs=[chatbot],
+            fn=respond,
+            inputs=[msg, chatbot],
             outputs=[chatbot],
         )
 
+        # Clear history
         clear_btn.click(
             fn=lambda: [],
             outputs=[chatbot],
+        )
+
+        # Examples - AFTER respond is defined
+        gr.Markdown("**💡 Exemples :**")
+        with gr.Row():
+            ex1 = gr.Button("Health check HTTP ?", size="sm", variant="secondary")
+            ex2 = gr.Button("Bind SSL ?", size="sm", variant="secondary")
+            ex3 = gr.Button("Limiter IP ?", size="sm", variant="secondary")
+
+        def example_fn(question, history):
+            return "", history + [{"role": "user", "content": question}]
+
+        ex1.click(fn=example_fn, inputs=None, outputs=[msg, chatbot]).then(
+            fn=respond, inputs=[msg, chatbot], outputs=[chatbot]
+        )
+        ex2.click(fn=example_fn, inputs=None, outputs=[msg, chatbot]).then(
+            fn=respond, inputs=[msg, chatbot], outputs=[chatbot]
+        )
+        ex3.click(fn=example_fn, inputs=None, outputs=[msg, chatbot]).then(
+            fn=respond, inputs=[msg, chatbot], outputs=[chatbot]
         )
 
     return demo, custom_css
