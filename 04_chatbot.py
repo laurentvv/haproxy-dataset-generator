@@ -105,6 +105,12 @@ CUSTOM_CSS = """
     gap: 8px !important;
 }
 
+/* ── Sidebar width control ──────────────────────────────────────────── */
+.column[data-testid="column"]:nth-child(1) {
+    max-width: 300px !important;
+    flex: 0 0 300px !important;
+}
+
 /* ── Chatbot en pleine largeur ────────────────────────────────────────── */
 .chatbot-container {
     background: var(--bg-card);
@@ -548,7 +554,7 @@ def build_ui():
         # ── Main layout - HORIZONTAL ───────────────────────────────────
         with gr.Row(equal_height=True):
             # ── Left Sidebar compact ───────────────────────────────────
-            with gr.Column(scale=0, min_width=250, max_width=300):
+            with gr.Column(scale=0, min_width=250):
                 # Configuration
                 with gr.Group():
                     model_dd = gr.Dropdown(
