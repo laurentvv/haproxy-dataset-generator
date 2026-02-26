@@ -1,11 +1,12 @@
 """
-02_chunking.py - Chunking intelligent avec enrichissement semantique
-Entree  : data/sections.jsonl
-Sortie  : data/chunks.jsonl
+02_chunking.py - Chunking intelligent avec propagation metadata
+
+Entree  : data/sections_enriched.jsonl (avec metadata IA)
+Sortie  : data/chunks_v2.jsonl (metadata propagees aux chunks)
 
 Features :
 - Chunking semantique par concepts HAProxy
-- Extraction des directives et keywords
+- Propagation metadata IA (keywords, synonyms, category)
 - Parent section tracking
 - Taille optimale : 300-800 chars
 - Overlap contextuel intelligent
@@ -234,33 +235,40 @@ def build_chunks(sections: list[dict]) -> list[dict]:
     Pipeline complet de chunking intelligent :
     1. Fusion des sections courtes
     2. Découpage sémantique des sections longues
-    3. Enrichissement en métadonnées
+    3. Propagation metadata IA aux chunks
     """
     # Étape 1 : fusionner les sections trop courtes
     sections = merge_short_sections(sections, MIN_CHUNK_CHARS)
     print(f"   Après fusion : {len(sections)} sections")
-    
+
     chunks = []
     chunk_id = 0
-    
+
     for section in sections:
         title = section.get('title', '')
         content = section.get('content', '').strip()
         url = section.get('url', '')
         source = detect_source(url)
         
+        # Récupérer metadata IA (si présentes)
+        metadata = section.get('metadata', {})
+        ia_keywords = metadata.get('keywords', [])
+        ia_synonyms = metadata.get('synonyms', [])
+        ia_category = metadata.get('category', 'general')
+        ia_summary = metadata.get('summary', '')
+
         if not content:
             continue
-        
+
         # Extraire la hiérarchie
         parent_section, current_section = extract_section_hierarchy(title)
-        
+
         # Étape 2 : découpage sémantique
         if len(content) > MAX_CHUNK_CHARS:
             sub_chunks = split_into_semantic_chunks(content, title)
         else:
             sub_chunks = [content]
-        
+
         for idx, chunk_text in enumerate(sub_chunks):
             # Le texte à embedder inclut le titre et le contexte hiérarchique
             context_parts = []
@@ -268,13 +276,19 @@ def build_chunks(sections: list[dict]) -> list[dict]:
                 context_parts.append(f"Section {parent_section}")
             if title:
                 context_parts.append(title)
-            
+
             context_prefix = " | ".join(context_parts) if context_parts else ""
             embed_text = f"{context_prefix}\n\n{chunk_text}" if context_prefix else chunk_text
-            
-            # Extraire les keywords HAProxy
+
+            # Extraire les keywords HAProxy du chunk
             tags = extract_haproxy_keywords(chunk_text)
             
+            # Combiner keywords IA + keywords extraits du chunk
+            chunk_keywords = list(set(
+                [t.split(':')[1] for t in tags if ':' in t] +
+                [kw.lower() for kw in ia_keywords]
+            ))
+
             chunks.append({
                 "id": chunk_id,
                 "title": title,
@@ -289,73 +303,83 @@ def build_chunks(sections: list[dict]) -> list[dict]:
                 "has_code": has_code_block(chunk_text),
                 "char_len": len(chunk_text),
                 "tags": tags,
-                "keywords": list(set([t.split(':')[1] for t in tags if ':' in t])),
+                "keywords": chunk_keywords,
+                # Metadata IA propagées
+                "ia_keywords": ia_keywords,
+                "ia_synonyms": ia_synonyms,
+                "ia_category": ia_category,
+                "ia_summary": ia_summary,
             })
             chunk_id += 1
-    
+
     return chunks
 
 
 def main():
     data_dir = Path("data")
-    input_path = data_dir / "sections.jsonl"
+    input_path = data_dir / "sections_enriched.jsonl"
     output_path = data_dir / "chunks_v2.jsonl"
-    
+
     if not input_path.exists():
-        print(f"❌ {input_path} introuvable. Lance d'abord 01_scrape.py")
+        print(f"[ERREUR] {input_path} introuvable.")
+        print(f"  Lance d'abord : uv run python 01b_enrich_metadata.py")
         return
-    
-    # Charger les sections
+
+    # Charger les sections enrichies
     sections = []
     with open(input_path, encoding='utf-8') as f:
         for line in f:
             line = line.strip()
             if line:
                 sections.append(json.loads(line))
-    
-    print(f"📂 {len(sections)} sections chargées depuis {input_path}")
-    
+
+    print(f"[INFO] {len(sections)} sections enrichies chargees depuis {input_path}")
+
     # Statistiques avant
     lengths_before = [len(s['content']) for s in sections]
     print(f"   Avant | Moy: {sum(lengths_before)//len(lengths_before)} | "
           f"Min: {min(lengths_before)} | Max: {max(lengths_before)}")
-    
+
     # Construire les chunks
     chunks = build_chunks(sections)
-    
+
     # Statistiques après
     lengths_after = [c['char_len'] for c in chunks]
     has_code_count = sum(1 for c in chunks if c['has_code'])
     tags_count = sum(len(c['tags']) for c in chunks)
     
-    print(f"\n📊 Résultat re-chunking V2:")
-    print(f"   Chunks totaux  : {len(chunks)}")
-    print(f"   Avec code      : {has_code_count} ({has_code_count*100//len(chunks)}%)")
-    print(f"   Taille moy.    : {sum(lengths_after)//len(lengths_after)} chars")
-    print(f"   Min / Max      : {min(lengths_after)} / {max(lengths_after)}")
-    print(f"   Tags totaux    : {tags_count} ({tags_count//len(chunks):.1f}/chunk)")
-    
+    # Stats metadata IA
+    chunks_with_ia = sum(1 for c in chunks if c.get('ia_keywords'))
+    total_ia_keywords = sum(len(c.get('ia_keywords', [])) for c in chunks)
+
+    print(f"\n[INFO] Resultat re-chunking V2:")
+    print(f"   Chunks totaux     : {len(chunks)}")
+    print(f"   Avec code         : {has_code_count} ({has_code_count*100//len(chunks)}%)")
+    print(f"   Taille moy.       : {sum(lengths_after)//len(lengths_after)} chars")
+    print(f"   Min / Max         : {min(lengths_after)} / {max(lengths_after)}")
+    print(f"   Tags HAProxy      : {tags_count} ({tags_count//len(chunks):.1f}/chunk)")
+    print(f"   Avec metadata IA  : {chunks_with_ia} ({chunks_with_ia*100//len(chunks)}%)")
+    print(f"   IA keywords tot.  : {total_ia_keywords} ({total_ia_keywords//len(chunks):.1f}/chunk)")
+
     # Distribution des tailles
     small = sum(1 for l in lengths_after if l < 300)
     medium = sum(1 for l in lengths_after if 300 <= l < 600)
     large = sum(1 for l in lengths_after if l >= 600)
-    print(f"   Distribution   : <300: {small} | 300-600: {medium} | >600: {large}")
-    
+    print(f"   Distribution      : <300: {small} | 300-600: {medium} | >600: {large}")
+
     # Sauvegarder
     with open(output_path, 'w', encoding='utf-8') as f:
         for chunk in chunks:
             f.write(json.dumps(chunk, ensure_ascii=False) + '\n')
 
-    print(f"\n✅ {len(chunks)} chunks sauvegardes dans {output_path}")
-    
+    print(f"\n[SUCCESS] {len(chunks)} chunks sauvegardes dans {output_path}")
+
     # Afficher quelques exemples
-    print(f"\n📋 Exemples de chunks:")
+    print(f"\n[EXEMPLES] Quelques chunks:")
     for i in [0, min(5, len(chunks)-1), min(20, len(chunks)-1)]:
         c = chunks[i]
         print(f"\n  Chunk {c['id']}: {c['title'][:50]}")
-        print(f"    Tags: {', '.join(c['tags'][:5]) if c['tags'] else 'aucun'}")
+        print(f"    Tags HAProxy: {', '.join(c['tags'][:5]) if c['tags'] else 'aucun'}")
+        print(f"    IA Keywords: {', '.join(c['ia_keywords'][:5]) if c.get('ia_keywords') else 'aucun'}")
+        print(f"    IA Category: {c.get('ia_category', 'N/A')}")
         print(f"    Len: {c['char_len']} | Code: {c['has_code']}")
-
-
-if __name__ == "__main__":
-    main()

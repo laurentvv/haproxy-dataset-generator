@@ -1,13 +1,15 @@
+#!/usr/bin/env python3
 """
-retriever_v3.py - Retrieval hybride V3 avec qwen3-embedding:8b (MTEB #1 mondial)
+retriever_v3.py - Retrieval hybride V3+ avec metadata IA
 
-Entrée  : index_v3/ (chunks + embeddings qwen3-embedding:8b)
+Entree  : index_v3/ (chunks + embeddings qwen3-embedding:8b + metadata IA)
 Sortie  : context + sources pour LLM
 
-Différences avec V2 :
-- Embedding : qwen3-embedding:8b (MTEB 70.58) au lieu de bge-m3 (MTEB 67)
-- Dimension : 4096 au lieu de 1024
-- Contexte : 40K tokens au lieu de 8K
+Features V3+ :
+- Embedding : qwen3-embedding:8b (MTEB 70.58, 4096 dims)
+- Metadata IA : keywords, synonyms, category (de gemma3:latest)
+- IA Category Filtering pour retrieval cible
+- IA Keyword Boosting pour meilleur ranking
 """
 import logging
 import os
@@ -31,15 +33,18 @@ except ImportError:
 
 try:
     from flashrank import Ranker, RerankRequest
-    FLASHRANK_AVAILABLE = True
+    FLASHRANK_AVAILABLE = True  # Set to False to disable FlashRank
 except ImportError:
     FLASHRANK_AVAILABLE = False
-    logger.warning("flashrank non disponible, reranking désactivé")
+    logger.warning("flashrank non disponible, reranking desactive")
+
+# DEBUG: Forcer sans FlashRank pour tester IA boosting seul
+FLASHRANK_AVAILABLE = False  # Decommenter pour tester sans FlashRank
 
 
 # Config V3
 OLLAMA_URL        = "http://localhost:11434"
-EMBED_MODEL       = "qwen3-embedding:8b"  # MTEB #1 mondial (70.58)
+EMBED_MODEL       = "qwen3-embedding:8b"
 CHROMA_COLLECTION = "haproxy_docs_v3"
 
 INDEX_DIR  = Path("index_v3")
@@ -47,90 +52,219 @@ CHROMA_DIR = INDEX_DIR / "chroma"
 BM25_PATH  = INDEX_DIR / "bm25.pkl"
 CHUNKS_PKL = INDEX_DIR / "chunks.pkl"
 
-TOP_K_RETRIEVAL      = 50  # Candidats par méthode (vector + BM25)
-TOP_K_RRF            = 30  # 25 → 30: plus de candidats après fusion RRF
-TOP_K_RERANK         = 10  # 5 → 10: plus de contexte pour le LLM
-RRF_K                = 60
+TOP_K_RETRIEVAL = 50
+TOP_K_RRF       = 30
+TOP_K_RERANK    = 10
+RRF_K           = 60
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.0"))
 
 
-# ── Metadata Filtering ───────────────────────────────────────────────────────
-# Mapping mots-clés → sections HAProxy pertinentes
+# ── Metadata Filtering V3+ ───────────────────────────────────────────────────
+# Mapping IA (keywords → categories) - ENRICHED WITH SYNONYMS
+# Note: Categories are assigned by IA (gemma3) during indexing
+IA_CATEGORY_HINTS = {
+    # Backend / Server / Load Balancing (related categories)
+    "backend": "backend",
+    "server": "backend",
+    "serveur": "backend",  # French
+    "désactiver": "backend",  # French
+    "desactiver": "backend",  # French sans accents
+    "disable": "backend",
+    "disabled": "backend",
+    "down": "backend",
+    "inactive": "backend",
+    "backup": "backend",
+    "weight": "backend",
+    "balance": "loadbalancing",
+    "roundrobin": "loadbalancing",
+    "leastconn": "loadbalancing",
+    "source": "loadbalancing",
+    "load balancing": "loadbalancing",
+    "loadbalancing": "loadbalancing",
+    
+    # ACL
+    "acl": "acl",
+    "access control": "acl",
+    "condition": "acl",
+    "filter": "acl",
+    
+    # Stick-table
+    "stick-table": "stick-table",
+    "stick table": "stick-table",
+    "stick": "stick-table",
+    "rate limit": "stick-table",
+    "rate": "stick-table",
+    "limit": "stick-table",
+    "track": "stick-table",
+    "track-sc": "stick-table",
+    "conn_rate": "stick-table",
+    "conn_cur": "stick-table",
+    "http_req_rate": "stick-table",
+    "store": "stick-table",
+    "store-request": "stick-table",
+    "store-response": "stick-table",
+    "gpc": "stick-table",
+    "server_id": "stick-table",
+    "expire": "stick-table",
+    "exp": "stick-table",
+    "table": "stick-table",  # stick-table = table de stick
+    
+    # Frontend / Bind
+    "bind": "frontend",
+    "frontend": "frontend",
+    "listen": "frontend",
+    
+    # Timeout
+    "timeout": "timeout",
+    "delai": "timeout",
+    "délai": "timeout",
+    
+    # Healthcheck
+    "health": "healthcheck",
+    "healthcheck": "healthcheck",
+    "check": "healthcheck",
+    "httpchk": "healthcheck",
+    "tcp-check": "healthcheck",
+    
+    # SSL
+    "ssl": "ssl",
+    "tls": "ssl",
+    "certificate": "ssl",
+    "certificat": "ssl",  # French
+    "crt": "ssl",
+    "cafile": "ssl",
+    "ca-file": "ssl",
+    "verify": "ssl",
+    "crl": "ssl",
+    "crl-file": "ssl",
+    "ciphers": "ssl",
+    "client certificate": "ssl",
+    "verify required": "ssl",
+    "verify none": "ssl",
+    "sni": "ssl",
+    "alpn": "ssl",
+    
+    # Logs
+    "log": "logs",
+    "logs": "logs",
+    "logging": "logs",
+    "syslog": "logs",
+    
+    # Stats
+    "stats": "stats",
+    "statistics": "stats",
+    "monitoring": "stats",
+    "surveillance": "stats",  # French
+    "show": "stats",
+    "hide": "stats",
+    "socket": "stats",
+    "uri": "stats",
+    "admin": "stats",
+    
+    # Map / Converters (advanced)
+    "map": "advanced",
+    "maps": "advanced",
+    "converter": "advanced",
+    "converters": "advanced",
+    "convert": "advanced",
+    "lower": "advanced",
+    "upper": "advanced",
+    "lowercase": "advanced",
+    "uppercase": "advanced",
+    "lc": "advanced",
+    "uc": "advanced",
+}
+
+# Mapping sections (legacy - pour retrocompatibilite)
 SECTION_HINTS = {
-    "stick-table": ["11.1", "11.2", "7.3", "11.3"],
-    "stick table": ["11.1", "11.2", "7.3"],
-    "rate limit": ["11.1", "11.2", "7.3", "11.3"],
-    "limiter": ["11.1", "11.2", "7.3"],
-    "connexion": ["11.1", "11.2", "7.3"],
-    "acl": ["7.1", "7.2", "7.3", "7.4", "7.5", "8.1", "8.2"],  # +7.3, 8.1, 8.2
-    "access control": ["7.1", "7.2", "7.4", "8.1"],
-    "condition": ["7.1", "7.2", "7.4", "7.5"],
-    "bind": ["4.2", "5.1", "5.3", "3.1", "4.1"],  # +4.1
-    "directive bind": ["4.2", "5.1", "4.1"],
-    "frontend": ["4.1", "4.2", "5.1", "3.1"],
-    "backend": ["5.1", "5.2", "5.3", "4.1", "4.3", "3.1"],  # +4.1, 4.3, 3.1
-    "server": ["5.2", "5.3", "5.1"],
+    "stick-table": ["11.1", "11.2", "7.3"],
+    "acl": ["7.1", "7.2", "7.3", "7.4"],
+    "bind": ["4.2", "5.1", "5.3"],
+    "backend": ["5.1", "5.2", "5.3"],
+    "server": ["5.2", "5.3"],
     "timeout": ["4.2", "5.2", "5.3"],
-    "delai": ["4.2", "5.2"],
-    "health": ["5.2", "5.3", "3.1"],
-    "check": ["5.2", "5.3", "3.1"],
-    "httpchk": ["5.2", "5.3"],
-    "ssl": ["4.2", "5.1", "5.3", "3.1", "4.1"],
-    "tls": ["4.2", "5.1", "3.1", "4.1"],
-    "certificate": ["4.2", "5.1", "3.1", "4.1"],
-    "crt": ["4.2", "5.1", "3.1", "4.1"],
-    "balance": ["5.1", "5.2", "5.3"],
-    "roundrobin": ["5.1", "5.2"],
-    "leastconn": ["5.1", "5.2"],
-    "source": ["5.1", "5.2"],
-    "listen": ["4.3", "5.1"],
+    "health": ["5.2", "5.3"],
+    "check": ["5.2", "5.3"],
+    "ssl": ["4.2", "5.1", "5.3"],
+    "balance": ["5.1", "5.2"],
 }
 
 
 def extract_section_hints(query: str) -> list[str] | None:
-    """
-    Extrait les sections HAProxy probables de la question.
-    
-    Returns:
-        list de sections (ex: ["5.2", "11.1"]) ou None si pas d'indice clair
-    """
+    """Extrait les sections HAProxy probables."""
     query_lower = query.lower()
     hints = set()
     
-    # Pattern 1: Référence explicite (ex: "section 5.2", "chapitre 11")
-    match = re.search(r"(?:section|chapitre)\s*(\d+(?:\.\d+)?)", query_lower)
     match = re.search(r"(?:section|chapitre)\s*(\d+(?:\.\d+)?)", query_lower)
     if match:
         section = match.group(1)
         if "." not in section:
-            section = f"{section}.0"  # Normaliser "5" → "5.0"
+            section = f"{section}.0"
         hints.add(section)
-        return list(hints)  # Référence explicite = on retourne directement
+        return list(hints)
     
-    # Pattern 2: Mots-clés thématiques
     for keyword, sections in SECTION_HINTS.items():
         if keyword in query_lower:
             hints.update(sections)
     
-    # Si on a trouvé des indices, retourner les sections uniques
     return list(hints) if hints else None
+
+
+def extract_category_hints(query: str) -> str | None:
+    """Extrait la categorie IA probable."""
+    query_lower = query.lower()
+    for keyword, category in IA_CATEGORY_HINTS.items():
+        if keyword in query_lower:
+            return category
+    return None
 
 
 # ── Query Expansion ──────────────────────────────────────────────────────────
 QUERY_EXPANSIONS = {
     "health check": ["health check", "check", "option httpchk", "tcp-check", "inter", "fall", "rise"],
-    "httpchk": ["option httpchk", "http-check", "GET", "HEAD", "uri", "HTTP version"],
-    "bind": ["bind", ":", "port", "ssl", "crt", "key", "cafile", "verify", "alpn"],
-    "connexion par ip": ["stick-table", "src", "conn_rate", "conn_cur", "track-sc", "track-sc0", "deny", "http_req_rate"],
-    "rate limit": ["stick-table", "rate", "limit", "throttle", "deny", "tarpit", "http_req_rate"],
-    "acl": ["acl", "path_beg", "path_end", "hdr", "host", "url", "use_backend", "if"],
+    "httpchk": ["option httpchk", "http-check", "GET", "HEAD", "uri"],
+    "bind": ["bind", "port", "ssl", "crt", "key", "cafile", "verify"],
+    
+    # Stick-table / Rate limiting
+    "rate limit": ["stick-table", "rate", "limit", "deny", "http_req_rate", "conn_rate", "conn_cur", "track-sc", "track-sc0", "track-sc1", "track-sc2"],
+    "stick-table": ["stick-table", "stick table", "stick", "store", "store-request", "store-response", "track-sc", "http_req_rate", "conn_rate", "conn_cur", "gpc0", "gpc1", "server_id"],
+    "stick": ["stick-table", "stick table", "store-request", "store-response", "track-sc", "on", "match"],
+    "rate": ["stick-table", "rate", "limit", "http_req_rate", "conn_rate", "sess_rate", "exp", "expire"],
+    "limit": ["stick-table", "limit", "rate", "deny", "tarpit", "throttle"],
+    "conn_rate": ["stick-table", "conn_rate", "conn_cur", "connection rate", "track-sc", "deny"],
+    "tracker": ["stick-table", "track-sc", "track-sc0", "stick on"],
+    
+    # ACL
+    "acl": ["acl", "path_beg", "path_end", "hdr", "host", "url", "use_backend", "if", "path_reg", "path_sub", "path"],
+    "access control": ["acl", "condition", "filter", "path_beg", "hdr", "deny"],
+    "regex": ["acl", "regex", "regexp", "path_reg", "hdr_reg", "url_reg", "pattern"],
+    "negation": ["acl", "!", "not", "negation", "negated", "unless"],
+    
+    # Timeout
     "timeout": ["timeout", "connect", "client", "server", "http-request", "queue"],
-    "ssl": ["ssl", "tls", "crt", "certificate", "cafile", "verify", "ciphers"],
+    
+    # SSL / TLS
+    "ssl": ["ssl", "tls", "crt", "certificate", "cafile", "verify", "ciphers", "ca-file", "crl-file", "verify required", "verify none"],
+    "tls": ["ssl", "tls", "certificate", "crt", "cafile", "verify"],
+    "certificate": ["ssl", "crt", "certificate", "cafile", "pem", "chain"],
+    "cafile": ["ssl", "cafile", "ca-file", "CA certificate", "verify"],
+    "verify": ["ssl", "verify", "cafile", "verify required", "verify none", "client certificate"],
+    
+    # Stats / Monitoring
+    "stats": ["stats", "statistics", "monitoring", "show", "hide", "uri", "admin", "socket"],
+    "statistics": ["stats", "statistics", "monitoring", "table", "show"],
+    "monitoring": ["stats", "monitoring", "health", "status", "show"],
+    
+    # Map / Converters
+    "map": ["map", "converters", "convert", "lower", "upper", "table", "file"],
+    "converter": ["converters", "convert", "map", "lower", "upper", "str", "int", "ipmask"],
+    "lower": ["converters", "lower", "lc", "lowercase", "string"],
+    "upper": ["converters", "upper", "uc", "uppercase", "string"],
 }
 
 
 def expand_query(query: str) -> list[str]:
-    """Étend la requête avec des synonymes techniques HAProxy."""
+    """Etend la requete avec synonymes techniques."""
     query_lower = query.lower()
     expanded = set()
     
@@ -152,52 +286,42 @@ _chroma_collection = None
 _bm25 = None
 _chunks = None
 _reranker = None
-_index_error = None
 
 
 def _load_indexes():
-    """Charge les index V3 une seule fois."""
-    global _chroma_collection, _bm25, _chunks, _reranker, _index_error
+    """Charge les index V3+."""
+    global _chroma_collection, _bm25, _chunks, _reranker
     
     if _chroma_collection is not None:
         return
     
     if not CHROMA_DIR.exists():
-        raise FileNotFoundError(
-            f"Index V3 manquant : {CHROMA_DIR}\nLance 03_build_index_v3.py"
-        )
+        raise FileNotFoundError(f"Index V3 manquant : {CHROMA_DIR}\nLance 03_indexing.py")
     if not BM25_PATH.exists():
-        raise FileNotFoundError(
-            f"Index BM25 V3 manquant : {BM25_PATH}\nLance 03_build_index_v3.py"
-        )
+        raise FileNotFoundError(f"Index BM25 manquant : {BM25_PATH}\nLance 03_indexing.py")
     if not CHUNKS_PKL.exists():
-        raise FileNotFoundError(
-            f"Chunks V3 manquant : {CHUNKS_PKL}\nLance 03_build_index_v3.py"
-        )
+        raise FileNotFoundError(f"Chunks manquant : {CHUNKS_PKL}\nLance 03_indexing.py")
     
-    logger.info("Chargement des index V3 (qwen3-embedding:8b)...")
+    logger.info("Chargement des index V3+ (qwen3-embedding:8b + metadata IA)...")
     
-    # ChromaDB
     client = chromadb.PersistentClient(
         path=str(CHROMA_DIR),
         settings=Settings(anonymized_telemetry=False),
     )
     _chroma_collection = client.get_collection(CHROMA_COLLECTION)
     
-    # BM25 + chunks
     with open(BM25_PATH, "rb") as f:
         _bm25 = pickle.load(f)
     with open(CHUNKS_PKL, "rb") as f:
         _chunks = pickle.load(f)
     
-    # Reranker
     if FLASHRANK_AVAILABLE:
         import tempfile
         cache_dir = Path(tempfile.gettempdir()) / "flashrank_cache"
         cache_dir.mkdir(parents=True, exist_ok=True)
         _reranker = Ranker(model_name="ms-marco-MiniLM-L-12-v2", cache_dir=str(cache_dir))
     
-    logger.info(f"✅ Index V3 chargés : {len(_chunks)} chunks | ChromaDB: {_chroma_collection.count()} docs")
+    logger.info(f"✅ Index V3+ charges : {len(_chunks)} chunks | ChromaDB: {_chroma_collection.count()} docs")
 
 
 def _get_embedding(text: str) -> list[float] | None:
@@ -210,12 +334,6 @@ def _get_embedding(text: str) -> list[float] | None:
         ) as response:
             response.raise_for_status()
             return response.json()["embedding"]
-    except requests.exceptions.ConnectionError as e:
-        logger.error("Erreur connexion Ollama (embedding): %s", e)
-        return None
-    except requests.exceptions.Timeout as e:
-        logger.error("Timeout Ollama (embedding): %s", e)
-        return None
     except Exception as e:
         logger.error("Erreur embedding: %s", e)
         return None
@@ -234,38 +352,26 @@ def _tokenize(text: str) -> list[str]:
 
 
 def _chroma_search(query_embedding: list[float], top_k: int, query_text: str = "") -> list[tuple[int, float]]:
-    """
-    Recherche vectorielle ChromaDB avec metadata filtering optionnel.
-    
-    Args:
-        query_embedding: Embedding de la requête
-        top_k: Nombre de résultats
-        query_text: Texte de la requête (pour extraire les section hints)
-    """
-    # Extraire les indices de section
-    section_hints = extract_section_hints(query_text) if query_text else None
-    
-    # Construire le filtre metadata
-    where_filter = None
-    if section_hints:
-        where_filter = {"section": {"$in": section_hints}}
-    
+    """Recherche vectorielle ChromaDB SANS filtrage (boosting dans rerank)."""
+    # Pas de filtrage restrictif - on recupere tous les candidats
+    # Le category boosting sera fait dans le reranking
+    # Note: query_text is kept for API compatibility but not used in V3+
+
     results = _chroma_collection.query(
         query_embeddings=[query_embedding],
-        n_results=min(top_k * 2, _chroma_collection.count()),  # Plus de candidats si filtrage
-        where=where_filter,
+        n_results=min(top_k * 2, _chroma_collection.count()),
         include=["distances", "metadatas"],
     )
-
+    
     ids = results["ids"][0]
     distances = results["distances"][0]
-
+    
     output = []
     for chroma_id, dist in zip(ids, distances):
         chunk_idx = int(chroma_id.replace("chunk_", ""))
         similarity = 1.0 - dist
         output.append((chunk_idx, similarity))
-
+    
     return output
 
 
@@ -290,7 +396,7 @@ def _reciprocal_rank_fusion(
     bm25_results: list[tuple[int, float]],
     k: int = RRF_K,
 ) -> list[tuple[int, float]]:
-    """Fusion RRF (Reciprocal Rank Fusion)."""
+    """Fusion RRF."""
     rrf_scores: dict[int, float] = {}
     
     for rank, (chunk_id, _) in enumerate(chroma_results):
@@ -302,17 +408,108 @@ def _reciprocal_rank_fusion(
     return sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
 
 
-def _rerank(query: str, candidates: list[dict]) -> list[dict]:
-    """Reranking avec FlashRank + query expansion."""
+def _rerank(query: str, candidates: list[dict], verbose: bool = False) -> list[dict]:
+    """Reranking avec FlashRank + IA metadata boosting (SOFT)."""
+    
+    # IA Category Boosting and keyword matching (applied even without FlashRank)
+    category_hint = extract_category_hints(query)
+    query_keywords = set(_tokenize(query.lower()))
+    expanded_query_keywords = set(expand_query(query.lower()))
+    strong_keywords = ["stick-table", "track-sc", "http_req_rate", "conn_rate", "deny", "acl"]
+    
+    # DEBUG: Log query keywords for debugging
+    logger.debug("Query keywords: %s", query_keywords)
+    logger.debug("Expanded query keywords: %s", expanded_query_keywords)
+    logger.debug("Category hint: %s", category_hint)
+    
     if not FLASHRANK_AVAILABLE or _reranker is None:
-        for c in candidates:
-            c["rerank_score"] = c.get("rrf_score", 0.5)
+        # No FlashRank: apply simple boosting based on keyword/category matching
+        for chunk in candidates:
+            chunk["rerank_score"] = chunk.get("rrf_score", 0.5)
+            content_lower = chunk.get("content", "").lower()
+            title_lower = chunk.get("title", "").lower()
+            
+            # Match keywords de base
+            matches_base = sum(1 for kw in query_keywords if kw in content_lower or kw in title_lower)
+            matches_expanded = sum(1 for kw in expanded_query_keywords if kw in content_lower or kw in title_lower)
+            matches = max(matches_base, matches_expanded)
+            match_ratio = matches / len(expanded_query_keywords) if expanded_query_keywords else 0
+            
+            # IA keywords boost
+            ia_keywords = chunk.get("ia_keywords", [])
+            if ia_keywords:
+                ia_matches = sum(1 for kw in ia_keywords if kw.lower() in expanded_query_keywords or kw.lower() in content_lower or kw.lower() in title_lower)
+                ia_boost = 0.3 * (ia_matches / len(ia_keywords))
+            else:
+                ia_matches = 0
+                ia_boost = 0
+            
+            # IA synonyms boost
+            ia_synonyms = chunk.get("ia_synonyms", [])
+            if ia_synonyms:
+                synonym_matches = sum(1 for syn in ia_synonyms if syn.lower() in expanded_query_keywords or syn.lower() in content_lower or syn.lower() in title_lower)
+                synonym_boost = 0.2 * (synonym_matches / len(ia_synonyms))
+            else:
+                synonym_matches = 0
+                synonym_boost = 0
+            
+            # IA Category Boost (SOFT - backend ↔ loadbalancing, ssl ↔ frontend related)
+            category_boost = 0.0
+            if category_hint:
+                chunk_category = chunk.get("ia_category", "")
+                # Direct match
+                if chunk_category == category_hint:
+                    category_boost = 0.5
+                # Related categories
+                elif category_hint == "backend" and chunk_category == "loadbalancing":
+                    category_boost = 0.3
+                elif category_hint == "loadbalancing" and chunk_category == "backend":
+                    category_boost = 0.3
+                elif category_hint == "ssl" and chunk_category == "frontend":
+                    category_boost = 0.3  # SSL config souvent dans bind options (frontend)
+                elif category_hint == "frontend" and chunk_category == "ssl":
+                    category_boost = 0.3
+                elif category_hint == "healthcheck" and chunk_category == "loadbalancing":
+                    category_boost = 0.3  # Health checks dans server options
+                elif category_hint == "acl" and chunk_category == "general":
+                    category_boost = 0.2  # ACL dans toutes sections
+            
+            # Title boost
+            title_boost = 0.0
+            for strong_kw in strong_keywords:
+                if strong_kw in title_lower:
+                    title_boost += 0.3
+            
+            original_score = chunk.get("rerank_score", 0)
+            chunk["rerank_score"] = original_score * (1.0 + 0.5 * match_ratio + ia_boost + synonym_boost + category_boost + title_boost)
+            chunk["_keyword_matches"] = matches
+            chunk["_ia_matches"] = ia_matches
+            chunk["_match_ratio"] = match_ratio
+            chunk["_ia_boost"] = ia_boost
+            chunk["_category_boost"] = category_boost
+            chunk["_title_boost"] = title_boost
+        
+        candidates.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
         return candidates
     
-    passages = [
-        {"id": i, "text": c["content"], "meta": c}
-        for i, c in enumerate(candidates)
-    ]
+    # Option 3: Injecter IA keywords dans le texte pour FlashRank
+    # FlashRank va ainsi mieux scorer les chunks avec metadata pertinente
+    passages = []
+    for i, c in enumerate(candidates):
+        # Ajouter metadata IA au texte pour le reranking
+        ia_context = []
+        if c.get("ia_keywords"):
+            ia_context.append("Keywords: " + ", ".join(c["ia_keywords"][:10]))
+        if c.get("ia_synonyms"):
+            ia_context.append("Synonyms: " + ", ".join(c["ia_synonyms"][:5]))
+        if c.get("ia_category"):
+            ia_context.append("Category: " + c["ia_category"])
+        
+        text_with_metadata = c["content"]
+        if ia_context:
+            text_with_metadata += "\n\n[" + " | ".join(ia_context) + "]"
+        
+        passages.append({"id": i, "text": text_with_metadata, "meta": c})
     
     expanded_query = " ".join(expand_query(query))
     results = _reranker.rerank(
@@ -330,35 +527,75 @@ def _rerank(query: str, candidates: list[dict]) -> list[dict]:
             chunk = result.meta.copy()
             chunk["rerank_score"] = float(result.score)
         else:
-            logger.error("Type de résultat flashrank inconnu: %s", type(result))
             continue
         reranked.append(chunk)
-    
-    # Boosting par keywords
-    query_keywords = set(_tokenize(query.lower()))
-    expanded_query_keywords = set(expand_query(query.lower()))
-    
-    strong_keywords = ["stick-table", "track-sc", "http_req_rate", "conn_rate", "deny", "acl"]
-    
+
+    # Apply boosting (category, keywords, title) to FlashRank results
     for chunk in reranked:
         content_lower = chunk.get("content", "").lower()
         title_lower = chunk.get("title", "").lower()
         
+        # Match keywords de base
         matches_base = sum(1 for kw in query_keywords if kw in content_lower or kw in title_lower)
         matches_expanded = sum(1 for kw in expanded_query_keywords if kw in content_lower or kw in title_lower)
         matches = max(matches_base, matches_expanded)
-        
         match_ratio = matches / len(expanded_query_keywords) if expanded_query_keywords else 0
         
+        # IA keywords boost (via metadata injectee dans FlashRank)
+        # Use expanded query keywords for better synonym matching
+        ia_keywords = chunk.get("ia_keywords", [])
+        if ia_keywords:
+            # Match IA keywords against expanded query (includes synonyms)
+            ia_matches = sum(1 for kw in ia_keywords if kw.lower() in expanded_query_keywords or kw.lower() in content_lower or kw.lower() in title_lower)
+            ia_boost = 0.3 * (ia_matches / len(ia_keywords))
+        else:
+            ia_matches = 0
+            ia_boost = 0
+
+        # IA synonyms boost
+        ia_synonyms = chunk.get("ia_synonyms", [])
+        if ia_synonyms:
+            synonym_matches = sum(1 for syn in ia_synonyms if syn.lower() in expanded_query_keywords or syn.lower() in content_lower or syn.lower() in title_lower)
+            synonym_boost = 0.2 * (synonym_matches / len(ia_synonyms))
+        else:
+            synonym_matches = 0
+            synonym_boost = 0
+        
+        # IA Category Boost (SOFT - boost au lieu de filtre)
+        # Note: backend ↔ loadbalancing, ssl ↔ frontend sont des catégories liées
+        category_boost = 0.0
+        if category_hint:
+            chunk_category = chunk.get("ia_category", "")
+            # Direct match
+            if chunk_category == category_hint:
+                category_boost = 0.5
+            # Related categories
+            elif category_hint == "backend" and chunk_category == "loadbalancing":
+                category_boost = 0.3
+            elif category_hint == "loadbalancing" and chunk_category == "backend":
+                category_boost = 0.3
+            elif category_hint == "ssl" and chunk_category == "frontend":
+                category_boost = 0.3  # SSL config souvent dans bind options (frontend)
+            elif category_hint == "frontend" and chunk_category == "ssl":
+                category_boost = 0.3
+            elif category_hint == "healthcheck" and chunk_category == "loadbalancing":
+                category_boost = 0.3  # Health checks dans server options
+            elif category_hint == "acl" and chunk_category == "general":
+                category_boost = 0.2  # ACL dans toutes sections
+        
+        # Title boost
         title_boost = 0.0
         for strong_kw in strong_keywords:
             if strong_kw in title_lower:
                 title_boost += 0.3
         
         original_score = chunk.get("rerank_score", 0)
-        chunk["rerank_score"] = original_score * (1.0 + 0.5 * match_ratio + title_boost)
+        chunk["rerank_score"] = original_score * (1.0 + 0.5 * match_ratio + ia_boost + synonym_boost + category_boost + title_boost)
         chunk["_keyword_matches"] = matches
+        chunk["_ia_matches"] = ia_matches
         chunk["_match_ratio"] = match_ratio
+        chunk["_ia_boost"] = ia_boost
+        chunk["_category_boost"] = category_boost
         chunk["_title_boost"] = title_boost
     
     reranked.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
@@ -371,7 +608,7 @@ def retrieve(
     verbose: bool = False,
     filter_source: str | None = None,
 ) -> dict:
-    """Pipeline complet de retrieval V3."""
+    """Pipeline complet retrieval V3+."""
     _load_indexes()
     
     query_emb = _get_embedding(query)
@@ -387,32 +624,30 @@ def retrieve(
         )
         ids = chroma_results_raw["ids"][0]
         distances = chroma_results_raw["distances"][0]
-        chroma_results = [
-            (int(cid.replace("chunk_", "")), 1.0 - dist)
-            for cid, dist in zip(ids, distances)
-        ]
+        chroma_results = [(int(cid.replace("chunk_", "")), 1.0 - dist) for cid, dist in zip(ids, distances)]
     else:
-        # Metadata filtering automatique basé sur la question
         chroma_results = _chroma_search(query_emb, TOP_K_RETRIEVAL, query_text=query)
     
     if verbose:
-        print(f"\n[ChromaDB V3] top-5 :")
+        print(f"\n[ChromaDB V3+] top-5 :")
         for rank, (cid, score) in enumerate(chroma_results[:5]):
-            print(f"   [{rank+1}] sim={score:.3f} | {_chunks[cid]['title'][:60]}")
+            chunk = _chunks[cid]
+            ia_cat = chunk.get("ia_category", "N/A")
+            print(f"   [{rank+1}] sim={score:.3f} | cat={ia_cat} | {_chunks[cid]['title'][:50]}")
     
     bm25_results = _bm25_search(query, TOP_K_RETRIEVAL)
     
     if verbose:
-        print(f"\n[BM25 V3] top-5 (query expansion):")
+        print(f"\n[BM25 V3+] top-5 (query expansion):")
         for rank, (cid, score) in enumerate(bm25_results[:5]):
-            print(f"   [{rank+1}] score={score:.3f} | {_chunks[cid]['title'][:60]}")
+            print(f"   [{rank+1}] score={score:.3f} | {_chunks[cid]['title'][:50]}")
     
     rrf_results = _reciprocal_rank_fusion(chroma_results, bm25_results)[:TOP_K_RRF]
     
     if verbose:
-        print(f"\n[RRF V3] top-5 :")
+        print(f"\n[RRF V3+] top-5 :")
         for rank, (cid, score) in enumerate(rrf_results[:5]):
-            print(f"   [{rank+1}] rrf={score:.4f} | {_chunks[cid]['title'][:60]}")
+            print(f"   [{rank+1}] rrf={score:.4f} | {_chunks[cid]['title'][:50]}")
     
     candidates = []
     for chunk_id, rrf_score in rrf_results:
@@ -421,29 +656,26 @@ def retrieve(
         chunk["chunk_id"] = chunk_id
         candidates.append(chunk)
     
-    reranked = _rerank(query, candidates)
+    reranked = _rerank(query, candidates, verbose=verbose)
     final = reranked[:top_k]
     
     if verbose:
-        print(f"\n[Reranking V3] résultats finaux :")
+        print(f"\n[Reranking V3+] resultats finaux :")
         for rank, chunk in enumerate(final):
             code_icon = "[code]" if chunk["has_code"] else "      "
-            print(f"   [{rank+1}] score={chunk.get('rerank_score', 0):.3f} | {code_icon} | {chunk['title'][:60]}")
+            ia_cat = chunk.get("ia_category", "N/A")
+            score = chunk.get("rerank_score", 0)
+            ia_matches = chunk.get("_ia_matches", 0)
+            category_boost = chunk.get("_category_boost", 0)
+            print(f"   [{rank+1}] score={score:.3f} | ia_cat={ia_cat} | ia_matches={ia_matches} | cat_boost={category_boost:.1f} | {code_icon} | {chunk['title'][:40]}")
     
     best_score = final[0].get("rerank_score", 0) if final else 0.0
     low_confidence = best_score < CONFIDENCE_THRESHOLD
     
-    logger.debug("Score V3 (qwen3-embedding:8b): %.4f | low_confidence=%s", best_score, low_confidence)
-    
-    if verbose:
-        print(f"[DEBUG V3] Scores de rerank:")
-        for i, chunk in enumerate(final):
-            score = chunk.get("rerank_score", 0)
-            matches = chunk.get("_keyword_matches", "?")
-            print(f"   [{i+1}] score={score:.4f} | matches={matches} | {chunk['title'][:50]}")
+    logger.debug("Score V3+: %.4f | low_confidence=%s", best_score, low_confidence)
     
     if not final and verbose:
-        print("[WARN V3] Aucun résultat, tentative avec requête simplifiée...")
+        print("[WARN V3+] Aucun resultat, tentative avec requete simplifiee...")
         simple_query = " ".join([t for t in _tokenize(query) if len(t) > 3])
         if simple_query:
             return retrieve(simple_query, top_k=top_k, verbose=verbose, filter_source=filter_source)
@@ -461,7 +693,7 @@ def retrieve_context_string(
     top_k: int = TOP_K_RERANK,
     filter_source: str | None = None,
 ) -> tuple[str, list[dict], bool]:
-    """Helper : retourne contexte formaté pour LLM + sources."""
+    """Helper : retourne contexte formate pour LLM + sources."""
     result = retrieve(query, top_k=top_k, filter_source=filter_source)
     chunks = result["chunks"]
     
@@ -482,6 +714,8 @@ def retrieve_context_string(
             "source": chunk["source"],
             "score": round(chunk.get("rerank_score", chunk.get("rrf_score", 0)), 3),
             "has_code": chunk["has_code"],
+            "ia_category": chunk.get("ia_category", "N/A"),
+            "ia_keywords": chunk.get("ia_keywords", []),
         }
         for chunk in chunks
     ]
@@ -493,18 +727,19 @@ if __name__ == "__main__":
     import sys
     
     query = sys.argv[1] if len(sys.argv) > 1 else "Comment configurer un health check HTTP ?"
-    print(f"\n[QUERY V3] {query}\n")
+    print(f"\n[QUERY V3+] {query}\n")
     
     result = retrieve(query, verbose=True)
     
     if result["low_confidence"]:
-        print("\n[WARN V3] Confiance faible")
+        print("\n[WARN V3+] Confiance faible")
     
-    print(f"\n[OK V3] {len(result['chunks'])} chunks retournés")
+    print(f"\n[OK V3+] {len(result['chunks'])} chunks retournes")
     for i, chunk in enumerate(result["chunks"]):
         print(f"\n{'='*60}")
-        print(f"Chunk V3 {i+1} | {chunk['title']}")
-        print(f"Source  : {chunk['url']}")
-        print(f"Score   : {chunk.get('rerank_score', 0):.3f}")
-        print(f"Code    : {'oui' if chunk['has_code'] else 'non'}")
+        print(f"Chunk V3+ {i+1} | {chunk['title']}")
+        print(f"Source   : {chunk['url']}")
+        print(f"IA Cat   : {chunk.get('ia_category', 'N/A')}")
+        print(f"IA Kw    : {', '.join(chunk.get('ia_keywords', [])[:5])}")
+        print(f"Score    : {chunk.get('rerank_score', 0):.3f}")
         print(f"\n{chunk['content'][:300]}...")

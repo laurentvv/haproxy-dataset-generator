@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-03_build_index_v3.py - Construction index V3 avec qwen3-embedding:8b (MTEB #1)
+03_indexing.py - Construction index V3 avec metadata IA
 
-Entrée  : data/chunks_v2.jsonl
+Entree  : data/chunks_v2.jsonl (avec metadata IA)
 Sortie  : index_v3/chroma/, index_v3/bm25.pkl, index_v3/chunks.pkl
 
-Différences avec V2 :
-- Embedding : qwen3-embedding:8b (MTEB 70.58, 4096 dims) au lieu de bge-m3 (MTEB 67, 1024 dims)
-- Collection : haproxy_docs_v3 au lieu de haproxy_docs_v2
+Features V3+:
+- Embedding : qwen3-embedding:8b (MTEB 70.58, 4096 dims)
+- Metadata IA : keywords, synonyms, category (de gemma3:latest)
+- Collection : haproxy_docs_v3
 """
 import json
 import logging
@@ -221,16 +222,33 @@ def main():
             embeddings_list.append(emb)
             documents.append(chunk['content'])
 
+            # Metadata de base
             meta = {
                 "title": chunk['title'][:500] if chunk['title'] else "",
                 "url": chunk.get('url', '')[:500],
                 "source": chunk.get('source', chunk.get('url', '')),
                 "has_code": chunk['has_code'],
             }
+            
+            # Metadata HAProxy tags
             if chunk.get('tags'):
                 meta["tags"] = ",".join(chunk['tags'][:20])
+            
+            # Keywords combines (HAProxy + IA)
             if chunk.get('keywords'):
-                meta["keywords"] = ",".join(chunk['keywords'][:20])
+                meta["keywords"] = ",".join(chunk['keywords'][:30])
+            
+            # Metadata IA (de gemma3:latest)
+            if chunk.get('ia_keywords'):
+                meta["ia_keywords"] = ",".join(chunk['ia_keywords'][:20])
+            if chunk.get('ia_synonyms'):
+                meta["ia_synonyms"] = ",".join(chunk['ia_synonyms'][:10])
+            if chunk.get('ia_category'):
+                meta["ia_category"] = chunk['ia_category']
+            if chunk.get('ia_summary'):
+                meta["ia_summary"] = chunk['ia_summary'][:500]
+            
+            # Hierarchy
             if chunk.get('parent_section'):
                 meta["parent_section"] = chunk['parent_section']
             if chunk.get('section'):
@@ -286,9 +304,14 @@ def main():
 
     avg_len = sum(c['char_len'] for c in chunks) // len(chunks)
     avg_tags = sum(len(c.get('tags', [])) for c in chunks) // len(chunks)
+    chunks_with_ia = sum(1 for c in chunks if c.get('ia_keywords'))
+    total_ia_keywords = sum(len(c.get('ia_keywords', [])) for c in chunks)
+    
     logger.info(f"\n  Taille moy   : {avg_len} chars")
     logger.info(f"  Tags moy     : {avg_tags}/chunk")
     logger.info(f"  Avec code    : {sum(1 for c in chunks if c['has_code'])} ({sum(1 for c in chunks if c['has_code'])*100//len(chunks)}%)")
+    logger.info(f"  Avec IA      : {chunks_with_ia} ({chunks_with_ia*100//len(chunks)}%)")
+    logger.info(f"  IA keywords  : {total_ia_keywords} ({total_ia_keywords//len(chunks):.1f}/chunk)")
     logger.info("")
 
 
