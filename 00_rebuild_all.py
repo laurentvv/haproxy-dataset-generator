@@ -13,14 +13,8 @@ Ce script :
 """
 import subprocess
 import sys
-import io
 import time
 from datetime import datetime
-
-# Fix encoding Windows
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 
 def run_script(script_name, description, extra_args=None):
@@ -41,20 +35,9 @@ def run_script(script_name, description, extra_args=None):
     start_time = time.time()
     process = subprocess.Popen(
         cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1
+        stdout=None,  # Afficher directement dans la console
+        stderr=None
     )
-    
-    # Afficher la sortie ligne par ligne avec timestamp
-    line_count = 0
-    if process.stdout:
-        for line in process.stdout:
-            line_count += 1
-            # Afficher uniquement les lignes importantes ou toutes les 10 lignes
-            if line_count % 1 == 0:  # Afficher chaque ligne
-                print(line, end='')
     
     process.wait()
     elapsed_time = time.time() - start_time
@@ -69,6 +52,13 @@ def run_script(script_name, description, extra_args=None):
 
 
 def main():
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='Rebuild entire RAG pipeline')
+    parser.add_argument('--no-benchmark', action='store_true', help='Skip benchmark step')
+    parser.add_argument('--benchmark', action='store_true', help='Run benchmark automatically')
+    args = parser.parse_args()
+    
     print("="*70)
     print("  RECONSTRUCTION COMPLETE - PIPELINE RAG V3")
     print("="*70)
@@ -77,11 +67,14 @@ def main():
     print("  1. Scraper docs.haproxy.org (~5-10 min)")
     print("  2. Chunker les documents (~5-10 min)")
     print("  3. Construire les index V3 (~2h)")
-    print("  4. Tester avec le benchmark Full (~45 min)")
+    if args.no_benchmark:
+        print("  4. Benchmark: SKIP")
+    else:
+        print("  4. Tester avec le benchmark Full (~45 min)")
     print()
     print("Temps total estime : ~3h")
     print()
-    
+
     total_start = time.time()
     steps = [
         ("01_scrape.py", "ETAPE 1/4 - SCRAPPING"),
@@ -89,19 +82,31 @@ def main():
         ("03_indexing.py", "ETAPE 3/4 - INDEXING"),
     ]
     
-    # Ajouter le benchmark si l'utilisateur le souhaite
-    print("\n" + "="*70)
-    print("  ETAPE 4/4 - BENCHMARK")
-    print("="*70)
-    print()
-    print("Lancement du benchmark Full (100 questions, ~45 min)...")
-    print("Ou lancez manuellement : uv run python 06_bench_v3.py --level full")
-    print()
+    # Gérer le benchmark
+    run_benchmark = False
+    if args.no_benchmark:
+        print("\n[INFO] Benchmark skippe sur demande")
+    elif args.benchmark:
+        print("\n[INFO] Benchmark sera lance automatiquement")
+        run_benchmark = True
+    else:
+        # Mode interactif
+        print("\n" + "="*70)
+        print("  ETAPE 4/4 - BENCHMARK")
+        print("="*70)
+        print()
+        print("Lancement du benchmark Full (100 questions, ~45 min)...")
+        print("Ou lancez manuellement : uv run python 06_bench_v3.py --level full")
+        print()
+        
+        try:
+            response = input("Voulez-vous lancer le benchmark maintenant ? (o/n) : ")
+            run_benchmark = response.lower() in ['o', 'oui', 'y', 'yes']
+        except EOFError:
+            print("\n[INFO] Mode non-interactif, benchmark skippe")
+            print("Utilisez --benchmark pour le lancer automatiquement")
     
-    # Demander à l'utilisateur s'il veut lancer le benchmark
-    response = input("Voulez-vous lancer le benchmark maintenant ? (o/n) : ")
-    
-    if response.lower() in ['o', 'oui', 'y', 'yes']:
+    if run_benchmark:
         steps.append(("06_bench_v3.py", "BENCHMARK FULL", ["--level", "full"]))
     
     # Exécuter toutes les étapes
@@ -166,3 +171,7 @@ def main():
         print("  uv run python 06_bench_v3.py --level standard # 20 questions, 8 min")
         print("  uv run python 06_bench_v3.py --level full     # 100 questions, 45 min")
     print()
+
+
+if __name__ == "__main__":
+    main()
