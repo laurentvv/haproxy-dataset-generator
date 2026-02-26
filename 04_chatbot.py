@@ -451,10 +451,13 @@ def respond(
 
     llm_history = history_to_llm_format(history[:-1])
 
+    # Add temporary "thinking" message
     history.append(gr.ChatMessage(role="assistant", content="<div style='opacity: 0.7'>⏳ **Recherche en cours...**</div>"))
     yield history
-
-    history[-1].content = ""
+    
+    # Remove the temporary message and start fresh
+    history.pop()
+    history.append(gr.ChatMessage(role="assistant", content=""))
     logger.info("Génération avec modèle: %s", model_name)
 
     try:
