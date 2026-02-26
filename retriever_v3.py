@@ -98,7 +98,7 @@ def extract_section_hints(query: str) -> list[str] | None:
     hints = set()
     
     # Pattern 1: Référence explicite (ex: "section 5.2", "chapitre 11")
-    import re
+    match = re.search(r"(?:section|chapitre)\s*(\d+(?:\.\d+)?)", query_lower)
     match = re.search(r"(?:section|chapitre)\s*(\d+(?:\.\d+)?)", query_lower)
     if match:
         section = match.group(1)
