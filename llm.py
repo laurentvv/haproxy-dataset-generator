@@ -90,11 +90,26 @@ Suggestions :
 
 
 def list_ollama_models() -> list[str]:
-    """Retourne la liste des modèles Ollama disponibles."""
+    """Retourne la liste des modèles Ollama disponibles, filtrée.
+
+    Exclut les modèles d'embedding et les modèles vision-language (vl).
+
+    Returns:
+        Liste des noms de modèles disponibles
+    """
     try:
         response = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
         response.raise_for_status()
-        return [m["name"] for m in response.json().get("models", [])]
+        all_models = [m["name"] for m in response.json().get("models", [])]
+
+        # Filtrer les modèles d'embedding et vision-language
+        filtered_models = [
+            model
+            for model in all_models
+            if "embed" not in model.lower() and "vl" not in model.lower()
+        ]
+
+        return filtered_models
     except Exception:
         return []
 

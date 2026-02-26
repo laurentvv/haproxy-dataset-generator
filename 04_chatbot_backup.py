@@ -11,7 +11,6 @@ import sys
 import io
 import threading
 from pathlib import Path
-from datetime import datetime
 
 # Fix encoding Windows
 if sys.platform == "win32":
@@ -322,7 +321,7 @@ def format_sources_markdown(sources: list[dict]) -> str:
         title = src.get("title", "Section inconnue")
         url = src.get("url", "#")
         score = src.get("score", 0)
-        lines.append(f"{icon} **[{i+1}]** [{title}]({url}) (score: {score:.2f})")
+        lines.append(f"{icon} **[{i + 1}]** [{title}]({url}) (score: {score:.2f})")
 
     lines.append("</div>")
     return "\n".join(lines)
@@ -351,8 +350,8 @@ def history_to_llm_format(history: list) -> list[tuple[str, str]]:
     user_msg = None
 
     for msg in history:
-        role = msg.role if hasattr(msg, 'role') else msg.get("role", "")
-        content = msg.content if hasattr(msg, 'content') else msg.get("content", "")
+        role = msg.role if hasattr(msg, "role") else msg.get("role", "")
+        content = msg.content if hasattr(msg, "content") else msg.get("content", "")
 
         if role == "user":
             user_msg = content
@@ -372,7 +371,7 @@ def submit_message(
 ):
     """Ajoute le message utilisateur à l'historique avec validation."""
     # Extract text from Gradio 6.x ChatMessage format
-    if hasattr(message, 'content'):
+    if hasattr(message, "content"):
         message_text = message.content
     elif isinstance(message, dict):
         message_text = message.get("content", "")
@@ -380,8 +379,10 @@ def submit_message(
         message_text = message
     else:
         message_text = str(message)
-    
-    logger.info("submit_message() - message='%s...'", message_text[:30] if message_text else "")
+
+    logger.info(
+        "submit_message() - message='%s...'", message_text[:30] if message_text else ""
+    )
 
     if not message_text.strip():
         return history
@@ -391,12 +392,20 @@ def submit_message(
         message_text = validate_query(message_text)
     except ValueError as e:
         logger.warning("Input validation failed: %s", e)
-        history.append(gr.ChatMessage(role="assistant", content=f"⚠️ **Question invalide**\n\n{str(e)}"))
+        history.append(
+            gr.ChatMessage(
+                role="assistant", content=f"⚠️ **Question invalide**\n\n{str(e)}"
+            )
+        )
         return history
 
     ok, status = ensure_indexes()
     if not ok:
-        history.append(gr.ChatMessage(role="assistant", content=f"❌ **Erreur d'index**\n\n{status}"))
+        history.append(
+            gr.ChatMessage(
+                role="assistant", content=f"❌ **Erreur d'index**\n\n{status}"
+            )
+        )
         return history
 
     history.append(gr.ChatMessage(role="user", content=message_text))
@@ -410,23 +419,34 @@ def respond(
     show_sources: bool,
 ):
     """Génère la réponse de l'assistant avec streaming (V3)."""
-    if not history or not hasattr(history[-1], 'role') or history[-1].role != "user":
+    if not history or not hasattr(history[-1], "role") or history[-1].role != "user":
         return history
 
     message = history[-1].content
-    logger.info("respond() V3 - message='%s...', model='%s', top_k=%d",
-                message[:30] if message else "", model_name, top_k)
+    logger.info(
+        "respond() V3 - message='%s...', model='%s', top_k=%d",
+        message[:30] if message else "",
+        model_name,
+        top_k,
+    )
 
     try:
         logger.info("Retrieval V3 (qwen3-embedding:8b) pour: '%s'", message[:80])
         context_str, sources, low_confidence = retrieve_context_string(
             message, top_k=top_k
         )
-        logger.info("Retrieval V3 terminé - %d sources, low_confidence=%s",
-                   len(sources), low_confidence)
+        logger.info(
+            "Retrieval V3 terminé - %d sources, low_confidence=%s",
+            len(sources),
+            low_confidence,
+        )
     except Exception as e:
         logger.error("❌ Erreur retrieval V3: %s", e)
-        history.append(gr.ChatMessage(role="assistant", content=f"❌ **Erreur retrieval**\n\n{str(e)}"))
+        history.append(
+            gr.ChatMessage(
+                role="assistant", content=f"❌ **Erreur retrieval**\n\n{str(e)}"
+            )
+        )
         yield history
         return
 
@@ -438,7 +458,12 @@ def respond(
 
     llm_history = history_to_llm_format(history[:-1])
 
-    history.append(gr.ChatMessage(role="assistant", content="<div style='opacity: 0.7'>⏳ **Recherche en cours...**</div>"))
+    history.append(
+        gr.ChatMessage(
+            role="assistant",
+            content="<div style='opacity: 0.7'>⏳ **Recherche en cours...**</div>",
+        )
+    )
     yield history
 
     history[-1].content = ""
@@ -504,8 +529,10 @@ def build_ui():
     if not available_models:
         available_models = [DEFAULT_MODEL, "llama3.1:8b", "qwen2.5:7b"]
 
-    default_model = DEFAULT_MODEL if DEFAULT_MODEL in available_models else (
-        available_models[0] if available_models else DEFAULT_MODEL
+    default_model = (
+        DEFAULT_MODEL
+        if DEFAULT_MODEL in available_models
+        else (available_models[0] if available_models else DEFAULT_MODEL)
     )
 
     logger.info("Modèles disponibles: %s", available_models)
@@ -516,7 +543,6 @@ def build_ui():
         fill_width=True,
         fill_height=True,
     ) as app:
-
         # ── Header ───────────────────────────────────────────────────────
         gr.HTML("""
             <div class="app-header">
@@ -532,13 +558,13 @@ def build_ui():
                 # Configuration
                 with gr.Group():
                     gr.Markdown("### ⚙️ Configuration")
-                    
+
                     model_dd = gr.Dropdown(
                         choices=available_models,
                         value=default_model,
                         label="Modèle LLM",
                     )
-                    
+
                     top_k = gr.Slider(
                         minimum=1,
                         maximum=15,
@@ -546,7 +572,7 @@ def build_ui():
                         step=1,
                         label="Profondeur (top-k)",
                     )
-                    
+
                     show_sources_chk = gr.Checkbox(
                         value=True,
                         label="📚 Afficher les sources",
@@ -583,7 +609,7 @@ def build_ui():
                         show_label=False,
                         lines=2,
                     )
-                    
+
                     with gr.Row():
                         send_btn = gr.Button(
                             "🚀 Envoyer",
@@ -601,7 +627,9 @@ def build_ui():
                     elem_classes="chatbot-container",
                     buttons=["share", "copy", "copy_all"],
                     layout="bubble",
-                    value=[gr.ChatMessage(role="assistant", content=get_welcome_message())],
+                    value=[
+                        gr.ChatMessage(role="assistant", content=get_welcome_message())
+                    ],
                 )
 
         # ── Footer ─────────────────────────────────────────────────────
@@ -616,7 +644,7 @@ def build_ui():
         def handle_submit(message, history, model_name, top_k, show_sources):
             history = submit_message(message, history, model_name, top_k, show_sources)
             return history
-        
+
         def handle_respond(history, model_name, top_k, show_sources):
             for response in respond(history, model_name, top_k, show_sources):
                 yield response
@@ -642,14 +670,16 @@ def build_ui():
         )
 
         clear_btn.click(
-            fn=lambda: [gr.ChatMessage(role="assistant", content=get_welcome_message())],
+            fn=lambda: [
+                gr.ChatMessage(role="assistant", content=get_welcome_message())
+            ],
             outputs=[chatbot],
         )
 
         # Example clicks - fill msg_box with example text
         def make_fill_fn(text):
             return lambda: text
-        
+
         for btn, example_text in zip(example_buttons, examples_list):
             btn.click(fn=make_fill_fn(example_text), inputs=None, outputs=msg_box)
 
@@ -671,8 +701,8 @@ if __name__ == "__main__":
     print("  🌙 Dark Mode - Design optimisé")
     print("=" * 65)
     print(f"  🌐 URL        : http://{args.host}:{args.port}")
-    print(f"  🤖 Ollama     : http://localhost:11434")
-    print(f"  📊 Embedding  : qwen3-embedding:8b (MTEB #1 - 70.58)")
+    print("  🤖 Ollama     : http://localhost:11434")
+    print("  📊 Embedding  : qwen3-embedding:8b (MTEB #1 - 70.58)")
     print(f"  💬 Modèle     : {DEFAULT_MODEL}")
     print(f"  🎨 Gradio     : {gr.__version__}")
     print("=" * 65 + "\n")
@@ -683,9 +713,11 @@ if __name__ == "__main__":
 
     try:
         models = list_ollama_models()
-        print(f"   🤖 Modèles  : {', '.join(models[:5])}{'...' if len(models) > 5 else ''}")
+        print(
+            f"   🤖 Modèles  : {', '.join(models[:5])}{'...' if len(models) > 5 else ''}"
+        )
     except Exception:
-        print(f"   ❌ Erreur modèles")
+        print("   ❌ Erreur modèles")
         models = []
 
     print()
