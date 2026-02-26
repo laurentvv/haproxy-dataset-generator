@@ -69,7 +69,6 @@ QUESTIONS = [
         "expected_keywords": ["backend", "balance", "roundrobin", "server", "check"],
         "min_length": 200,
     },
-
     # ── STANDARD (13 questions supplémentaires = 20 total) ────────────────────
     {
         "id": "std_tcp_check",
@@ -175,7 +174,6 @@ QUESTIONS = [
         "expected_keywords": ["mode", "tcp", "frontend", "backend"],
         "min_length": 200,
     },
-
     # ── FULL (80 questions supplémentaires = 100 total) ───────────────────────
     # Health checks (5)
     {
@@ -218,7 +216,6 @@ QUESTIONS = [
         "expected_keywords": ["fall", "rise", "check", "server"],
         "min_length": 200,
     },
-    
     # Backend / Server (8)
     {
         "id": "full_backend_name",
@@ -284,7 +281,6 @@ QUESTIONS = [
         "expected_keywords": ["port", "check", "server", "health"],
         "min_length": 200,
     },
-    
     # ACLs (10)
     {
         "id": "full_acl_host",
@@ -366,7 +362,6 @@ QUESTIONS = [
         "expected_keywords": ["!", "not", "acl", "negation", "unless"],
         "min_length": 200,
     },
-    
     # Stick-table (8)
     {
         "id": "full_stick_type",
@@ -432,7 +427,6 @@ QUESTIONS = [
         "expected_keywords": ["deny", "deny_status", "429", "http-request"],
         "min_length": 200,
     },
-    
     # SSL (8)
     {
         "id": "full_ssl_cert",
@@ -498,7 +492,6 @@ QUESTIONS = [
         "expected_keywords": ["verify", "ssl", "backend", "ca-file"],
         "min_length": 200,
     },
-    
     # Timeout (5)
     {
         "id": "full_timeout_connect",
@@ -540,7 +533,6 @@ QUESTIONS = [
         "expected_keywords": ["timeout", "tunnel", "tcp", "inactivity"],
         "min_length": 150,
     },
-    
     # Logs/Stats (8)
     {
         "id": "full_log_stdout",
@@ -606,7 +598,6 @@ QUESTIONS = [
         "expected_keywords": ["log", "backend", "global", "disable"],
         "min_length": 200,
     },
-    
     # TCP/General (8)
     {
         "id": "full_mode_tcp",
@@ -672,7 +663,6 @@ QUESTIONS = [
         "expected_keywords": ["option", "httplog", "log", "format"],
         "min_length": 200,
     },
-    
     # Advanced (12)
     {
         "id": "full_map_file",
@@ -775,13 +765,14 @@ QUESTIONS = [
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def get_questions_by_level(level: str = "quick") -> list[dict]:
     """
     Retourne les questions pour un niveau donné.
-    
+
     Args:
         level: "quick" (7), "standard" (20), ou "full" (100)
-    
+
     Returns:
         list de questions
     """
@@ -792,16 +783,18 @@ def get_questions_by_level(level: str = "quick") -> list[dict]:
     elif level == "full":
         return QUESTIONS
     else:
-        raise ValueError(f"Niveau inconnu: {level}. Utilisez 'quick', 'standard' ou 'full'.")
+        raise ValueError(
+            f"Niveau inconnu: {level}. Utilisez 'quick', 'standard' ou 'full'."
+        )
 
 
 def get_questions_by_category(category: str = None) -> list[dict]:
     """
     Retourne les questions pour une catégorie donnée.
-    
+
     Args:
         category: Catégorie (healthcheck, bind, acl, etc.) ou None pour tout
-    
+
     Returns:
         list de questions
     """
@@ -816,12 +809,12 @@ if __name__ == "__main__":
     print(f"Quick: {len(get_questions_by_level('quick'))}")
     print(f"Standard: {len(get_questions_by_level('standard'))}")
     print(f"Full: {len(get_questions_by_level('full'))}")
-    
+
     print("\nCatégories:")
     categories = {}
     for q in QUESTIONS:
         cat = q["category"]
         categories[cat] = categories.get(cat, 0) + 1
-    
+
     for cat, count in sorted(categories.items()):
         print(f"  {cat}: {count}")

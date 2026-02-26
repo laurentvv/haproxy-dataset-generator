@@ -9,8 +9,6 @@ Utilise l'index V3 (qwen3-embedding:8b - MTEB #1 mondial 70.58)
 import sys
 import io
 import threading
-import logging
-import re
 from pathlib import Path
 from datetime import datetime
 
@@ -767,7 +765,7 @@ def build_ui():
                             variant="secondary",
                             size="sm",
                             elem_classes="example-card",
-                        ).click(fn=lambda x=q: x, outputs=msg_box if 'msg_box' in locals() else None)
+                        ).click(fn=lambda x=q: x, outputs=None)
 
             # ── Right Main Area ────────────────────────────────────────────
             with gr.Column(scale=3, min_width=600):
@@ -874,9 +872,8 @@ def build_ui():
 
         ridx_btn.click(fn=reindex_fn, outputs=ridx_status)
 
-        # Handle example clicks
-        for i, q in enumerate(examples):
-            # Examples are already handled via click handlers above
+        # Handle example clicks (already handled via click handlers above)
+        pass
 
     return app
 
@@ -897,8 +894,8 @@ if __name__ == "__main__":
     print("  ✨ Nouveau design moderne professionnel")
     print("=" * 65)
     print(f"  🌐 URL        : http://{args.host}:{args.port}")
-    print(f"  🤖 Ollama     : http://localhost:11434")
-    print(f"  📊 Embedding  : qwen3-embedding:8b (MTEB #1 - 70.58)")
+    print("  🤖 Ollama     : http://localhost:11434")
+    print("  📊 Embedding  : qwen3-embedding:8b (MTEB #1 - 70.58)")
     print(f"  💬 Modèle     : {DEFAULT_MODEL}")
     print(f"  🎨 Gradio     : {gr.__version__}")
     print("=" * 65 + "\n")
@@ -911,7 +908,7 @@ if __name__ == "__main__":
         models = list_ollama_models()
         print(f"   🤖 Modèles  : {', '.join(models[:5])}{'...' if len(models) > 5 else ''}")
     except Exception:
-        print(f"   ❌ Erreur modèles")
+        print("   ❌ Erreur modèles")
         models = []
 
     print()

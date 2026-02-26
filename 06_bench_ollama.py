@@ -12,20 +12,18 @@ Usage:
     uv run python 06_bench_ollama.py --models gemma3:latest,qwen3:latest
     uv run python 06_bench_ollama.py --all  # Tous les modèles disponibles
 """
+
 import argparse
 import json
 import os
-import subprocess
 import sys
 import time
 import io
-from pathlib import Path
-from typing import Optional
 
 # Fix encoding Windows
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 import requests
 
@@ -56,17 +54,17 @@ TEST_QUESTIONS = [
 # ── Modèles à tester ──────────────────────────────────────────────────────────
 # Modèles de génération de texte (pas d'embedding, pas d'OCR, pas de vision)
 DEFAULT_MODELS = [
-    "gemma3:latest",                    # 3.3 GB - Bon équilibre qualité/vitesse
-    "gemma3n:latest",                   # 7.5 GB - Nouveau gemma (plus grand)
-    "qwen3:latest",                     # 5.2 GB - Excellent en français
+    "gemma3:latest",  # 3.3 GB - Bon équilibre qualité/vitesse
+    "gemma3n:latest",  # 7.5 GB - Nouveau gemma (plus grand)
+    "qwen3:latest",  # 5.2 GB - Excellent en français
     "hf.co/tantk/Nanbeige4.1-3B-GGUF:Q4_K_M",  # 2.4 GB - Modèle GGUF compact
-    "lfm2.5-thinking:1.2b-bf16",        # 2.3 GB - Petit mais rapide
+    "lfm2.5-thinking:1.2b-bf16",  # 2.3 GB - Petit mais rapide
 ]
 
 # Modèles à exclure (embedding, OCR, etc.)
 EXCLUDED_PATTERNS = [
-    "embed",        # bge-m3, mxbai-embed, qwen3-embedding, nomic-embed
-    "ocr",          # glm-ocr
+    "embed",  # bge-m3, mxbai-embed, qwen3-embedding, nomic-embed
+    "ocr",  # glm-ocr
 ]
 
 
@@ -127,7 +125,7 @@ def list_available_models() -> list[str]:
         response = requests.get(f"{get_ollama_url()}/api/tags", timeout=10)
         response.raise_for_status()
         all_models = [m["name"] for m in response.json().get("models", [])]
-        
+
         # Filtrer les modèles non pertinents
         filtered_models = []
         for model in all_models:
@@ -135,13 +133,13 @@ def list_available_models() -> list[str]:
             if "lfm2.5-thinking" in model:
                 filtered_models.append(model)
                 continue
-            
+
             # Exclure les patterns non pertinents
             if any(pattern in model.lower() for pattern in EXCLUDED_PATTERNS):
                 continue
-            
+
             filtered_models.append(model)
-        
+
         return filtered_models
     except Exception as e:
         print(f"❌ Erreur liste modèles: {e}")
@@ -161,7 +159,7 @@ def unload_model() -> bool:
         return True
     except Exception:
         pass
-    
+
     # Alternative: tuer le processus Ollama (radical)
     print("   ⚠️  Attente 10s pour libération GPU...")
     time.sleep(10)
@@ -201,38 +199,38 @@ def benchmark_model(
 ) -> dict:
     """
     Benchmark d'un modèle.
-    
+
     Returns:
         dict avec stats: temps, tokens, qualité, etc.
     """
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"🔍 Benchmark: {model_name}")
-    print(f"{'='*60}")
-    
+    print(f"{'=' * 60}")
+
     # Charger le modèle
     if not load_model(model_name):
         return {"error": "Failed to load model"}
-    
+
     results = []
     total_tokens = 0
     total_time = 0
-    
+
     for i, test in enumerate(questions, 1):
         question_id = test["id"]
         question = test["question"]
         expected = test["expected_keywords"]
-        
+
         print(f"\n  Question {i}/{len(questions)}: {question_id}")
-        
+
         # Messages
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": question},
         ]
-        
+
         # Benchmark
         start_time = time.time()
-        
+
         try:
             # Les modèles GGUF utilisent l'endpoint /api/generate
             if is_gguf_model(model_name):
@@ -276,33 +274,31 @@ def benchmark_model(
                 response.raise_for_status()
                 response_data = response.json()
                 answer = response_data["message"]["content"]
-            
+
             # Stats
             elapsed = time.time() - start_time
             tokens = response_data.get("eval_count", 0)
             total_tokens += tokens
             total_time += elapsed
-            
+
             # Tokens/seconde
             tokens_per_sec = tokens / elapsed if elapsed > 0 else 0
-            
+
             # Qualité
             answer_lower = answer.lower()
-            found_keywords = [
-                kw for kw in expected if kw.lower() in answer_lower
-            ]
+            found_keywords = [kw for kw in expected if kw.lower() in answer_lower]
             keyword_score = len(found_keywords) / len(expected)
-            
+
             # Longueur
             length_ok = len(answer) >= test["min_length"]
-            
+
             # Score global
             quality_score = (
-                keyword_score * 0.6 +
-                (0.2 if length_ok else 0) +
-                (0.2 if tokens > 50 else 0)
+                keyword_score * 0.6
+                + (0.2 if length_ok else 0)
+                + (0.2 if tokens > 50 else 0)
             )
-            
+
             result = {
                 "question_id": question_id,
                 "answer": answer[:200] + "..." if len(answer) > 200 else answer,
@@ -315,29 +311,37 @@ def benchmark_model(
                 "quality_score": round(quality_score, 2),
             }
             results.append(result)
-            
+
             # Affichage
-            status = "✅" if quality_score > 0.7 else "⚠️" if quality_score > 0.4 else "❌"
+            status = (
+                "✅" if quality_score > 0.7 else "⚠️" if quality_score > 0.4 else "❌"
+            )
             print(f"    {status} Qualité: {quality_score:.2f}")
-            print(f"    ⏱️  Temps: {elapsed:.2f}s | Tokens: {tokens} | {tokens_per_sec:.1f} tok/s")
+            print(
+                f"    ⏱️  Temps: {elapsed:.2f}s | Tokens: {tokens} | {tokens_per_sec:.1f} tok/s"
+            )
             print(f"    🎯 Keywords: {len(found_keywords)}/{len(expected)}")
-            
+
         except Exception as e:
             print(f"    ❌ Erreur: {e}")
-            results.append({
-                "question_id": question_id,
-                "error": str(e),
-                "quality_score": 0,
-            })
-    
+            results.append(
+                {
+                    "question_id": question_id,
+                    "error": str(e),
+                    "quality_score": 0,
+                }
+            )
+
     # Décharger le modèle
     unload_model()
-    
+
     # Stats globales
     avg_quality = sum(r.get("quality_score", 0) for r in results) / len(results)
-    avg_time = sum(r.get("elapsed", 0) for r in results if "elapsed" in r) / max(1, len([r for r in results if "elapsed" in r]))
+    avg_time = sum(r.get("elapsed", 0) for r in results if "elapsed" in r) / max(
+        1, len([r for r in results if "elapsed" in r])
+    )
     avg_tokens_per_sec = total_tokens / total_time if total_time > 0 else 0
-    
+
     return {
         "model": model_name,
         "results": results,
@@ -353,28 +357,28 @@ def benchmark_model(
 
 def generate_report(benchmarks: list[dict], output_file: str = "bench_report.json"):
     """Génère un rapport JSON et texte."""
-    
+
     # Filtrer les erreurs
     valid_benchmarks = [b for b in benchmarks if "error" not in b]
-    
+
     if not valid_benchmarks:
         print("\n❌ Aucun benchmark valide")
         return
-    
+
     # Classement par qualité
     ranking_quality = sorted(
         valid_benchmarks,
         key=lambda x: x["stats"]["avg_quality"],
         reverse=True,
     )
-    
+
     # Classement par vitesse
     ranking_speed = sorted(
         valid_benchmarks,
         key=lambda x: x["stats"]["avg_tokens_per_sec"],
         reverse=True,
     )
-    
+
     # Rapport JSON
     report_data = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -398,52 +402,56 @@ def generate_report(benchmarks: list[dict], output_file: str = "bench_report.jso
         ],
         "all_results": benchmarks,
     }
-    
+
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(report_data, f, indent=2, ensure_ascii=False)
-    
+
     print(f"\n📊 Rapport sauvegardé: {output_file}")
-    
+
     # Rapport texte
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("📈 CLASSEMENT PAR QUALITÉ")
-    print("="*70)
-    
+    print("=" * 70)
+
     for i, entry in enumerate(ranking_quality, 1):
         medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "  "
         print(f"{medal} {i}. {entry['model']}")
-        print(f"     Qualité: {entry['avg_quality']:.2f}/1.0 | "
-              f"Temps: {entry['avg_time']:.2f}s | "
-              f"Vitesse: {entry['tokens_per_sec']:.1f} tok/s")
-    
-    print("\n" + "="*70)
+        print(
+            f"     Qualité: {entry['avg_quality']:.2f}/1.0 | "
+            f"Temps: {entry['avg_time']:.2f}s | "
+            f"Vitesse: {entry['tokens_per_sec']:.1f} tok/s"
+        )
+
+    print("\n" + "=" * 70)
     print("⚡ CLASSEMENT PAR VITESSE")
-    print("="*70)
-    
+    print("=" * 70)
+
     for i, entry in enumerate(ranking_speed, 1):
         medal = "🚀" if i == 1 else "  "
         print(f"{medal} {i}. {entry['model']}")
-        print(f"     Vitesse: {entry['tokens_per_sec']:.1f} tok/s | "
-              f"Qualité: {entry['avg_quality']:.2f}/1.0")
-    
+        print(
+            f"     Vitesse: {entry['tokens_per_sec']:.1f} tok/s | "
+            f"Qualité: {entry['avg_quality']:.2f}/1.0"
+        )
+
     # Recommandations
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("💡 RECOMMANDATIONS")
-    print("="*70)
-    
+    print("=" * 70)
+
     best_quality = ranking_quality[0]
     best_speed = ranking_speed[0]
-    
+
     print(f"✅ Meilleure qualité: {best_quality['model']}")
     print(f"⚡ Meilleure vitesse: {best_speed['model']}")
-    
+
     # Compromis qualité/vitesse
     best_compromise = max(
         valid_benchmarks,
         key=lambda x: x["stats"]["avg_quality"] * x["stats"]["avg_tokens_per_sec"],
     )
     print(f"🎯 Meilleur compromis: {best_compromise['model']}")
-    
+
     if best_quality["avg_quality"] < 0.6:
         print("\n⚠️  Tous les modèles ont des scores < 0.6")
         print("   → Essayez un modèle plus grand ou fine-tunez")
@@ -473,9 +481,9 @@ def main():
         action="store_true",
         help="Afficher les réponses complètes",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Vérifier Ollama
     print("🔍 Vérification d'Ollama...")
     try:
@@ -487,7 +495,7 @@ def main():
         print(f"❌ Ollama inaccessible: {e}")
         print("   Lancez: ollama serve")
         sys.exit(1)
-    
+
     # Sélection des modèles
     if args.all:
         models_to_test = available_models
@@ -495,14 +503,14 @@ def main():
         models_to_test = [m.strip() for m in args.models.split(",")]
         # Filtrer les modèles indisponibles
         models_to_test = [m for m in models_to_test if m in available_models]
-    
+
     if not models_to_test:
         print("❌ Aucun modèle à tester")
         sys.exit(1)
-    
+
     print(f"\n📋 Modèles à tester: {models_to_test}")
     print(f"📝 Questions: {len(TEST_QUESTIONS)}")
-    
+
     # Benchmarks
     benchmarks = []
     for model in models_to_test:
@@ -511,16 +519,18 @@ def main():
             benchmarks.append(result)
         except Exception as e:
             print(f"\n❌ Erreur pour {model}: {e}")
-            benchmarks.append({
-                "model": model,
-                "error": str(e),
-                "results": [],
-                "stats": {"avg_quality": 0, "avg_time": 0, "avg_tokens_per_sec": 0},
-            })
-    
+            benchmarks.append(
+                {
+                    "model": model,
+                    "error": str(e),
+                    "results": [],
+                    "stats": {"avg_quality": 0, "avg_time": 0, "avg_tokens_per_sec": 0},
+                }
+            )
+
     # Rapport
     generate_report(benchmarks, args.output)
-    
+
     print("\n✅ Benchmark terminé !")
 
 

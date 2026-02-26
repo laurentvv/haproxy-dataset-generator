@@ -2,6 +2,7 @@
 llm.py - Génération de réponses via Ollama avec streaming
 Utilise le contexte récupéré par le retriever pour répondre avec précision.
 """
+
 import os
 import requests
 from datetime import datetime, timedelta
@@ -12,11 +13,11 @@ from typing import Generator
 # ── Rate Limiting ───────────────────────────────────────────────────────────
 class RateLimiter:
     """Rate limiter for API calls."""
-    
+
     def __init__(self, calls_per_minute: int = 20):
         self.min_interval = timedelta(seconds=60 / calls_per_minute)
         self.last_call = datetime.min
-    
+
     def wait_if_needed(self):
         now = datetime.now()
         elapsed = now - self.last_call
@@ -31,10 +32,12 @@ _llm_limiter = RateLimiter(calls_per_minute=20)
 
 
 # ── Config ───────────────────────────────────────────────────────────────────
-OLLAMA_URL    = "http://localhost:11434"
+OLLAMA_URL = "http://localhost:11434"
 DEFAULT_MODEL = "gemma3:latest"  # Changé de qwen3:latest à gemma3:latest (plus stable)
 MAX_CONTEXT_CHARS = 4000  # Limite de contexte envoyé au LLM
-LLM_TIMEOUT   = int(os.getenv("LLM_TIMEOUT", "300"))  # Timeout configurable (défaut: 300s)
+LLM_TIMEOUT = int(
+    os.getenv("LLM_TIMEOUT", "300")
+)  # Timeout configurable (défaut: 300s)
 
 
 # ── Prompt système ────────────────────────────────────────────────────────────
@@ -125,9 +128,7 @@ def truncate_context(context: str, max_chars: int = MAX_CONTEXT_CHARS) -> str:
 
 
 def build_messages(
-    question: str,
-    context: str,
-    history: list[tuple[str, str]] | None = None
+    question: str, context: str, history: list[tuple[str, str]] | None = None
 ) -> list[dict]:
     """
     Construit la liste de messages pour l'API Ollama.
@@ -142,13 +143,12 @@ def build_messages(
     # Ajouter l'historique de conversation (max 3 tours)
     if history:
         for user_msg, assistant_msg in history[-3:]:
-            messages.append({"role": "user",      "content": user_msg})
+            messages.append({"role": "user", "content": user_msg})
             messages.append({"role": "assistant", "content": assistant_msg})
 
     # Message utilisateur avec contexte
     user_content = PROMPT_TEMPLATE.format(
-        context  = truncate_context(context),
-        question = question
+        context=truncate_context(context), question=question
     )
     messages.append({"role": "user", "content": user_content})
 
@@ -202,45 +202,42 @@ def generate_response(
         prompt = "".join(prompt_parts)
 
         payload = {
-            "model"  : model,
-            "prompt" : prompt,
-            "stream" : True,
+            "model": model,
+            "prompt": prompt,
+            "stream": True,
             "options": {
-                "temperature"   : temperature,
-                "top_p"         : 0.9,
+                "temperature": temperature,
+                "top_p": 0.9,
                 "repeat_penalty": 1.1,
-                "num_predict"   : 1024,
-            }
+                "num_predict": 1024,
+            },
         }
         endpoint = f"{OLLAMA_URL}/api/generate"
     else:
         # Format standard pour les modèles natifs Ollama
         payload = {
-            "model"   : model,
+            "model": model,
             "messages": messages,
-            "stream"  : True,
-            "options" : {
-                "temperature"   : temperature,
-                "top_p"         : 0.9,
+            "stream": True,
+            "options": {
+                "temperature": temperature,
+                "top_p": 0.9,
                 "repeat_penalty": 1.1,
-                "num_predict"   : 1024,
-            }
+                "num_predict": 1024,
+            },
         }
         endpoint = f"{OLLAMA_URL}/api/chat"
 
     try:
         with requests.post(
-            endpoint,
-            json=payload,
-            stream=True,
-            timeout=LLM_TIMEOUT
+            endpoint, json=payload, stream=True, timeout=LLM_TIMEOUT
         ) as response:
             response.raise_for_status()
 
             for line in response.iter_lines():
                 if line:
                     try:
-                        data = json.loads(line.decode('utf-8'))
+                        data = json.loads(line.decode("utf-8"))
                         # Les deux endpoints retournent des formats légèrement différents
                         if is_gguf:
                             token = data.get("response", "")
@@ -281,8 +278,12 @@ if __name__ == "__main__":
     import sys
 
     # Test simple sans RAG
-    question = sys.argv[1] if len(sys.argv) > 1 else "Comment configurer un backend avec health check HTTP ?"
-    context  = """[Source 1: option httpchk — https://docs.haproxy.org/3.2/configuration.html]
+    question = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else "Comment configurer un backend avec health check HTTP ?"
+    )
+    context = """[Source 1: option httpchk — https://docs.haproxy.org/3.2/configuration.html]
 
 option httpchk
     Use HTTP protocol to check server health
@@ -301,8 +302,12 @@ option httpchk
     print("📝 Réponse :\n")
 
     models = list_ollama_models()
-    model  = DEFAULT_MODEL if DEFAULT_MODEL in models else (models[0] if models else DEFAULT_MODEL)
+    model = (
+        DEFAULT_MODEL
+        if DEFAULT_MODEL in models
+        else (models[0] if models else DEFAULT_MODEL)
+    )
 
     for token in generate_response(question, context, model=model):
-        print(token, end='', flush=True)
+        print(token, end="", flush=True)
     print("\n")
