@@ -372,7 +372,14 @@ def submit_message(
     show_sources: bool,
 ):
     """Ajoute le message utilisateur à l'historique avec validation."""
-    message_text = extract_message_text(message)
+    # Extract text from Gradio 6.x message format
+    if isinstance(message, dict):
+        message_text = message.get("content", "")
+    elif isinstance(message, str):
+        message_text = message
+    else:
+        message_text = str(message)
+    
     logger.info("submit_message() - message='%s...'", message_text[:30] if message_text else "")
 
     if not message_text.strip():
@@ -405,8 +412,7 @@ def respond(
     if not history or history[-1].get("role") != "user":
         return history
 
-    raw_message = history[-1]["content"]
-    message = extract_message_text(raw_message)
+    message = history[-1]["content"]
     logger.info("respond() V3 - message='%s...', model='%s', top_k=%d",
                 message[:30] if message else "", model_name, top_k)
 
@@ -594,11 +600,8 @@ def build_ui():
                     elem_classes="chatbot-container",
                     buttons=["share", "copy", "copy_all"],
                     layout="bubble",
+                    value=[[{"role": "assistant", "content": get_welcome_message()}]],
                 )
-
-                # Welcome message
-                if not chatbot.value:
-                    chatbot.value = [[None, get_welcome_message()]]
 
         # ── Footer ─────────────────────────────────────────────────────
         gr.HTML("""
@@ -638,7 +641,7 @@ def build_ui():
         )
 
         clear_btn.click(
-            fn=lambda: [[None, get_welcome_message()]],
+            fn=lambda: [[{"role": "assistant", "content": get_welcome_message()}]],
             outputs=[chatbot],
         )
 
