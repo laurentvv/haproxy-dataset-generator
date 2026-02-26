@@ -1,0 +1,41 @@
+{
+  "index": "V3",
+  "model": "qwen3:latest",
+  "questions_tested": 2,
+  "results": [
+    {
+      "question_id": "full_backend_name",
+      "answer": "La documentation ne mentionne pas explicitement une variable ou une directive pour nommer un backend, mais le nom d'un backend est défini directement dans la configuration en utilisant la syntaxe `bac...",
+      "retrieval_time": 6.61,
+      "generation_time": 16.53,
+      "keyword_score": 1.0,
+      "length_ok": true,
+      "quality_score": 1.0,
+      "found_keywords": [
+        "backend",
+        "name",
+        "section"
+      ],
+      "answer_length": 841
+    },
+    {
+      "question_id": "full_server_weight",
+      "answer": "Cette information n'est pas dans la documentation fournie. La configuration du poids d'un serveur en HAProxy utilise généralement la directive `server` avec l'argument `weight` dans un contexte `backe...",
+      "retrieval_time": 7.42,
+      "generation_time": 13.25,
+      "keyword_score": 0.67,
+      "length_ok": true,
+      "quality_score": 0.8,
+      "found_keywords": [
+        "weight",
+        "server"
+      ],
+      "answer_length": 368
+    }
+  ],
+  "stats": {
+    "avg_quality": 0.9,
+    "questions_resolues": 2,
+    "taux_reussite": 100.0
+  }
+}

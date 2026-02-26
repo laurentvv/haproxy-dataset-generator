@@ -47,11 +47,73 @@ CHROMA_DIR = INDEX_DIR / "chroma"
 BM25_PATH  = INDEX_DIR / "bm25.pkl"
 CHUNKS_PKL = INDEX_DIR / "chunks.pkl"
 
-TOP_K_RETRIEVAL      = 50
-TOP_K_RRF            = 25
-TOP_K_RERANK         = 5
+TOP_K_RETRIEVAL      = 50  # Candidats par méthode (vector + BM25)
+TOP_K_RRF            = 30  # 25 → 30: plus de candidats après fusion RRF
+TOP_K_RERANK         = 10  # 5 → 10: plus de contexte pour le LLM
 RRF_K                = 60
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.0"))
+
+
+# ── Metadata Filtering ───────────────────────────────────────────────────────
+# Mapping mots-clés → sections HAProxy pertinentes
+SECTION_HINTS = {
+    "stick-table": ["11.1", "11.2", "7.3", "11.3"],
+    "stick table": ["11.1", "11.2", "7.3"],
+    "rate limit": ["11.1", "11.2", "7.3", "11.3"],
+    "limiter": ["11.1", "11.2", "7.3"],
+    "connexion": ["11.1", "11.2", "7.3"],
+    "acl": ["7.1", "7.2", "7.3", "7.4", "7.5", "8.1", "8.2"],  # +7.3, 8.1, 8.2
+    "access control": ["7.1", "7.2", "7.4", "8.1"],
+    "condition": ["7.1", "7.2", "7.4", "7.5"],
+    "bind": ["4.2", "5.1", "5.3", "3.1", "4.1"],  # +4.1
+    "directive bind": ["4.2", "5.1", "4.1"],
+    "frontend": ["4.1", "4.2", "5.1", "3.1"],
+    "backend": ["5.1", "5.2", "5.3", "4.1", "4.3", "3.1"],  # +4.1, 4.3, 3.1
+    "server": ["5.2", "5.3", "5.1"],
+    "timeout": ["4.2", "5.2", "5.3"],
+    "delai": ["4.2", "5.2"],
+    "health": ["5.2", "5.3", "3.1"],
+    "check": ["5.2", "5.3", "3.1"],
+    "httpchk": ["5.2", "5.3"],
+    "ssl": ["4.2", "5.1", "5.3", "3.1", "4.1"],
+    "tls": ["4.2", "5.1", "3.1", "4.1"],
+    "certificate": ["4.2", "5.1", "3.1", "4.1"],
+    "crt": ["4.2", "5.1", "3.1", "4.1"],
+    "balance": ["5.1", "5.2", "5.3"],
+    "roundrobin": ["5.1", "5.2"],
+    "leastconn": ["5.1", "5.2"],
+    "source": ["5.1", "5.2"],
+    "listen": ["4.3", "5.1"],
+}
+
+
+def extract_section_hints(query: str) -> list[str] | None:
+    """
+    Extrait les sections HAProxy probables de la question.
+    
+    Returns:
+        list de sections (ex: ["5.2", "11.1"]) ou None si pas d'indice clair
+    """
+    query_lower = query.lower()
+    hints = set()
+    
+    # Pattern 1: Référence explicite (ex: "section 5.2", "chapitre 11")
+    import re
+    match = re.search(r"(?:section|chapitre)\s*(\d+(?:\.\d+)?)", query_lower)
+    if match:
+        section = match.group(1)
+        if "." not in section:
+            section = f"{section}.0"  # Normaliser "5" → "5.0"
+        hints.add(section)
+        return list(hints)  # Référence explicite = on retourne directement
+    
+    # Pattern 2: Mots-clés thématiques
+    for keyword, sections in SECTION_HINTS.items():
+        if keyword in query_lower:
+            hints.update(sections)
+    
+    # Si on a trouvé des indices, retourner les sections uniques
+    return list(hints) if hints else None
 
 
 # ── Query Expansion ──────────────────────────────────────────────────────────
@@ -171,23 +233,39 @@ def _tokenize(text: str) -> list[str]:
     return [t for t in tokens if t not in stopwords and len(t) > 1]
 
 
-def _chroma_search(query_embedding: list[float], top_k: int) -> list[tuple[int, float]]:
-    """Recherche vectorielle ChromaDB."""
+def _chroma_search(query_embedding: list[float], top_k: int, query_text: str = "") -> list[tuple[int, float]]:
+    """
+    Recherche vectorielle ChromaDB avec metadata filtering optionnel.
+    
+    Args:
+        query_embedding: Embedding de la requête
+        top_k: Nombre de résultats
+        query_text: Texte de la requête (pour extraire les section hints)
+    """
+    # Extraire les indices de section
+    section_hints = extract_section_hints(query_text) if query_text else None
+    
+    # Construire le filtre metadata
+    where_filter = None
+    if section_hints:
+        where_filter = {"section": {"$in": section_hints}}
+    
     results = _chroma_collection.query(
         query_embeddings=[query_embedding],
-        n_results=min(top_k, _chroma_collection.count()),
+        n_results=min(top_k * 2, _chroma_collection.count()),  # Plus de candidats si filtrage
+        where=where_filter,
         include=["distances", "metadatas"],
     )
-    
+
     ids = results["ids"][0]
     distances = results["distances"][0]
-    
+
     output = []
     for chroma_id, dist in zip(ids, distances):
         chunk_idx = int(chroma_id.replace("chunk_", ""))
         similarity = 1.0 - dist
         output.append((chunk_idx, similarity))
-    
+
     return output
 
 
@@ -314,7 +392,8 @@ def retrieve(
             for cid, dist in zip(ids, distances)
         ]
     else:
-        chroma_results = _chroma_search(query_emb, TOP_K_RETRIEVAL)
+        # Metadata filtering automatique basé sur la question
+        chroma_results = _chroma_search(query_emb, TOP_K_RETRIEVAL, query_text=query)
     
     if verbose:
         print(f"\n[ChromaDB V3] top-5 :")

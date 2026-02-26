@@ -3,7 +3,6 @@ llm.py - Génération de réponses via Ollama avec streaming
 Utilise le contexte récupéré par le retriever pour répondre avec précision.
 """
 import os
-import json
 import requests
 from typing import Generator
 
@@ -18,20 +17,35 @@ LLM_TIMEOUT   = int(os.getenv("LLM_TIMEOUT", "300"))  # Timeout configurable (d�
 # ── Prompt système ────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """Tu es un assistant expert en HAProxy 3.2, spécialisé dans la configuration et l'administration.
 
-RÈGLES STRICTES :
-1. Réponds UNIQUEMENT à partir du contexte de documentation fourni entre <context> et </context>.
-2. Si une directive, option ou comportement n'est PAS dans le contexte, dis-le explicitement : "Cette information n'est pas dans la documentation fournie."
-3. Ne jamais inventer de valeurs par défaut, de comportements ou d'options non documentés.
-4. Cite toujours la section source entre parenthèses : (Source: nom_de_la_section).
-5. Pour les exemples de configuration HAProxy, utilise des blocs de code avec la syntaxe haproxy.
-6. Si le contexte contient un exemple de code pertinent, inclus-le dans ta réponse.
-7. Réponds en français si la question est en français, en anglais si en anglais.
+RÈGLES ABSOLUES :
+1. Réponds UNIQUEMENT à partir du contexte entre <context> et </context>
+2. Si l'information n'est PAS dans le contexte → dis "Cette information n'est pas dans la documentation fournie"
+3. JAMAIS d'invention, JAMAIS de suppositions, JAMAIS de valeurs par défaut non documentées
+4. Cite TOUJOURS la source entre parenthèses : (Source: nom_de_la_section)
+5. Pour les exemples de configuration, utilise des blocs de code avec la syntaxe haproxy
+6. Réponds en français si la question est en français, en anglais si en anglais
 
-FORMAT DE RÉPONSE :
-- Commence par une réponse directe à la question
-- Détaille ensuite avec les paramètres/options importants
-- Inclus un exemple de configuration si pertinent
-- Termine par les sources utilisées"""
+STRUCTURE OBLIGATOIRE :
+1. Réponse directe (1-2 phrases)
+2. Détails techniques (paramètres, options importantes)
+3. Exemple de configuration (si pertinent dans le contexte)
+4. Sources utilisées entre parenthèses
+
+EXEMPLE DE BONNE RÉPONSE :
+Question: "Comment configurer un health check HTTP ?"
+Réponse:
+"Pour configurer un health check HTTP, utilisez l'option `option httpchk` dans le backend.
+
+Syntaxe: `option httpchk [<method> <uri> [<version>]]`
+
+Exemple:
+```
+backend web_servers
+    option httpchk GET /health HTTP/1.1
+    server web1 192.168.1.1:80 check
+```
+
+(Source: 5.2. Server and default-server options)"""
 
 
 PROMPT_TEMPLATE = """<context>
@@ -131,11 +145,12 @@ def generate_response(
     Yields:
         Tokens de la réponse au fur et à mesure
     """
+    import json  # Pour le parsing du streaming
+
     messages = build_messages(question, context, history)
 
     # DEBUG: Afficher les messages
-    import json
-    print(f"\n[DEBUG] Messages envoyés à Ollama:")
+    print("\n[DEBUG] Messages envoyés à Ollama:")
     for msg in messages:
         content_preview = msg["content"][:100].replace("\n", " ")
         print(f"  - {msg['role']}: {content_preview}...")
@@ -237,7 +252,6 @@ def generate_response_sync(
 
 # ── Test CLI ──────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    from pathlib import Path
     import sys
 
     # Test simple sans RAG

@@ -1,63 +1,74 @@
 {
-  "timestamp": "2026-02-24 22:59:00",
-  "models_tested": 5,
+  "timestamp": "2026-02-25 14:02:56",
+  "models_tested": 6,
   "ranking_quality": [
     {
-      "model": "gemma3:latest",
-      "avg_quality": 0.96,
-      "avg_time": 8.09,
-      "tokens_per_sec": 50.6
+      "model": "qwen3:latest",
+      "avg_quality": 0.95,
+      "avg_time": 16.18,
+      "tokens_per_sec": 54.7
     },
     {
       "model": "gemma3n:latest",
-      "avg_quality": 0.96,
-      "avg_time": 23.83,
-      "tokens_per_sec": 20.8
+      "avg_quality": 0.88,
+      "avg_time": 15.44,
+      "tokens_per_sec": 33.4
     },
     {
-      "model": "qwen3:latest",
-      "avg_quality": 0.96,
-      "avg_time": 92.32,
-      "tokens_per_sec": 8.7
+      "model": "gemma3:latest",
+      "avg_quality": 0.83,
+      "avg_time": 8.47,
+      "tokens_per_sec": 51.1
+    },
+    {
+      "model": "qwen3:14b",
+      "avg_quality": 0.8,
+      "avg_time": 19.72,
+      "tokens_per_sec": 33.5
     },
     {
       "model": "lfm2.5-thinking:1.2b-bf16",
-      "avg_quality": 0.72,
-      "avg_time": 8.52,
-      "tokens_per_sec": 83.8
+      "avg_quality": 0.44,
+      "avg_time": 9.5,
+      "tokens_per_sec": 93.9
     },
     {
-      "model": "hf.co/tantk/Nanbeige4.1-3B-GGUF:Q4_K_M",
-      "avg_quality": 0.2,
-      "avg_time": 28.64,
-      "tokens_per_sec": 35.8
+      "model": "qwen3:4b",
+      "avg_quality": 0.39,
+      "avg_time": 11.36,
+      "tokens_per_sec": 80.9
     }
   ],
   "ranking_speed": [
     {
       "model": "lfm2.5-thinking:1.2b-bf16",
-      "tokens_per_sec": 83.8,
-      "avg_quality": 0.72
+      "tokens_per_sec": 93.9,
+      "avg_quality": 0.44
     },
     {
-      "model": "gemma3:latest",
-      "tokens_per_sec": 50.6,
-      "avg_quality": 0.96
-    },
-    {
-      "model": "hf.co/tantk/Nanbeige4.1-3B-GGUF:Q4_K_M",
-      "tokens_per_sec": 35.8,
-      "avg_quality": 0.2
-    },
-    {
-      "model": "gemma3n:latest",
-      "tokens_per_sec": 20.8,
-      "avg_quality": 0.96
+      "model": "qwen3:4b",
+      "tokens_per_sec": 80.9,
+      "avg_quality": 0.39
     },
     {
       "model": "qwen3:latest",
-      "tokens_per_sec": 8.7,
-      "avg_quality": 0.96
+      "tokens_per_sec": 54.7,
+      "avg_quality": 0.95
+    },
+    {
+      "model": "gemma3:latest",
+      "tokens_per_sec": 51.1,
+      "avg_quality": 0.83
+    },
+    {
+      "model": "qwen3:14b",
+      "tokens_per_sec": 33.5,
+      "avg_quality": 0.8
+    },
+    {
+      "model": "gemma3n:latest",
+      "tokens_per_sec": 33.4,
+      "avg_quality": 0.88
     }
   ],
   "all_results": [
@@ -67,10 +78,10 @@
         {
           "question_id": "healthcheck",
           "answer": "Pour configurer un health check HTTP dans HAProxy, vous utilisez l'option `httpchk`. Voici la syntaxe et un exemple :\n\n**Syntaxe:**\n\n```\noption httpchk [<method> <uri> [<version>]]\n```\n\n*   `<method>`...",
-          "answer_length": 1134,
-          "elapsed": 7.6776041984558105,
-          "tokens": 365,
-          "tokens_per_sec": 47.54,
+          "answer_length": 1299,
+          "elapsed": 5.562420845031738,
+          "tokens": 396,
+          "tokens_per_sec": 71.19,
           "keyword_score": 0.8,
           "found_keywords": [
             "option httpchk",
@@ -82,11 +93,11 @@
         },
         {
           "question_id": "bind",
-          "answer": "La syntaxe de la directive `bind` est la suivante :\n\n```\nbind [ip_addr]:port [ssl crt /path/to/cert.pem]\n```\n\n*   `ip_addr`: L'adresse IP à laquelle le frontend écoute.  Vous pouvez utiliser `*` pour ...",
+          "answer": "La syntaxe de la directive `bind` est la suivante :\n\n```\nbind [ip_addr]:port [ssl crt /path/to/cert.pem]\n```\n\n*   `ip_addr`: L'adresse IP à laquelle HAProxy écoutera.  Vous pouvez utiliser `*` pour éc...",
           "answer_length": 559,
-          "elapsed": 5.168645858764648,
-          "tokens": 182,
-          "tokens_per_sec": 35.21,
+          "elapsed": 6.524314880371094,
+          "tokens": 181,
+          "tokens_per_sec": 27.74,
           "keyword_score": 1.0,
           "found_keywords": [
             "bind",
@@ -99,11 +110,11 @@
         },
         {
           "question_id": "stick_table",
-          "answer": "Pour limiter les connexions par IP en utilisant `stick-table`, vous pouvez suivre ces étapes :\n\n1.  **Déclarez la `stick-table` :**  Utilisez la commande `stick-table` pour créer la table.  Spécifiez ...",
-          "answer_length": 2223,
-          "elapsed": 11.422215700149536,
-          "tokens": 680,
-          "tokens_per_sec": 59.53,
+          "answer": "Pour limiter les connexions par IP en utilisant `stick-table`, vous pouvez suivre ces étapes :\n\n1.  **Déclarez la `stick-table` :** Utilisez la commande `stick-table` pour créer la table.  Spécifiez l...",
+          "answer_length": 1917,
+          "elapsed": 10.753287553787231,
+          "tokens": 568,
+          "tokens_per_sec": 52.82,
           "keyword_score": 1.0,
           "found_keywords": [
             "stick-table",
@@ -113,14 +124,73 @@
             "ip"
           ],
           "quality_score": 1.0
+        },
+        {
+          "question_id": "acl",
+          "answer": "Le contexte fourni ne détaille pas directement l'utilisation des ACLs (Access Control Lists) dans HAProxy 3.2. Cependant, il introduit le concept de `stick-table` et de `http-request track-sc0 src`, q...",
+          "answer_length": 2413,
+          "elapsed": 10.61960244178772,
+          "tokens": 640,
+          "tokens_per_sec": 60.27,
+          "keyword_score": 0.6,
+          "found_keywords": [
+            "acl",
+            "if",
+            "deny"
+          ],
+          "quality_score": 0.76
+        },
+        {
+          "question_id": "timeout",
+          "answer": "D'après le contexte fourni, l'option `httpchk` est utilisée pour vérifier la santé des serveurs. Elle utilise des méthodes HTTP (GET, etc.) et des URI pour cela.\n\nEn ce qui concerne les timeouts, le c...",
+          "answer_length": 1180,
+          "elapsed": 7.6183555126190186,
+          "tokens": 300,
+          "tokens_per_sec": 39.38,
+          "keyword_score": 0.2,
+          "found_keywords": [
+            "timeout"
+          ],
+          "quality_score": 0.52
+        },
+        {
+          "question_id": "ssl",
+          "answer": "Pour configurer SSL/TLS sur un frontend, vous utilisez l'option `bind` avec l'indicateur `ssl`.  Vous spécifiez également le chemin vers votre certificat.\n\nVoici un exemple :\n\n```\nfrontend http\n    bi...",
+          "answer_length": 516,
+          "elapsed": 6.661052227020264,
+          "tokens": 162,
+          "tokens_per_sec": 24.32,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "bind",
+            "ssl",
+            "crt",
+            "pem"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "backend",
+          "answer": "Pour configurer un backend avec équilibrage de charge en utilisant HAProxy 3.2, vous devez suivre ces étapes :\n\n1.  **Définir le backend :**\n    Utilisez la directive `backend` pour déclarer le backen...",
+          "answer_length": 2582,
+          "elapsed": 11.52590036392212,
+          "tokens": 779,
+          "tokens_per_sec": 67.59,
+          "keyword_score": 0.6,
+          "found_keywords": [
+            "backend",
+            "server",
+            "check"
+          ],
+          "quality_score": 0.76
         }
       ],
       "stats": {
-        "avg_quality": 0.96,
-        "avg_time": 8.09,
-        "avg_tokens_per_sec": 50.6,
-        "total_tokens": 1227,
-        "total_time": 24.27
+        "avg_quality": 0.83,
+        "avg_time": 8.47,
+        "avg_tokens_per_sec": 51.1,
+        "total_tokens": 3026,
+        "total_time": 59.26
       }
     },
     {
@@ -128,11 +198,11 @@
       "results": [
         {
           "question_id": "healthcheck",
-          "answer": "Pour configurer un health check HTTP dans HAProxy 3.2, vous devez utiliser l'option `httpchk`. Voici comment procéder, avec un exemple :\n\n**Syntaxe générale :**\n\n```\noption httpchk [<method> <uri> [<v...",
-          "answer_length": 1836,
-          "elapsed": 26.488548755645752,
-          "tokens": 548,
-          "tokens_per_sec": 20.69,
+          "answer": "Pour configurer un health check HTTP dans HAProxy 3.2, vous devez utiliser l'option `httpchk`. Voici comment procéder, avec des exemples :\n\n**Syntaxe générale :**\n\n```\noption httpchk [<method> <uri> [...",
+          "answer_length": 1999,
+          "elapsed": 9.37183666229248,
+          "tokens": 571,
+          "tokens_per_sec": 60.93,
           "keyword_score": 0.8,
           "found_keywords": [
             "option httpchk",
@@ -146,9 +216,9 @@
           "question_id": "bind",
           "answer": "La syntaxe de la directive `bind` est la suivante :\n\n```\nbind [ip_addr]:port [ssl crt /path/to/cert.pem]\n```\n\nElle permet de définir l'adresse IP et le port sur lesquels HAProxy doit écouter les conne...",
           "answer_length": 467,
-          "elapsed": 9.767583847045898,
+          "elapsed": 12.068384647369385,
           "tokens": 145,
-          "tokens_per_sec": 14.85,
+          "tokens_per_sec": 12.01,
           "keyword_score": 1.0,
           "found_keywords": [
             "bind",
@@ -161,11 +231,11 @@
         },
         {
           "question_id": "stick_table",
-          "answer": "Pour limiter les connexions par IP avec stick-table dans HAProxy 3.2, vous pouvez utiliser la directive `stick-table` en combinaison avec `http-request deny` et un stick table qui suit le nombre de co...",
-          "answer_length": 2682,
-          "elapsed": 35.219372272491455,
-          "tokens": 793,
-          "tokens_per_sec": 22.52,
+          "answer": "Pour limiter les connexions par IP avec stick-table dans HAProxy 3.2, vous pouvez utiliser la directive `stick-table` en combinaison avec `http-request deny`. Voici comment procéder :\n\n**Concept:**\n\nL...",
+          "answer_length": 2488,
+          "elapsed": 18.209813117980957,
+          "tokens": 677,
+          "tokens_per_sec": 37.18,
           "keyword_score": 1.0,
           "found_keywords": [
             "stick-table",
@@ -175,26 +245,187 @@
             "ip"
           ],
           "quality_score": 1.0
+        },
+        {
+          "question_id": "acl",
+          "answer": "Les ACL (Access Control Lists) dans HAProxy permettent de filtrer le trafic réseau en fonction de différents critères. Voici comment les utiliser, avec des exemples :\n\n**Concept général:**\n\nLes ACL so...",
+          "answer_length": 3457,
+          "elapsed": 21.35137391090393,
+          "tokens": 920,
+          "tokens_per_sec": 43.09,
+          "keyword_score": 0.6,
+          "found_keywords": [
+            "acl",
+            "if",
+            "deny"
+          ],
+          "quality_score": 0.76
+        },
+        {
+          "question_id": "timeout",
+          "answer": "Les options de timeout disponibles dans HAProxy 3.2 sont les suivantes :\n\n*   **timeout connect <ms>**: Définit le temps d'attente pour établir une connexion avec un backend.\n*   **timeout client <ms>...",
+          "answer_length": 1199,
+          "elapsed": 14.270399570465088,
+          "tokens": 329,
+          "tokens_per_sec": 23.05,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "timeout",
+            "connect",
+            "client",
+            "server"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "ssl",
+          "answer": "Pour configurer SSL/TLS sur un frontend dans HAProxy 3.2, vous devez utiliser l'option `bind` avec le paramètre `ssl`. Voici la syntaxe et un exemple :\n\n**Syntaxe:**\n\n```\nbind *:port [ssl crt /path/to...",
+          "answer_length": 817,
+          "elapsed": 13.431383609771729,
+          "tokens": 237,
+          "tokens_per_sec": 17.65,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "bind",
+            "ssl",
+            "crt",
+            "pem"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "backend",
+          "answer": "Pour configurer un backend avec équilibrage de charge dans HAProxy 3.2, vous devez définir un `backend` et y associer des `server`. Voici les étapes et un exemple de configuration :\n\n**1. Définir le b...",
+          "answer_length": 2473,
+          "elapsed": 19.391932487487793,
+          "tokens": 734,
+          "tokens_per_sec": 37.85,
+          "keyword_score": 0.6,
+          "found_keywords": [
+            "backend",
+            "server",
+            "check"
+          ],
+          "quality_score": 0.76
         }
       ],
       "stats": {
-        "avg_quality": 0.96,
-        "avg_time": 23.83,
-        "avg_tokens_per_sec": 20.8,
-        "total_tokens": 1486,
-        "total_time": 71.48
+        "avg_quality": 0.88,
+        "avg_time": 15.44,
+        "avg_tokens_per_sec": 33.4,
+        "total_tokens": 3613,
+        "total_time": 108.1
       }
     },
     {
-      "model": "qwen3:latest",
+      "model": "qwen3:4b",
       "results": [
         {
           "question_id": "healthcheck",
-          "answer": "### Configuration d'un health check HTTP dans HAProxy\n\n#### 1. **Activer le health check HTTP**\nUtilisez l'option `option httpchk` dans le bloc `backend` pour définir la méthode, l'URI et la version H...",
-          "answer_length": 1520,
-          "elapsed": 107.72743153572083,
-          "tokens": 943,
-          "tokens_per_sec": 8.75,
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 10.291982173919678,
+          "tokens": 1024,
+          "tokens_per_sec": 99.49,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        },
+        {
+          "question_id": "bind",
+          "answer": "La syntaxe de la directive `bind` est :  \n`bind [ip_addr]:port [ssl crt /path/to/cert.pem]`  \n\nExemple :  \n```haproxy\nfrontend http\n    bind *:80\n    bind *:443 ssl crt /etc/ssl/cert.pem\n```",
+          "answer_length": 190,
+          "elapsed": 10.828170537948608,
+          "tokens": 815,
+          "tokens_per_sec": 75.27,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "bind",
+            "port",
+            "ssl",
+            "crt",
+            "frontend"
+          ],
+          "quality_score": 1.0
+        },
+        {
+          "question_id": "stick_table",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 12.47382140159607,
+          "tokens": 1024,
+          "tokens_per_sec": 82.09,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        },
+        {
+          "question_id": "acl",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 12.550861835479736,
+          "tokens": 1024,
+          "tokens_per_sec": 81.59,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        },
+        {
+          "question_id": "timeout",
+          "answer": "Les options de timeout ne sont pas mentionnées dans le contexte fourni. Le contexte fourni décrit uniquement les options suivantes :  \n- `option httpchk` (pour vérifier la santé des serveurs)  \n- `bin...",
+          "answer_length": 441,
+          "elapsed": 8.383857727050781,
+          "tokens": 501,
+          "tokens_per_sec": 59.76,
+          "keyword_score": 0.6,
+          "found_keywords": [
+            "timeout",
+            "client",
+            "server"
+          ],
+          "quality_score": 0.76
+        },
+        {
+          "question_id": "ssl",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 12.483915090560913,
+          "tokens": 1024,
+          "tokens_per_sec": 82.03,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        },
+        {
+          "question_id": "backend",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 12.518502473831177,
+          "tokens": 1024,
+          "tokens_per_sec": 81.8,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        }
+      ],
+      "stats": {
+        "avg_quality": 0.39,
+        "avg_time": 11.36,
+        "avg_tokens_per_sec": 80.9,
+        "total_tokens": 6436,
+        "total_time": 79.53
+      }
+    },
+    {
+      "model": "qwen3:14b",
+      "results": [
+        {
+          "question_id": "healthcheck",
+          "answer": "Pour configurer un health check HTTP dans HAProxy, utilisez l'option `option httpchk` dans la section `backend`. Voici un exemple de configuration :\n\n```haproxy\nbackend web_servers\n    option httpchk ...",
+          "answer_length": 1068,
+          "elapsed": 20.691084384918213,
+          "tokens": 869,
+          "tokens_per_sec": 42.0,
           "keyword_score": 0.8,
           "found_keywords": [
             "option httpchk",
@@ -206,11 +437,131 @@
         },
         {
           "question_id": "bind",
-          "answer": "La syntaxe de la directive `bind` dans HAProxy est la suivante :\n\n```\nbind [ip_addr]:port [ssl crt /path/to/cert.pem]\n```\n\n### Explication :\n- **`ip_addr`** : Adresse IP de liaison (peut être `*` pour...",
-          "answer_length": 631,
-          "elapsed": 51.2980751991272,
-          "tokens": 450,
-          "tokens_per_sec": 8.77,
+          "answer": "**Syntaxe de la directive `bind` :**  \n`bind [ip_addr]:port [ssl crt /path/to/cert.pem]`\n\n**Exemple :**  \n```haproxy\nfrontend http\n    bind *:80\n    bind *:443 ssl crt /etc/ssl/cert.pem\n```\n\n- `*:80` ...",
+          "answer_length": 364,
+          "elapsed": 13.411304473876953,
+          "tokens": 334,
+          "tokens_per_sec": 24.9,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "bind",
+            "port",
+            "ssl",
+            "crt",
+            "frontend"
+          ],
+          "quality_score": 1.0
+        },
+        {
+          "question_id": "stick_table",
+          "answer": "Pour limiter les connexions par IP avec `stick-table` dans HAProxy 3.2, utilisez la configuration suivante :\n\n---\n\n### **1. Déclaration de la table de suivi**\n```haproxy\nfrontend http\n    stick-table ...",
+          "answer_length": 1262,
+          "elapsed": 21.150806188583374,
+          "tokens": 705,
+          "tokens_per_sec": 33.33,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "stick-table",
+            "conn_rate",
+            "track-sc",
+            "deny",
+            "ip"
+          ],
+          "quality_score": 1.0
+        },
+        {
+          "question_id": "acl",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 27.95975112915039,
+          "tokens": 1024,
+          "tokens_per_sec": 36.62,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        },
+        {
+          "question_id": "timeout",
+          "answer": "Le contexte fourni ne mentionne pas les options de timeout spécifiques (comme `timeout connect`, `timeout client`, `timeout server`, etc.). Pour obtenir des informations détaillées sur les options de ...",
+          "answer_length": 364,
+          "elapsed": 11.845111846923828,
+          "tokens": 256,
+          "tokens_per_sec": 21.61,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "timeout",
+            "connect",
+            "client",
+            "server"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "ssl",
+          "answer": "Pour configurer SSL/TLS sur un frontend HAProxy 3.2, utilisez la directive `bind` avec l'option `ssl` et le chemin vers le certificat. Voici un exemple de configuration :\n\n```haproxy\nfrontend https\n  ...",
+          "answer_length": 727,
+          "elapsed": 20.236483097076416,
+          "tokens": 658,
+          "tokens_per_sec": 32.52,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "bind",
+            "ssl",
+            "crt",
+            "pem"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "backend",
+          "answer": "Pour configurer un backend avec équilibrage de charge dans HAProxy 3.2, utilisez la syntaxe suivante :\n\n**Exemple de configuration :**\n```haproxy\nbackend web_servers\n    option httpchk GET /health HTT...",
+          "answer_length": 931,
+          "elapsed": 22.77442193031311,
+          "tokens": 778,
+          "tokens_per_sec": 34.16,
+          "keyword_score": 0.6,
+          "found_keywords": [
+            "backend",
+            "server",
+            "check"
+          ],
+          "quality_score": 0.76
+        }
+      ],
+      "stats": {
+        "avg_quality": 0.8,
+        "avg_time": 19.72,
+        "avg_tokens_per_sec": 33.5,
+        "total_tokens": 4624,
+        "total_time": 138.07
+      }
+    },
+    {
+      "model": "qwen3:latest",
+      "results": [
+        {
+          "question_id": "healthcheck",
+          "answer": "### Configuration d'un health check HTTP dans HAProxy\n\n#### 1. **Activer le health check HTTP**\nUtilisez l'option `option httpchk` dans le bloc `backend` pour définir la méthode, l'URI et la version H...",
+          "answer_length": 1589,
+          "elapsed": 13.503977537155151,
+          "tokens": 870,
+          "tokens_per_sec": 64.43,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "option httpchk",
+            "check",
+            "GET",
+            "server"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "bind",
+          "answer": "La syntaxe de la directive `bind` dans HAProxy est la suivante :\n\n```\nbind [ip_addr]:port [ssl crt /path/to/cert.pem]\n```\n\n### Explication :\n- **`ip_addr`** : Adresse IP de liaison (optionnelle). Si o...",
+          "answer_length": 671,
+          "elapsed": 11.837917804718018,
+          "tokens": 519,
+          "tokens_per_sec": 43.84,
           "keyword_score": 1.0,
           "found_keywords": [
             "bind",
@@ -224,10 +575,10 @@
         {
           "question_id": "stick_table",
           "answer": "Pour limiter les connexions par IP avec `stick-table` dans HAProxy 3.2, suivez ces étapes :\n\n### 1. **Déclarer le `stick-table`**\nUtilisez la syntaxe `stick-table` pour définir un tableau de suivi.  \n...",
-          "answer_length": 1768,
-          "elapsed": 117.9243414402008,
-          "tokens": 1024,
-          "tokens_per_sec": 8.68,
+          "answer_length": 1836,
+          "elapsed": 18.17980980873108,
+          "tokens": 1009,
+          "tokens_per_sec": 55.5,
           "keyword_score": 1.0,
           "found_keywords": [
             "stick-table",
@@ -237,59 +588,80 @@
             "ip"
           ],
           "quality_score": 1.0
+        },
+        {
+          "question_id": "acl",
+          "answer": "### Utilisation des ACLs pour filtrer le trafic dans HAProxy 3.2\n\n#### 1. **Définition des ACLs**\nLes ACLs (Access Control Lists) permettent de définir des règles de filtrage basées sur des conditions...",
+          "answer_length": 1508,
+          "elapsed": 18.4641752243042,
+          "tokens": 1024,
+          "tokens_per_sec": 55.46,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "acl",
+            "hdr",
+            "if",
+            "deny"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "timeout",
+          "answer": "### Options de timeout disponibles dans HAProxy 3.2\n\nHAProxy permet de configurer plusieurs options de timeout pour gérer les délais de connexion, de réponse et d'attente. Voici les principales :\n\n---...",
+          "answer_length": 1842,
+          "elapsed": 17.285436153411865,
+          "tokens": 937,
+          "tokens_per_sec": 54.21,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "timeout",
+            "connect",
+            "client",
+            "server",
+            "http-request"
+          ],
+          "quality_score": 1.0
+        },
+        {
+          "question_id": "ssl",
+          "answer": "Pour configurer SSL/TLS sur un frontend HAProxy, utilisez la directive `bind` avec les paramètres `ssl` et `crt` pour spécifier le certificat. Voici la configuration minimale :\n\n### Exemple de configu...",
+          "answer_length": 929,
+          "elapsed": 15.581020593643188,
+          "tokens": 809,
+          "tokens_per_sec": 51.92,
+          "keyword_score": 0.8,
+          "found_keywords": [
+            "bind",
+            "ssl",
+            "crt",
+            "pem"
+          ],
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "backend",
+          "answer": "### Configuration d'un backend avec équilibrage de charge sous HAProxy 3.2\n\n#### 1. **Définition du frontend**\nLe frontend gère les requêtes entrantes et redirige vers le backend.  \n**Exemple :**\n```h...",
+          "answer_length": 1952,
+          "elapsed": 18.44251561164856,
+          "tokens": 1024,
+          "tokens_per_sec": 55.52,
+          "keyword_score": 1.0,
+          "found_keywords": [
+            "backend",
+            "balance",
+            "roundrobin",
+            "server",
+            "check"
+          ],
+          "quality_score": 1.0
         }
       ],
       "stats": {
-        "avg_quality": 0.96,
-        "avg_time": 92.32,
-        "avg_tokens_per_sec": 8.7,
-        "total_tokens": 2417,
-        "total_time": 276.95
-      }
-    },
-    {
-      "model": "hf.co/tantk/Nanbeige4.1-3B-GGUF:Q4_K_M",
-      "results": [
-        {
-          "question_id": "healthcheck",
-          "answer": "",
-          "answer_length": 0,
-          "elapsed": 27.2502658367157,
-          "tokens": 1024,
-          "tokens_per_sec": 37.58,
-          "keyword_score": 0.0,
-          "found_keywords": [],
-          "quality_score": 0.2
-        },
-        {
-          "question_id": "bind",
-          "answer": "",
-          "answer_length": 0,
-          "elapsed": 31.580435037612915,
-          "tokens": 1024,
-          "tokens_per_sec": 32.43,
-          "keyword_score": 0.0,
-          "found_keywords": [],
-          "quality_score": 0.2
-        },
-        {
-          "question_id": "stick_table",
-          "answer": "",
-          "answer_length": 0,
-          "elapsed": 27.077364921569824,
-          "tokens": 1024,
-          "tokens_per_sec": 37.82,
-          "keyword_score": 0.0,
-          "found_keywords": [],
-          "quality_score": 0.2
-        }
-      ],
-      "stats": {
-        "avg_quality": 0.2,
-        "avg_time": 28.64,
-        "avg_tokens_per_sec": 35.8,
-        "total_tokens": 3072,
-        "total_time": 85.91
+        "avg_quality": 0.95,
+        "avg_time": 16.18,
+        "avg_tokens_per_sec": 54.7,
+        "total_tokens": 6192,
+        "total_time": 113.29
       }
     },
     {
@@ -297,27 +669,26 @@
       "results": [
         {
           "question_id": "healthcheck",
-          "answer": "Pour configurer un health check HTTP dans HAProxy 3.2, utilisez l'option `option httpchk` avec le protocole GET sur l'URI spécifiée. Par exemple, pour vérifier le statut d'un serveur :  \n`option httpc...",
-          "answer_length": 580,
-          "elapsed": 8.134527683258057,
-          "tokens": 655,
-          "tokens_per_sec": 80.52,
-          "keyword_score": 0.8,
+          "answer": "Conformément au contexte fourni, pour configurer un health check HTTP dans HAProxy 3.2, utilisez l'option `option httpchk` avec les paramètres suivants : spécifiez le URL de vérification (ex. `http://...",
+          "answer_length": 474,
+          "elapsed": 6.734276533126831,
+          "tokens": 724,
+          "tokens_per_sec": 107.51,
+          "keyword_score": 0.6,
           "found_keywords": [
             "option httpchk",
             "check",
-            "GET",
-            "server"
+            "GET"
           ],
-          "quality_score": 0.88
+          "quality_score": 0.76
         },
         {
           "question_id": "bind",
-          "answer": "La directive **bind** permet de spécifier une adresse IP et un port pour un serveur. Sa syntaxe est :  \n`bind <IP_ADDRESS>:<PORT>`.  \nPar exemple : `bind 192.168.1.1:8080` crée un serveur écoutant sur...",
-          "answer_length": 293,
-          "elapsed": 9.926352262496948,
-          "tokens": 888,
-          "tokens_per_sec": 89.46,
+          "answer": "La directive *bind* permet de spécifier une adresse IP et un port pour un service. Exemple : *bind 192.168.1.1:8080*. Elle configure l'écoute sur ce port.",
+          "answer_length": 154,
+          "elapsed": 8.876769304275513,
+          "tokens": 749,
+          "tokens_per_sec": 84.38,
           "keyword_score": 0.4,
           "found_keywords": [
             "bind",
@@ -327,25 +698,71 @@
         },
         {
           "question_id": "stick_table",
-          "answer": "Pour limiter les connexions par IP avec un stick-table, utilisez la configuration suivante :  \nstick-table type ip size 100k expire 60s store conn_limit(10). Cela enregistre le nombre maximal de conne...",
-          "answer_length": 291,
-          "elapsed": 7.501908302307129,
-          "tokens": 599,
-          "tokens_per_sec": 79.85,
-          "keyword_score": 0.4,
+          "answer": "La réponse est que le stick-table permet de suivre les connexions par IP via des compteurs associés. Par exemple, en ajoutant un compteur `conn_rate` pour compter les connexions simultanées, on peut l...",
+          "answer_length": 385,
+          "elapsed": 8.392597198486328,
+          "tokens": 670,
+          "tokens_per_sec": 79.83,
+          "keyword_score": 0.8,
           "found_keywords": [
             "stick-table",
+            "conn_rate",
+            "track-sc",
             "ip"
           ],
-          "quality_score": 0.64
+          "quality_score": 0.88
+        },
+        {
+          "question_id": "acl",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 10.648931741714478,
+          "tokens": 1024,
+          "tokens_per_sec": 96.16,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        },
+        {
+          "question_id": "timeout",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 10.590304374694824,
+          "tokens": 1024,
+          "tokens_per_sec": 96.69,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        },
+        {
+          "question_id": "ssl",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 10.621665716171265,
+          "tokens": 1024,
+          "tokens_per_sec": 96.41,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
+        },
+        {
+          "question_id": "backend",
+          "answer": "",
+          "answer_length": 0,
+          "elapsed": 10.612683534622192,
+          "tokens": 1024,
+          "tokens_per_sec": 96.49,
+          "keyword_score": 0.0,
+          "found_keywords": [],
+          "quality_score": 0.2
         }
       ],
       "stats": {
-        "avg_quality": 0.72,
-        "avg_time": 8.52,
-        "avg_tokens_per_sec": 83.8,
-        "total_tokens": 2142,
-        "total_time": 25.56
+        "avg_quality": 0.44,
+        "avg_time": 9.5,
+        "avg_tokens_per_sec": 93.9,
+        "total_tokens": 6239,
+        "total_time": 66.48
       }
     }
   ]
