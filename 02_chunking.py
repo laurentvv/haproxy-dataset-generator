@@ -155,7 +155,7 @@ def extract_section_hierarchy(title: str) -> tuple[Optional[str], Optional[str]]
         chapter = match.group(1)
         section = match.group(2)
         subsection = match.group(3)
-        rest = match.group(4)
+        match.group(4)
 
         if subsection:
             parent = f"{chapter}.{section}"
@@ -193,7 +193,6 @@ def split_into_semantic_chunks(text: str, title: str) -> list[str]:
 
         # Trouver le meilleur point de coupure
         best_cut = None
-        best_priority = -1
 
         for sep, name in separators:
             # Chercher dans la fenêtre optimale
@@ -206,7 +205,7 @@ def split_into_semantic_chunks(text: str, title: str) -> list[str]:
                 before = window[:idx]
                 if before.count("```") % 2 == 0:  # Pas dans un bloc
                     best_cut = idx + len(sep)
-                    best_priority = separators.index((sep, name))
+                    separators.index((sep, name))
                     break
 
         if best_cut is None:
@@ -415,9 +414,9 @@ def main():
     )
 
     # Distribution des tailles
-    small = sum(1 for l in lengths_after if l < 300)
-    medium = sum(1 for l in lengths_after if 300 <= l < 600)
-    large = sum(1 for l in lengths_after if l >= 600)
+    small = sum(1 for length in lengths_after if length < 300)
+    medium = sum(1 for length in lengths_after if 300 <= length < 600)
+    large = sum(1 for length in lengths_after if length >= 600)
     print(f"   Distribution      : <300: {small} | 300-600: {medium} | >600: {large}")
 
     # Sauvegarder

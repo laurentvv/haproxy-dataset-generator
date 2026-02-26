@@ -307,9 +307,7 @@ def main():
 
     # Verifier dependencies
     try:
-        import chromadb
         import requests
-        from rank_bm25 import BM25Okapi
     except ImportError:
         logger.error("Dependencies manquantes: uv add chromadb requests rank-bm25")
         return

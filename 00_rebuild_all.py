@@ -124,7 +124,7 @@ def main():
     failed_step = None
     for i, step in enumerate(steps, 1):
         # Afficher la progression
-        progress = (i - 1) / len(steps) * 100
+        (i - 1) / len(steps) * 100
         bar_length = 40
         filled_length = int(bar_length * (i - 1) / len(steps))
         bar = "█" * filled_length + "░" * (bar_length - filled_length)

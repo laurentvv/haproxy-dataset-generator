@@ -151,7 +151,7 @@ def unload_model() -> bool:
     try:
         # Ollama décharge automatiquement les modèles après inactivité
         # On peut forcer avec un appel vide
-        response = requests.post(
+        requests.post(
             f"{get_ollama_url()}/api/generate",
             json={"model": "", "prompt": ""},
             timeout=5,

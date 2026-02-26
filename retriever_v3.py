@@ -17,20 +17,17 @@ import pickle
 import re
 import time
 from datetime import datetime, timedelta
+
 import numpy as np
 from pathlib import Path
+
+# Import configuration (must be before logging_config to avoid circular imports)
+from config import ollama_config, retrieval_config, validation_config
 
 # Use centralized logging configuration
 from logging_config import setup_logging
 
 logger = setup_logging(__name__)
-
-# Import configuration
-from config import (
-    ollama_config,
-    retrieval_config,
-    validation_config,
-)
 
 # Re-export config values for backward compatibility
 OLLAMA_URL = ollama_config.url

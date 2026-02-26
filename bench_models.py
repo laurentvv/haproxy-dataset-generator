@@ -18,10 +18,17 @@ Modèles testés (de ollama ls) :
 """
 
 import json
+import logging
 import ollama
 import time
 from pydantic import BaseModel, Field
 from pathlib import Path
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 # ── Schéma Pydantic ──────────────────────────────────────────────────────────
@@ -143,8 +150,8 @@ def unload_model():
         ollama.list()
         time.sleep(2)  # Wait for model to unload
         print("  [INFO] Modèle déchargé\n")
-    except:
-        pass
+    except Exception as e:
+        logger.warning("Failed to unload model: %s", e)
 
 
 def test_model(model_name: str, test_sections: list) -> dict:

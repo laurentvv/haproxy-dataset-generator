@@ -6,6 +6,7 @@ Lance avec : uv run python 04_chatbot.py
 
 Utilise l'index V3 (qwen3-embedding:8b - MTEB #1 mondial 70.58)
 """
+
 import sys
 import io
 import threading
@@ -13,13 +14,14 @@ from pathlib import Path
 from datetime import datetime
 
 # Fix encoding Windows
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 # Use centralized logging configuration
 from logging_config import setup_logging
-logger = setup_logging(__name__, log_file='gradio_app_v3.log')
+
+logger = setup_logging(__name__, log_file="gradio_app_v3.log")
 
 try:
     import gradio as gr
@@ -32,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 logger.info("Importation des modules V3 (qwen3-embedding:8b)...")
 try:
     from retriever_v3 import retrieve_context_string, _load_indexes, validate_query
+
     logger.info("✅ Module retriever_v3 importé avec succès")
 except ImportError as e:
     logger.error("❌ Erreur d'importation du module retriever_v3: %s", e)
@@ -44,6 +47,7 @@ try:
         FALLBACK_RESPONSE,
         DEFAULT_MODEL,
     )
+
     logger.info("✅ Module llm importé avec succès")
     logger.info("Modèle par défaut: %s", DEFAULT_MODEL)
 except ImportError as e:
@@ -418,7 +422,9 @@ def format_sources_markdown(sources: list[dict]) -> str:
         url = src.get("url", "#")
         score = src.get("score", 0)
         category = src.get("ia_category", "general")
-        lines.append(f"<div class='source-item'>{icon} **[{i+1}]** [{title}]({url})</div>")
+        lines.append(
+            f"<div class='source-item'>{icon} **[{i + 1}]** [{title}]({url})</div>"
+        )
         lines.append(f"   *Catégorie: {category} | Score: {score:.2f}*")
 
     lines.append("</div>")
@@ -470,7 +476,9 @@ def submit_message(
 ):
     """Ajoute le message utilisateur à l'historique avec validation."""
     message_text = extract_message_text(message)
-    logger.info("submit_message() - message='%s...'", message_text[:30] if message_text else "")
+    logger.info(
+        "submit_message() - message='%s...'", message_text[:30] if message_text else ""
+    )
 
     if not message_text.strip():
         return history
@@ -480,12 +488,16 @@ def submit_message(
         message_text = validate_query(message_text)
     except ValueError as e:
         logger.warning("Input validation failed: %s", e)
-        history.append({"role": "assistant", "content": f"⚠️ **Question invalide**\n\n{str(e)}"})
+        history.append(
+            {"role": "assistant", "content": f"⚠️ **Question invalide**\n\n{str(e)}"}
+        )
         return history
 
     ok, status = ensure_indexes()
     if not ok:
-        history.append({"role": "assistant", "content": f"❌ **Erreur d'index**\n\n{status}"})
+        history.append(
+            {"role": "assistant", "content": f"❌ **Erreur d'index**\n\n{status}"}
+        )
         return history
 
     history.append({"role": "user", "content": message_text})
@@ -504,19 +516,28 @@ def respond(
 
     raw_message = history[-1]["content"]
     message = extract_message_text(raw_message)
-    logger.info("respond() V3 - message='%s...', model='%s', top_k=%d",
-                message[:30] if message else "", model_name, top_k)
+    logger.info(
+        "respond() V3 - message='%s...', model='%s', top_k=%d",
+        message[:30] if message else "",
+        model_name,
+        top_k,
+    )
 
     try:
         logger.info("Retrieval V3 (qwen3-embedding:8b) pour: '%s'", message[:80])
         context_str, sources, low_confidence = retrieve_context_string(
             message, top_k=top_k
         )
-        logger.info("Retrieval V3 terminé - %d sources, low_confidence=%s",
-                   len(sources), low_confidence)
+        logger.info(
+            "Retrieval V3 terminé - %d sources, low_confidence=%s",
+            len(sources),
+            low_confidence,
+        )
     except Exception as e:
         logger.error("❌ Erreur retrieval V3: %s", e)
-        history.append({"role": "assistant", "content": f"❌ **Erreur retrieval**\n\n{str(e)}"})
+        history.append(
+            {"role": "assistant", "content": f"❌ **Erreur retrieval**\n\n{str(e)}"}
+        )
         yield history
         return
 
@@ -528,7 +549,12 @@ def respond(
 
     llm_history = history_to_llm_format(history[:-1])
 
-    history.append({"role": "assistant", "content": "<div class='loading-pulse'>⏳ **Recherche en cours...**\n\nAnalyse de la documentation HAProxy 3.2 avec qwen3-embedding:8b</div>"})
+    history.append(
+        {
+            "role": "assistant",
+            "content": "<div class='loading-pulse'>⏳ **Recherche en cours...**\n\nAnalyse de la documentation HAProxy 3.2 avec qwen3-embedding:8b</div>",
+        }
+    )
     yield history
 
     history[-1]["content"] = ""
@@ -559,7 +585,9 @@ def respond(
 
     # Add low confidence warning if needed
     if low_confidence:
-        history[-1]["content"] += '\n\n<div class="low-confidence">⚠️ **Confiance faible** — Vérifiez la documentation officielle pour confirmation.</div>'
+        history[-1]["content"] += (
+            '\n\n<div class="low-confidence">⚠️ **Confiance faible** — Vérifiez la documentation officielle pour confirmation.</div>'
+        )
 
     yield history
 
@@ -673,8 +701,10 @@ def build_ui():
     if not available_models:
         available_models = [DEFAULT_MODEL, "llama3.1:8b", "qwen2.5:7b"]
 
-    default_model = DEFAULT_MODEL if DEFAULT_MODEL in available_models else (
-        available_models[0] if available_models else DEFAULT_MODEL
+    default_model = (
+        DEFAULT_MODEL
+        if DEFAULT_MODEL in available_models
+        else (available_models[0] if available_models else DEFAULT_MODEL)
     )
 
     logger.info("Modèles disponibles: %s", available_models)
@@ -689,7 +719,6 @@ def build_ui():
             neutral_hue="slate",
         ),
     ) as app:
-
         # ── Header avec gradient ────────────────────────────────────────────
         gr.HTML("""
             <div class="app-header">
@@ -703,14 +732,12 @@ def build_ui():
 
         # ── Main content area ───────────────────────────────────────────────
         with gr.Row(equal_height=False, gap="lg"):
-            
             # ── Left Sidebar ───────────────────────────────────────────────
             with gr.Column(scale=1, min_width=320):
-                
                 # Configuration Panel
                 with gr.Group(elem_classes="config-panel"):
                     gr.HTML("<div class='section-title'>⚙️ Configuration</div>")
-                    
+
                     model_dd = gr.Dropdown(
                         choices=available_models,
                         value=default_model,
@@ -718,7 +745,7 @@ def build_ui():
                         info="Modèle Ollama pour la génération",
                         interactive=True,
                     )
-                    
+
                     top_k = gr.Slider(
                         minimum=1,
                         maximum=15,
@@ -728,28 +755,28 @@ def build_ui():
                         info="Nombre de chunks à récupérer",
                         interactive=True,
                     )
-                    
+
                     show_sources_chk = gr.Checkbox(
                         value=True,
                         label="📚 Afficher les sources",
                         info="Afficher les références après la réponse",
                     )
-                
+
                 # Reindex Panel
                 with gr.Group(elem_classes="config-panel", visible=True):
                     gr.HTML("<div class='section-title'>🔄 Maintenance</div>")
-                    
+
                     ridx_btn = gr.Button(
                         "🔄 Réindexer la documentation",
                         variant="secondary",
                         size="lg",
                     )
                     ridx_status = gr.Markdown("")
-                
+
                 # Examples Panel
                 with gr.Group(elem_classes="examples-panel"):
                     gr.HTML("<div class='section-title'>💡 Exemples de questions</div>")
-                    
+
                     examples = [
                         "Comment configurer un health check HTTP ?",
                         "Syntaxe de la directive bind avec SSL ?",
@@ -758,7 +785,7 @@ def build_ui():
                         "Configurer les timeouts client/server ?",
                         "Activer les statistiques avec stats enable ?",
                     ]
-                    
+
                     for q in examples:
                         gr.Button(
                             q,
@@ -769,7 +796,6 @@ def build_ui():
 
             # ── Right Main Area ────────────────────────────────────────────
             with gr.Column(scale=3, min_width=600):
-                
                 # Status indicator
                 ok, status = ensure_indexes()
                 status_class = "status-ok" if ok else "status-error"
@@ -781,7 +807,7 @@ def build_ui():
                         </span>
                     </div>
                 """)
-                
+
                 # Chatbot
                 chatbot = gr.Chatbot(
                     label="Conversation",
@@ -792,11 +818,11 @@ def build_ui():
                     show_copy_button=True,
                     bubble_full_width=False,
                 )
-                
+
                 # Welcome message (initial state)
                 if not chatbot.value:
                     chatbot.value = [[None, get_welcome_message()]]
-                
+
                 # Input area
                 with gr.Group(elem_classes="input-area"):
                     msg_box = gr.Textbox(
@@ -806,7 +832,7 @@ def build_ui():
                         container=False,
                         elem_classes="msg-input",
                     )
-                    
+
                     with gr.Row(equal_height=True):
                         send_btn = gr.Button(
                             "🚀 Envoyer",
@@ -840,7 +866,7 @@ def build_ui():
         def handle_submit(message, history, model_name, top_k, show_sources):
             history = submit_message(message, history, model_name, top_k, show_sources)
             return history
-        
+
         def handle_respond(history, model_name, top_k, show_sources):
             for response in respond(history, model_name, top_k, show_sources):
                 yield response
@@ -882,11 +908,15 @@ def build_ui():
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="HAProxy RAG Chatbot V3 - Design moderne")
+    parser = argparse.ArgumentParser(
+        description="HAProxy RAG Chatbot V3 - Design moderne"
+    )
     parser.add_argument("--host", default="0.0.0.0", help="Adresse d'écoute")
     parser.add_argument("--port", default=7861, type=int, help="Port (défaut: 7861)")
     parser.add_argument("--share", action="store_true", help="Partager via Gradio")
-    parser.add_argument("--dark", action="store_true", help="Mode sombre (expérimental)")
+    parser.add_argument(
+        "--dark", action="store_true", help="Mode sombre (expérimental)"
+    )
     args = parser.parse_args()
 
     print("\n" + "=" * 65)
@@ -906,7 +936,9 @@ if __name__ == "__main__":
 
     try:
         models = list_ollama_models()
-        print(f"   🤖 Modèles  : {', '.join(models[:5])}{'...' if len(models) > 5 else ''}")
+        print(
+            f"   🤖 Modèles  : {', '.join(models[:5])}{'...' if len(models) > 5 else ''}"
+        )
     except Exception:
         print("   ❌ Erreur modèles")
         models = []
