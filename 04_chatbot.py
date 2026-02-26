@@ -712,7 +712,6 @@ def build_ui():
 
     with gr.Blocks(
         title="HAProxy Docs Chatbot V3",
-        css=CUSTOM_CSS,
         fill_width=True,
     ) as app:
         # ── Header avec gradient ────────────────────────────────────────────
@@ -812,7 +811,6 @@ def build_ui():
                     avatar_images=(None, "🔧"),
                     elem_classes="chatbot-container",
                     buttons=["share", "copy", "copy_all"],
-                    bubble_full_width=False,
                     layout="bubble",
                 )
 
@@ -957,6 +955,7 @@ if __name__ == "__main__":
                 secondary_hue="purple",
                 neutral_hue="slate",
             ),
+            css=CUSTOM_CSS,
         )
     except Exception as e:
         logger.critical("❌ Erreur critique: %s", e)
