@@ -55,323 +55,224 @@ except ImportError as e:
     raise
 
 
-# ── CSS personnalisé - Design moderne professionnel ───────────────────────────
+# ── CSS personnalisé - Design Dark Moderne ───────────────────────────────────
 CUSTOM_CSS = """
-/* ── Variables de couleurs ───────────────────────────────────────────────── */
+/* ── Thème Dark ─────────────────────────────────────────────────────────── */
 :root {
-    --haproxy-orange: #e84e2c;
-    --haproxy-red: #d63031;
-    --haproxy-dark: #2d3436;
-    --haproxy-gray: #636e72;
-    --bg-light: #f8f9fa;
-    --bg-white: #ffffff;
-    --border-color: #e9ecef;
-    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-    --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
+    --haproxy-orange: #ff6b35;
+    --haproxy-red: #e74c3c;
+    --bg-dark: #0f0f0f;
+    --bg-card: #1a1a1a;
+    --bg-input: #252525;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --border-color: #333333;
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
 }
 
-/* ── Container principal ─────────────────────────────────────────────────── */
+/* ── Container ─────────────────────────────────────────────────────────── */
 .gradio-container {
-    max-width: 1400px !important;
+    max-width: 1800px !important;
     margin: 0 auto !important;
-    padding: 0 !important;
-    background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-    min-height: 100vh;
+    background: var(--bg-dark) !important;
 }
 
-/* ── Header avec gradient ───────────────────────────────────────────────── */
+/* ── Header compact ────────────────────────────────────────────────────── */
 .app-header {
     background: linear-gradient(135deg, var(--haproxy-orange) 0%, var(--haproxy-red) 100%);
-    border-radius: var(--radius-lg);
-    padding: 32px 40px;
-    margin: 20px auto;
-    max-width: 1200px;
-    box-shadow: var(--shadow-lg);
+    border-radius: 12px;
+    padding: 16px 24px;
+    margin: 16px auto;
     text-align: center;
     color: white;
 }
 
 .app-header h1 {
-    font-size: 2.2em;
+    font-size: 1.6em;
     font-weight: 700;
-    margin: 0 0 8px 0;
-    letter-spacing: -0.5px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    margin: 0;
 }
 
 .app-header .subtitle {
-    font-size: 1.1em;
-    opacity: 0.95;
-    margin: 0;
-    font-weight: 400;
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin: 4px 0 0 0;
 }
 
-.app-header .badge {
-    display: inline-block;
-    background: rgba(255,255,255,0.2);
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-size: 0.85em;
-    margin-top: 12px;
-    backdrop-filter: blur(10px);
-}
-
-/* ── Sidebar de configuration ──────────────────────────────────────────── */
-.config-panel {
-    background: var(--bg-white);
-    border-radius: var(--radius-md);
-    padding: 24px;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
-}
-
-.config-panel .section-title {
-    font-size: 1.1em;
-    font-weight: 600;
-    color: var(--haproxy-dark);
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid var(--haproxy-orange);
-}
-
-/* ── Chatbot area ──────────────────────────────────────────────────────── */
+/* ── Chatbot en pleine largeur ────────────────────────────────────────── */
 .chatbot-container {
-    background: var(--bg-white);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
+    border-radius: 12px;
     overflow: hidden;
 }
 
-.chatbot-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 16px 24px;
-    font-weight: 600;
-    font-size: 1.1em;
+.chatbot-container .chatbot {
+    height: 70vh !important;
+    max-height: 70vh !important;
 }
 
-/* ── Message bubbles ───────────────────────────────────────────────────── */
+/* ── Messages ──────────────────────────────────────────────────────────── */
 .message-user {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     color: white !important;
     border-radius: 16px 16px 4px 16px !important;
-    padding: 14px 18px !important;
-    box-shadow: var(--shadow-sm);
+    padding: 12px 16px !important;
 }
 
 .message-assistant {
-    background: var(--bg-light) !important;
-    color: var(--haproxy-dark) !important;
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
     border-radius: 16px 16px 16px 4px !important;
-    padding: 14px 18px !important;
+    padding: 12px 16px !important;
     border: 1px solid var(--border-color) !important;
 }
 
 /* ── Input area ────────────────────────────────────────────────────────── */
 .input-area {
-    background: var(--bg-white);
-    border-radius: var(--radius-md);
-    padding: 20px;
-    box-shadow: var(--shadow-md);
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
 }
 
 .input-area textarea {
-    border-radius: var(--radius-sm) !important;
-    border: 2px solid var(--border-color) !important;
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
     font-size: 1em !important;
-    transition: all 0.3s ease;
 }
 
 .input-area textarea:focus {
     border-color: var(--haproxy-orange) !important;
-    box-shadow: 0 0 0 3px rgba(232, 78, 44, 0.1) !important;
+    box-shadow: 0 0 0 2px rgba(255,107,53,0.2) !important;
 }
 
-/* ── Buttons ───────────────────────────────────────────────────────────── */
+/* ── Boutons ───────────────────────────────────────────────────────────── */
 .btn-primary {
     background: linear-gradient(135deg, var(--haproxy-orange) 0%, var(--haproxy-red) 100%) !important;
     color: white !important;
     border: none !important;
-    border-radius: var(--radius-sm) !important;
+    border-radius: 8px !important;
     font-weight: 600 !important;
-    padding: 12px 24px !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-    box-shadow: var(--shadow-sm) !important;
 }
 
 .btn-primary:hover {
     transform: translateY(-2px) !important;
-    box-shadow: var(--shadow-md) !important;
+    box-shadow: 0 4px 12px rgba(255,107,53,0.4) !important;
 }
 
-.btn-secondary {
-    background: var(--bg-light) !important;
-    color: var(--haproxy-dark) !important;
-    border: 2px solid var(--border-color) !important;
-    border-radius: var(--radius-sm) !important;
-    font-weight: 500 !important;
-}
-
-.btn-danger {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%) !important;
-    color: white !important;
-    border: none !important;
-}
-
-/* ── Examples cards ───────────────────────────────────────────────────── */
+/* ── Exemples - Cartes lisibles ───────────────────────────────────────── */
 .examples-panel {
-    background: var(--bg-white);
-    border-radius: var(--radius-md);
-    padding: 24px;
-    box-shadow: var(--shadow-md);
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.examples-panel .section-title {
+    font-size: 0.95em;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--haproxy-orange);
 }
 
 .example-card {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: var(--bg-input);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 14px 18px;
+    border-radius: 8px;
+    padding: 10px 14px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.9em;
-    line-height: 1.5;
+    transition: all 0.2s ease;
+    font-size: 0.85em;
+    color: var(--text-primary);
+    text-align: left;
+    white-space: normal;
+    height: auto;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
 }
 
 .example-card:hover {
-    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    background: linear-gradient(135deg, var(--haproxy-orange) 0%, var(--haproxy-red) 100%);
     border-color: var(--haproxy-orange);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    color: white;
+    transform: translateX(4px);
 }
 
 .example-card::before {
     content: "💡";
     margin-right: 8px;
+    flex-shrink: 0;
 }
 
-/* ── Sources box ───────────────────────────────────────────────────────── */
+/* ── Sources ───────────────────────────────────────────────────────────── */
 .sources-box {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: var(--bg-input);
     border-left: 4px solid var(--haproxy-orange);
-    border-radius: var(--radius-sm);
-    padding: 16px 20px;
-    margin-top: 16px;
-    font-size: 0.9em;
-}
-
-.sources-box .source-item {
-    margin: 8px 0;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.sources-box .source-item:last-child {
-    border-bottom: none;
-}
-
-/* ── Low confidence warning ───────────────────────────────────────────── */
-.low-confidence {
-    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-    border-left: 4px solid #ffc107;
+    border-radius: 8px;
     padding: 12px 16px;
-    border-radius: var(--radius-sm);
     margin-top: 12px;
-    font-size: 0.9em;
-    color: #856404;
-}
-
-/* ── Status indicators ────────────────────────────────────────────────── */
-.status-indicator {
-    display: inline-flex;
-    align-items: center;
-    padding: 6px 12px;
-    border-radius: 20px;
     font-size: 0.85em;
-    font-weight: 500;
 }
 
-.status-ok {
-    background: #d4edda;
-    color: #155724;
+.sources-box a {
+    color: var(--haproxy-orange);
 }
 
-.status-error {
-    background: #f8d7da;
-    color: #721c24;
+/* ── Welcome message ──────────────────────────────────────────────────── */
+.welcome-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+}
+
+.welcome-box h2 {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.welcome-box p {
+    color: var(--text-secondary);
 }
 
 /* ── Footer ───────────────────────────────────────────────────────────── */
 .app-footer {
     text-align: center;
-    padding: 24px;
-    color: var(--haproxy-gray);
-    font-size: 0.9em;
+    padding: 12px;
+    color: var(--text-secondary);
+    font-size: 0.8em;
     border-top: 1px solid var(--border-color);
-    margin-top: 40px;
-    background: var(--bg-white);
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    margin-top: 16px;
 }
 
 .app-footer a {
     color: var(--haproxy-orange);
-    text-decoration: none;
-    font-weight: 500;
 }
 
-.app-footer a:hover {
-    text-decoration: underline;
-}
-
-/* ── Scrollbar custom ─────────────────────────────────────────────────── */
+/* ── Scrollbar ────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--bg-light);
-    border-radius: 4px;
+    background: var(--bg-dark);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--haproxy-gray);
+    background: var(--border-color);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--haproxy-dark);
-}
-
-/* ── Animations ──────────────────────────────────────────────────────── */
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
-}
-
-.loading-pulse {
-    animation: pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.message-animate {
-    animation: slideIn 0.3s ease-out;
+    background: var(--haproxy-orange);
 }
 """
 
@@ -415,17 +316,13 @@ def format_sources_markdown(sources: list[dict]) -> str:
     if not sources:
         return ""
 
-    lines = ["\n\n<div class='sources-box'>\n\n**📚 Sources de la documentation :**\n"]
+    lines = ["\n\n<div class='sources-box'>\n\n**📚 Sources :**\n"]
     for i, src in enumerate(sources):
         icon = "📝" if src.get("has_code") else "📄"
         title = src.get("title", "Section inconnue")
         url = src.get("url", "#")
         score = src.get("score", 0)
-        category = src.get("ia_category", "general")
-        lines.append(
-            f"<div class='source-item'>{icon} **[{i + 1}]** [{title}]({url})</div>"
-        )
-        lines.append(f"   *Catégorie: {category} | Score: {score:.2f}*")
+        lines.append(f"{icon} **[{i+1}]** [{title}]({url}) (score: {score:.2f})")
 
     lines.append("</div>")
     return "\n".join(lines)
@@ -476,9 +373,7 @@ def submit_message(
 ):
     """Ajoute le message utilisateur à l'historique avec validation."""
     message_text = extract_message_text(message)
-    logger.info(
-        "submit_message() - message='%s...'", message_text[:30] if message_text else ""
-    )
+    logger.info("submit_message() - message='%s...'", message_text[:30] if message_text else "")
 
     if not message_text.strip():
         return history
@@ -488,16 +383,12 @@ def submit_message(
         message_text = validate_query(message_text)
     except ValueError as e:
         logger.warning("Input validation failed: %s", e)
-        history.append(
-            {"role": "assistant", "content": f"⚠️ **Question invalide**\n\n{str(e)}"}
-        )
+        history.append({"role": "assistant", "content": f"⚠️ **Question invalide**\n\n{str(e)}"})
         return history
 
     ok, status = ensure_indexes()
     if not ok:
-        history.append(
-            {"role": "assistant", "content": f"❌ **Erreur d'index**\n\n{status}"}
-        )
+        history.append({"role": "assistant", "content": f"❌ **Erreur d'index**\n\n{status}"})
         return history
 
     history.append({"role": "user", "content": message_text})
@@ -516,28 +407,19 @@ def respond(
 
     raw_message = history[-1]["content"]
     message = extract_message_text(raw_message)
-    logger.info(
-        "respond() V3 - message='%s...', model='%s', top_k=%d",
-        message[:30] if message else "",
-        model_name,
-        top_k,
-    )
+    logger.info("respond() V3 - message='%s...', model='%s', top_k=%d",
+                message[:30] if message else "", model_name, top_k)
 
     try:
         logger.info("Retrieval V3 (qwen3-embedding:8b) pour: '%s'", message[:80])
         context_str, sources, low_confidence = retrieve_context_string(
             message, top_k=top_k
         )
-        logger.info(
-            "Retrieval V3 terminé - %d sources, low_confidence=%s",
-            len(sources),
-            low_confidence,
-        )
+        logger.info("Retrieval V3 terminé - %d sources, low_confidence=%s",
+                   len(sources), low_confidence)
     except Exception as e:
         logger.error("❌ Erreur retrieval V3: %s", e)
-        history.append(
-            {"role": "assistant", "content": f"❌ **Erreur retrieval**\n\n{str(e)}"}
-        )
+        history.append({"role": "assistant", "content": f"❌ **Erreur retrieval**\n\n{str(e)}"})
         yield history
         return
 
@@ -549,12 +431,7 @@ def respond(
 
     llm_history = history_to_llm_format(history[:-1])
 
-    history.append(
-        {
-            "role": "assistant",
-            "content": "<div class='loading-pulse'>⏳ **Recherche en cours...**\n\nAnalyse de la documentation HAProxy 3.2 avec qwen3-embedding:8b</div>",
-        }
-    )
+    history.append({"role": "assistant", "content": "<div style='opacity: 0.7'>⏳ **Recherche en cours...**</div>"})
     yield history
 
     history[-1]["content"] = ""
@@ -583,106 +460,25 @@ def respond(
     if show_sources and sources:
         history[-1]["content"] += format_sources_markdown(sources)
 
-    # Add low confidence warning if needed
-    if low_confidence:
-        history[-1]["content"] += (
-            '\n\n<div class="low-confidence">⚠️ **Confiance faible** — Vérifiez la documentation officielle pour confirmation.</div>'
-        )
-
     yield history
 
 
-def reindex_fn():
-    """Lance le pipeline de réindexation V3."""
-    import subprocess
-
-    logger.info("Début de la réindexation V3")
-
-    scripts = ["01_scrape.py", "02_chunking.py", "03_indexing.py"]
-
-    for script_name in scripts:
-        path = Path(__file__).parent / script_name
-        if not path.exists():
-            yield f"❌ Script introuvable : {script_name}"
-            return
-
-        yield f"🔄 **{script_name}**...\n\nExécution en cours..."
-        logger.info("Exécution de %s...", script_name)
-
-        try:
-            result = subprocess.run(
-                [sys.executable, str(path)],
-                capture_output=True,
-                text=True,
-                cwd=str(Path(__file__).parent),
-                timeout=300,
-            )
-        except subprocess.TimeoutExpired:
-            yield f"❌ **Timeout** pour {script_name}"
-            return
-        except Exception as e:
-            yield f"❌ **Erreur** pour {script_name}: {e}"
-            return
-
-        if result.returncode != 0:
-            yield f"❌ **Erreur dans {script_name}**:\n\n```{result.stderr[:500]}```"
-            return
-
-        yield f"✅ **{script_name}** terminé avec succès"
-
-    global _indexes_loaded
-    _indexes_loaded = False
-
-    yield "✅ **Réindexation V3 complète !**\n\nRechargez la page pour utiliser les nouveaux index."
-
-
 def get_welcome_message() -> str:
-    """Génère un message de bienvenue avec statistiques."""
-    now = datetime.now().strftime("%d/%m/%Y à %H:%M")
-    return f"""
-<div style="text-align: center; padding: 40px 20px;">
+    """Génère un message de bienvenue."""
+    return """
+<div class="welcome-box">
 
-# 👋 Bienvenue sur l'Assistant HAProxy 3.2
+# 👋 Assistant HAProxy 3.2
 
-**Système RAG hybride de nouvelle génération**
-
----
-
-### 🎯 Fonctionnalités
-
-| Technologie | Détails |
-|-------------|---------|
-| **Embedding** | qwen3-embedding:8b (MTEB #1 mondial - 70.58) |
-| **Retrieval** | Hybride Vectoriel + Lexical (BM25) + RRF |
-| **Reranking** | FlashRank avec IA metadata boosting |
-| **LLM** | Modèles Ollama locaux |
-
-### 📊 Performance
-
-- ✅ **80%+** de questions résolues
-- ⚡ **<25s** temps de réponse moyen
-- 📚 **3600+** chunks indexés
+**RAG hybride avec qwen3-embedding:8b (MTEB #1 - 70.58)**
 
 ---
 
-### 💬 Comment ça marche ?
-
-1. **Posez votre question** en français ou en anglais
-2. **Le système recherche** dans la documentation HAProxy 3.2
-3. **L'IA génère** une réponse précise avec sources
-
-### 🚀 Exemples de questions
+### 💬 Posez votre question
 
 - "Comment configurer un health check HTTP ?"
 - "Syntaxe de la directive bind avec SSL ?"
 - "Limiter les connexions par IP avec stick-table ?"
-- "Utiliser les ACLs pour le routage ?"
-
----
-
-<p style="color: #636e72; font-size: 0.9em;">
-    Dernière mise à jour : {now} | Documentation HAProxy 3.2
-</p>
 
 </div>
 """
@@ -690,8 +486,8 @@ def get_welcome_message() -> str:
 
 # ── Construction de l'UI ──────────────────────────────────────────────────────
 def build_ui():
-    """Construit l'interface Gradio V3 avec design moderne."""
-    logger.info("Construction de l'UI V3 avec design moderne...")
+    """Construit l'interface Gradio V3 avec design dark moderne."""
+    logger.info("Construction de l'UI V3 avec design dark...")
 
     try:
         available_models = list_ollama_models()
@@ -701,10 +497,8 @@ def build_ui():
     if not available_models:
         available_models = [DEFAULT_MODEL, "llama3.1:8b", "qwen2.5:7b"]
 
-    default_model = (
-        DEFAULT_MODEL
-        if DEFAULT_MODEL in available_models
-        else (available_models[0] if available_models else DEFAULT_MODEL)
+    default_model = DEFAULT_MODEL if DEFAULT_MODEL in available_models else (
+        available_models[0] if available_models else DEFAULT_MODEL
     )
 
     logger.info("Modèles disponibles: %s", available_models)
@@ -713,100 +507,70 @@ def build_ui():
     with gr.Blocks(
         title="HAProxy Docs Chatbot V3",
         fill_width=True,
+        fill_height=True,
     ) as app:
-        # ── Header avec gradient ────────────────────────────────────────────
+
+        # ── Header ───────────────────────────────────────────────────────
         gr.HTML("""
             <div class="app-header">
                 <h1>🔧 HAProxy 3.2 Documentation Assistant</h1>
-                <p class="subtitle">Système RAG hybride avec IA de nouvelle génération</p>
-                <div class="badge">
-                    ✨ qwen3-embedding:8b (MTEB #1 mondial - 70.58)
-                </div>
+                <p class="subtitle">qwen3-embedding:8b (MTEB #1 - 70.58)</p>
             </div>
         """)
 
-        # ── Main content area ───────────────────────────────────────────────
+        # ── Main layout ──────────────────────────────────────────────────
         with gr.Row(equal_height=False):
-            # ── Left Sidebar ───────────────────────────────────────────────
-            with gr.Column(scale=1, min_width=320):
-                # Configuration Panel
-                with gr.Group(elem_classes="config-panel"):
-                    gr.HTML("<div class='section-title'>⚙️ Configuration</div>")
-
+            # ── Left Sidebar ───────────────────────────────────────────
+            with gr.Column(scale=1, min_width=280):
+                # Configuration
+                with gr.Group():
+                    gr.Markdown("### ⚙️ Configuration")
+                    
                     model_dd = gr.Dropdown(
                         choices=available_models,
                         value=default_model,
                         label="Modèle LLM",
-                        info="Modèle Ollama pour la génération",
-                        interactive=True,
                     )
-
+                    
                     top_k = gr.Slider(
                         minimum=1,
                         maximum=15,
                         value=5,
                         step=1,
-                        label="Profondeur de recherche (top-k)",
-                        info="Nombre de chunks à récupérer",
-                        interactive=True,
+                        label="Profondeur (top-k)",
                     )
-
+                    
                     show_sources_chk = gr.Checkbox(
                         value=True,
                         label="📚 Afficher les sources",
-                        info="Afficher les références après la réponse",
                     )
 
-                # Reindex Panel
-                with gr.Group(elem_classes="config-panel", visible=True):
-                    gr.HTML("<div class='section-title'>🔄 Maintenance</div>")
-
-                    ridx_btn = gr.Button(
-                        "🔄 Réindexer la documentation",
-                        variant="secondary",
-                        size="lg",
-                    )
-                    ridx_status = gr.Markdown("")
-
-                # Examples Panel
+                # Exemples
                 with gr.Group(elem_classes="examples-panel"):
-                    gr.HTML("<div class='section-title'>💡 Exemples de questions</div>")
-
+                    gr.Markdown("### 💡 Exemples")
+                    
                     examples = [
                         "Comment configurer un health check HTTP ?",
-                        "Syntaxe de la directive bind avec SSL ?",
-                        "Limiter les connexions par IP avec stick-table ?",
-                        "Utiliser les ACLs pour le routage HTTP ?",
-                        "Configurer les timeouts client/server ?",
-                        "Activer les statistiques avec stats enable ?",
+                        "Syntaxe de bind avec SSL ?",
+                        "Limiter connexions par IP ?",
+                        "Utiliser ACLs pour routage ?",
+                        "Configurer timeouts ?",
+                        "Activer stats enable ?",
                     ]
-
+                    
                     for q in examples:
                         gr.Button(
                             q,
                             variant="secondary",
-                            size="sm",
                             elem_classes="example-card",
                         ).click(fn=lambda x=q: x, outputs=None)
 
-            # ── Right Main Area ────────────────────────────────────────────
-            with gr.Column(scale=3, min_width=600):
-                # Status indicator
-                ok, status = ensure_indexes()
-                status_class = "status-ok" if ok else "status-error"
-                status_icon = "✅" if ok else "❌"
-                gr.HTML(f"""
-                    <div style="text-align: right; padding: 10px 20px;">
-                        <span class="status-indicator {status_class}">
-                            {status_icon} Index: {status}
-                        </span>
-                    </div>
-                """)
-
+            # ── Right Main Area ────────────────────────────────────────
+            with gr.Column(scale=4):
                 # Chatbot
                 chatbot = gr.Chatbot(
                     label="Conversation",
-                    height=600,
+                    height="70vh",
                     render_markdown=True,
                     avatar_images=(None, "🔧"),
                     elem_classes="chatbot-container",
@@ -814,54 +578,39 @@ def build_ui():
                     layout="bubble",
                 )
 
-                # Welcome message (initial state)
+                # Welcome message
                 if not chatbot.value:
                     chatbot.value = [[None, get_welcome_message()]]
 
-                # Input area
+                # Input
                 with gr.Group(elem_classes="input-area"):
                     msg_box = gr.Textbox(
                         placeholder="Posez votre question sur HAProxy 3.2...",
                         show_label=False,
-                        lines=3,
-                        container=False,
-                        elem_classes="msg-input",
+                        lines=2,
                     )
-
-                    with gr.Row(equal_height=True):
+                    
+                    with gr.Row():
                         send_btn = gr.Button(
                             "🚀 Envoyer",
                             variant="primary",
-                            size="lg",
                             elem_classes="btn-primary",
                         )
-                        clear_btn = gr.Button(
-                            "🗑️ Effacer",
-                            variant="secondary",
-                            size="lg",
-                            elem_classes="btn-danger",
-                        )
+                        clear_btn = gr.Button("🗑️ Effacer", variant="secondary")
 
-        # ── Footer ─────────────────────────────────────────────────────────
+        # ── Footer ─────────────────────────────────────────────────────
         gr.HTML("""
             <div class="app-footer">
-                <p>
-                    🔧 <strong>HAProxy 3.2 Documentation Assistant</strong> | 
-                    🏠 <a href="https://docs.haproxy.org/3.2/" target="_blank">docs.haproxy.org</a> |
-                    💻 <a href="https://github.com/haproxy/haproxy" target="_blank">GitHub</a>
-                </p>
-                <p style="margin-top: 8px; font-size: 0.85em;">
-                    Propulsé par qwen3-embedding:8b (MTEB 70.58) + RAG hybride + Ollama LLM
-                </p>
+                <a href="https://docs.haproxy.org/3.2/" target="_blank">📚 docs.haproxy.org</a> •
+                <a href="https://github.com/haproxy/haproxy" target="_blank">💻 GitHub</a>
             </div>
         """)
 
-        # ── Event handlers ─────────────────────────────────────────────────
-        # Handle message submission
+        # ── Events ─────────────────────────────────────────────────────
         def handle_submit(message, history, model_name, top_k, show_sources):
             history = submit_message(message, history, model_name, top_k, show_sources)
             return history
-
+        
         def handle_respond(history, model_name, top_k, show_sources):
             for response in respond(history, model_name, top_k, show_sources):
                 yield response
@@ -891,10 +640,10 @@ def build_ui():
             outputs=[chatbot],
         )
 
-        ridx_btn.click(fn=reindex_fn, outputs=ridx_status)
-
-        # Handle example clicks (already handled via click handlers above)
-        pass
+        # Example clicks
+        for btn in app.blocks:
+            if hasattr(btn, 'elem_classes') and 'example-card' in btn.elem_classes:
+                btn.click(fn=lambda: None, outputs=None)
 
     return app
 
@@ -903,24 +652,19 @@ def build_ui():
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="HAProxy RAG Chatbot V3 - Design moderne"
-    )
+    parser = argparse.ArgumentParser(description="HAProxy RAG Chatbot V3 - Dark Mode")
     parser.add_argument("--host", default="0.0.0.0", help="Adresse d'écoute")
     parser.add_argument("--port", default=7861, type=int, help="Port (défaut: 7861)")
     parser.add_argument("--share", action="store_true", help="Partager via Gradio")
-    parser.add_argument(
-        "--dark", action="store_true", help="Mode sombre (expérimental)"
-    )
     args = parser.parse_args()
 
     print("\n" + "=" * 65)
     print("  🔧 HAProxy 3.2 Documentation Assistant V3")
-    print("  ✨ Nouveau design moderne professionnel")
+    print("  🌙 Dark Mode - Design optimisé")
     print("=" * 65)
     print(f"  🌐 URL        : http://{args.host}:{args.port}")
-    print("  🤖 Ollama     : http://localhost:11434")
-    print("  📊 Embedding  : qwen3-embedding:8b (MTEB #1 - 70.58)")
+    print(f"  🤖 Ollama     : http://localhost:11434")
+    print(f"  📊 Embedding  : qwen3-embedding:8b (MTEB #1 - 70.58)")
     print(f"  💬 Modèle     : {DEFAULT_MODEL}")
     print(f"  🎨 Gradio     : {gr.__version__}")
     print("=" * 65 + "\n")
@@ -931,11 +675,9 @@ if __name__ == "__main__":
 
     try:
         models = list_ollama_models()
-        print(
-            f"   🤖 Modèles  : {', '.join(models[:5])}{'...' if len(models) > 5 else ''}"
-        )
+        print(f"   🤖 Modèles  : {', '.join(models[:5])}{'...' if len(models) > 5 else ''}")
     except Exception:
-        print("   ❌ Erreur modèles")
+        print(f"   ❌ Erreur modèles")
         models = []
 
     print()
@@ -950,11 +692,7 @@ if __name__ == "__main__":
             share=args.share,
             show_error=True,
             favicon_path=None,
-            theme=gr.themes.Base(
-                primary_hue="orange",
-                secondary_hue="purple",
-                neutral_hue="slate",
-            ),
+            theme=gr.themes.Default(),
             css=CUSTOM_CSS,
         )
     except Exception as e:
