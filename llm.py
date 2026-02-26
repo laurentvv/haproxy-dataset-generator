@@ -211,6 +211,7 @@ def generate_response(
                 "repeat_penalty": 1.1,
                 "num_predict": 1024,
             },
+            "keep_alive": "5m",  # Keep model loaded for 5 minutes
         }
         endpoint = f"{OLLAMA_URL}/api/generate"
     else:
@@ -225,6 +226,7 @@ def generate_response(
                 "repeat_penalty": 1.1,
                 "num_predict": 1024,
             },
+            "keep_alive": "5m",  # Keep model loaded for 5 minutes
         }
         endpoint = f"{OLLAMA_URL}/api/chat"
 
