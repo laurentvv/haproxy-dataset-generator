@@ -674,12 +674,21 @@ def build_ui():
             outputs=[chatbot],
         )
 
-        # Example clicks - fill msg_box with example text
-        def make_fill_fn(text):
-            return lambda: text
-        
+        # Example clicks - fill msg_box AND add user message to chatbot, then respond
+        def example_click(text):
+            return text, [gr.ChatMessage(role="assistant", content=get_welcome_message()),
+                         gr.ChatMessage(role="user", content=text)]
+
         for btn, example_text in zip(example_buttons, examples_list):
-            btn.click(fn=make_fill_fn(example_text), inputs=None, outputs=msg_box)
+            btn.click(
+                fn=example_click,
+                inputs=None,
+                outputs=[msg_box, chatbot],
+            ).then(
+                fn=handle_respond,
+                inputs=[chatbot, model_dd, top_k, show_sources_chk],
+                outputs=[chatbot],
+            )
 
     return app
 
