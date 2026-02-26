@@ -21,24 +21,29 @@ if sys.platform == 'win32':
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 
-def run_script(script_name, description):
+def run_script(script_name, description, extra_args=None):
     """Exécute un script et affiche la progression."""
     print("\n" + "="*70)
     print(f"  {description}")
     print("="*70)
-    print(f"Execution: uv run python {script_name}\n")
     
+    cmd = ["uv", "run", "python", script_name]
+    if extra_args:
+        cmd.extend(extra_args)
+    
+    print(f"Execution: {' '.join(cmd)}\n")
+
     result = subprocess.run(
-        ["uv", "run", "python", script_name],
+        cmd,
         capture_output=True,
         text=True
     )
-    
+
     # Afficher la sortie
     print(result.stdout)
     if result.stderr:
         print(result.stderr)
-    
+
     return result.returncode == 0
 
 
@@ -82,9 +87,9 @@ def main():
     
     # Demander à l'utilisateur s'il veut lancer le benchmark
     response = input("Voulez-vous lancer le benchmark maintenant ? (o/n) : ")
-    
+
     if response.lower() in ['o', 'oui', 'y', 'yes']:
-        if not run_script("06_bench_v3.py --level full", "BENCHMARK FULL"):
+        if not run_script("06_bench_v3.py", "BENCHMARK FULL", extra_args=["--level", "full"]):
             print("\n❌ Erreur lors du benchmark")
             return
     
