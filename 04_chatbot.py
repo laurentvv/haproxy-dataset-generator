@@ -549,7 +549,7 @@ def build_ui():
                 with gr.Group(elem_classes="examples-panel"):
                     gr.Markdown("### 💡 Exemples")
 
-                    examples = [
+                    examples_list = [
                         "Comment configurer un health check HTTP ?",
                         "Syntaxe de bind avec SSL ?",
                         "Limiter connexions par IP ?",
@@ -559,7 +559,7 @@ def build_ui():
                     ]
 
                     example_buttons = []
-                    for q in examples:
+                    for q in examples_list:
                         btn = gr.Button(
                             q,
                             variant="secondary",
@@ -642,9 +642,12 @@ def build_ui():
             outputs=[chatbot],
         )
 
-        # Example clicks - fill msg_box
-        for btn in example_buttons:
-            btn.click(fn=lambda x=x: x, outputs=msg_box)
+        # Example clicks - fill msg_box with example text
+        def make_fill_fn(text):
+            return lambda: text
+        
+        for btn, example_text in zip(example_buttons, examples_list):
+            btn.click(fn=make_fill_fn(example_text), inputs=None, outputs=msg_box)
 
     return app
 
