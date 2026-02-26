@@ -24,9 +24,9 @@ if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-# Importer les questions depuis 05_bench_questions.py
+# Importer les questions depuis bench_questions.py (module de données)
 import importlib.util
-spec = importlib.util.spec_from_file_location("05_bench_questions", "05_bench_questions.py")
+spec = importlib.util.spec_from_file_location("bench_questions", "bench_questions.py")
 bench_questions = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bench_questions)
 QUESTIONS = bench_questions.QUESTIONS
