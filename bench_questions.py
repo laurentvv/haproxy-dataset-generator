@@ -8,7 +8,7 @@ Niveaux :
 - FULL      : 100 questions (45 min)
 
 Ce fichier est un module de données (base de questions), pas un script d'exécution.
-Il est importé par 07_bench_targeted.py et 08_bench_ollama.py.
+Il est importé par 05_bench_targeted.py et 06_bench_ollama.py.
 """
 
 QUESTIONS = [

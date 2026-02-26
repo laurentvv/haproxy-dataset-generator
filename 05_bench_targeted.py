@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-07_bench_targeted.py - Benchmark V3 ciblé sur des questions spécifiques
+05_bench_targeted.py - Benchmark V3 ciblé sur des questions spécifiques
 
 Usage:
     # Questions spécifiques
-    uv run python 07_bench_targeted.py --questions full_backend_name,full_server_weight
+    uv run python 05_bench_targeted.py --questions full_backend_name,full_server_weight
     
     # Par niveau (quick, standard, full)
-    uv run python 07_bench_targeted.py --level full
+    uv run python 05_bench_targeted.py --level full
     
     # Modèle personnalisé
-    uv run python 07_bench_targeted.py --level quick --model qwen3:latest
+    uv run python 05_bench_targeted.py --level quick --model qwen3:latest
 """
 import argparse
 import json
@@ -363,9 +363,9 @@ def main():
     else:
         print("❌ Spécifiez --level (quick/standard/full) ou --questions", flush=True)
         print("\nExemples:")
-        print("  uv run python 07_bench_targeted.py --level quick")
-        print("  uv run python 07_bench_targeted.py --level full")
-        print("  uv run python 07_bench_targeted.py --questions full_backend_name,full_server_weight")
+        print("  uv run python 05_bench_targeted.py --level quick")
+        print("  uv run python 05_bench_targeted.py --level full")
+        print("  uv run python 05_bench_targeted.py --questions full_backend_name,full_server_weight")
         sys.exit(1)
 
     print(f"📋 Modèle LLM: {args.model}", flush=True)

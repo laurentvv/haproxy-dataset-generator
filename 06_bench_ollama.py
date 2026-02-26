@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-bench_ollama_models.py - Benchmark de modèles Ollama pour RAG HAProxy
+06_bench_ollama.py - Benchmark de modèles Ollama pour RAG HAProxy
 
 Teste plusieurs modèles avec les mêmes questions et compare :
 - Qualité des réponses (keywords trouvés, pertinence)
@@ -8,9 +8,9 @@ Teste plusieurs modèles avec les mêmes questions et compare :
 - Utilisation mémoire (taille du modèle)
 
 Usage:
-    uv run python bench_ollama_models.py
-    uv run python bench_ollama_models.py --models gemma3:latest,qwen3:latest
-    uv run python bench_ollama_models.py --all  # Tous les modèles disponibles
+    uv run python 06_bench_ollama.py
+    uv run python 06_bench_ollama.py --models gemma3:latest,qwen3:latest
+    uv run python 06_bench_ollama.py --all  # Tous les modèles disponibles
 """
 import argparse
 import json
