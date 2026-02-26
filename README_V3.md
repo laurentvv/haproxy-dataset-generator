@@ -15,10 +15,9 @@ haproxy-dataset-generator/
 ├── 02_chunking.py         # Chunking intelligent avec enrichment
 ├── 03_indexing.py         # Construction index V3
 ├── 04_chatbot.py          # Interface Gradio
-├── 05_bench_questions.py  # 100 questions de benchmark
-├── 06_bench_v3.py         # Benchmark V3 (quick/standard/full)
-├── 07_bench_targeted.py   # Benchmark ciblé par catégorie
-├── 08_bench_ollama.py     # Benchmark modèles LLM
+├── 05_bench_targeted.py   # Benchmark (quick/standard/full)
+├── 06_bench_ollama.py     # Benchmark modèles LLM
+├── bench_questions.py     # Base de questions (92 questions)
 ├── retriever_v3.py        # Retrieval hybride V3
 ├── llm.py                 # Génération LLM
 ├── README_V3.md           # Ce fichier
@@ -73,16 +72,16 @@ uv run python 04_chatbot.py
 ### **Benchmarks**
 ```bash
 # Quick (7 questions, 3 min)
-uv run python 06_bench_v3.py --level quick
+uv run python 05_bench_targeted.py --level quick
 
 # Standard (20 questions, 8 min)
-uv run python 06_bench_v3.py --level standard
+uv run python 05_bench_targeted.py --level standard
 
-# Full (100 questions, 45 min)
-uv run python 06_bench_v3.py --level full
+# Full (92 questions, 45 min)
+uv run python 05_bench_targeted.py --level full
 
 # Ciblé (backend/acl uniquement)
-uv run python 07_bench_targeted.py --categories backend,acl
+uv run python 05_bench_targeted.py --questions full_backend_name,full_acl
 ```
 
 ---

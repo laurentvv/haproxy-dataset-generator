@@ -312,36 +312,34 @@ uv run python 04_app_v3.py
 
 #### **Quick (7 questions, ~3 min)**
 ```bash
-uv run python bench_v3_only.py --level quick
+uv run python 05_bench_targeted.py --level quick
 ```
 
 #### **Standard (20 questions, ~8 min)**
 ```bash
-uv run python bench_v3_only.py --level standard
+uv run python 05_bench_targeted.py --level standard
 ```
 
-#### **Full (100 questions, ~45 min)**
+#### **Full (92 questions, ~45 min)**
 ```bash
-uv run python bench_v3_only.py --level full
+uv run python 05_bench_targeted.py --level full
 ```
 
-### **Benchmark ciblé (par catégorie)**
+### **Benchmark ciblé (questions spécifiques)**
 ```bash
-# Tester backend + acl uniquement
-uv run python bench_v3_targeted.py --categories backend,acl
-
 # Tester des questions spécifiques
-uv run python bench_v3_targeted.py --questions full_backend_name,full_acl_status
+uv run python 05_bench_targeted.py --questions full_backend_name,full_acl_status
 ```
 
 ### **Comparaison V2 vs V3**
 ```bash
-uv run python bench_v2_vs_v3.py --model qwen3:latest
+# Script supprimé - utiliser 05_bench_targeted.py directement
+uv run python 05_bench_targeted.py --level full
 ```
 
 ### **Benchmark des modèles LLM**
 ```bash
-uv run python bench_ollama_models.py
+uv run python 06_bench_ollama.py --all
 ```
 
 ### **Résultats attendus (Full 100 questions) :**
@@ -495,8 +493,8 @@ uv add gradio
 
 ### **Problème : Qualité faible**
 ```bash
-# Vérifier le retrieval
-uv run python bench_v3_targeted.py --categories backend,acl --verbose
+# Vérifier le retrieval sur des questions spécifiques
+uv run python 05_bench_targeted.py --questions full_backend_name,full_acl_status --verbose
 
 # Ajuster SECTION_HINTS dans retriever_v3.py
 # Reconstruire l'index si nécessaire
@@ -524,13 +522,12 @@ haproxy-dataset-generator/
 ├── 02_ingest_v2.py           # Chunking → chunks_v3.jsonl
 ├── 03_build_index_v3.py      # Indexing → index_v3/
 ├── 04_app_v3.py              # Chatbot Gradio
+├── 04_chatbot.py             # Chatbot Gradio (noms cohérents)
 ├── retriever_v3.py           # Retrieval hybride V3
 ├── llm.py                    # Génération LLM
-├── bench_questions.py        # 100 questions de benchmark
-├── bench_v3_only.py          # Benchmark V3 (quick/standard/full)
-├── bench_v3_targeted.py      # Benchmark ciblé
-├── bench_v2_vs_v3.py         # Comparaison V2 vs V3
-├── bench_ollama_models.py    # Benchmark modèles LLM
+├── bench_questions.py        # 92 questions de benchmark
+├── 05_bench_targeted.py      # Benchmark (quick/standard/full)
+├── 06_bench_ollama.py        # Benchmark modèles LLM
 ├── V3_PERFORMANCE_TRACKING.md# Historique des perfs
 ├── data/                     # Données brutes
 │   ├── sections.jsonl
@@ -558,16 +555,16 @@ uv run python 01_scrape.py
 uv run python 02_ingest_v2.py
 
 # Indexing (~2h)
-uv run python 03_build_index_v3.py
+uv run python 03_indexing.py
 
 # Chatbot
-uv run python 04_app_v3.py
+uv run python 04_chatbot.py
 
 # Benchmark Quick (3 min)
-uv run python bench_v3_only.py --level quick
+uv run python 05_bench_targeted.py --level quick
 
 # Benchmark Full (45 min)
-uv run python bench_v3_only.py --level full
+uv run python 05_bench_targeted.py --level full
 ```
 
 ---

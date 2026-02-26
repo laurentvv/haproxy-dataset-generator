@@ -96,7 +96,7 @@ with open('data/chunks.jsonl', 'r') as f:
 
 ```bash
 # Après re-indexing
-uv run python bench_v3_targeted.py --questions full_backend_name,full_server_weight
+uv run python 05_bench_targeted.py --questions full_backend_name,full_server_weight
 ```
 
 ---
@@ -131,7 +131,7 @@ print(f'Chunks avec weight: {len(weight_chunks)}')
 "
 
 # 3. Tester le retrieval
-uv run python bench_v3_targeted.py --questions full_backend_name,full_server_weight --verbose
+uv run python 05_bench_targeted.py --questions full_backend_name,full_server_weight --verbose
 ```
 
 ---
@@ -157,7 +157,7 @@ uv run python bench_v3_targeted.py --questions full_backend_name,full_server_wei
 
 1. ✅ Lancer `06_add_missing_chunks.py` (en cours)
 2. ⏳ Attendre la fin de l'indexing (~2h)
-3. 📊 Tester avec `bench_v3_targeted.py`
+3. 📊 Tester avec `05_bench_targeted.py`
 4. 📈 Mettre à jour `V3_PERFORMANCE_TRACKING.md`
 
 ---

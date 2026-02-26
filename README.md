@@ -141,7 +141,8 @@ TOP_K_RERANK    = 5     # Résultats finaux
 ├── retriever.py              # Retrieval V2 (bge-m3)
 ├── retriever_v3.py           # Retrieval V3 (qwen3-embedding:8b)
 ├── llm.py                    # Génération Ollama avec streaming
-├── bench_ollama_models.py    # Benchmark de modèles Ollama
+├── 06_bench_ollama.py        # Benchmark de modèles Ollama
+├── bench_questions.py        # Base de questions (92 questions)
 ├── pyproject.toml            # Dépendances
 ├── data/                     # Données (sections, chunks)
 ├── index_v2/                 # Index V2 (bge-m3)
@@ -375,7 +376,7 @@ ollama pull qwen3-embedding:8b
 Un script de benchmark est inclus pour comparer les modèles Ollama :
 
 ```bash
-uv run python bench_ollama_models.py
+uv run python 06_bench_ollama.py --all
 ```
 
 ### Résultats du benchmark (5 modèles testés)
