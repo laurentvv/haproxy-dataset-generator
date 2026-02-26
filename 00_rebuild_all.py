@@ -64,15 +64,18 @@ def main():
     print("="*70)
     print()
     print("Ce script va :")
-    print("  1. Scraper docs.haproxy.org (~5-10 min)")
-    print("  2. Chunker les documents (~5-10 min)")
-    print("  3. Construire les index V3 (~2h)")
+    print("  1. Scraper docs.haproxy.org (~1 min)")
+    print("  2. Chunker les documents (~1 min)")
+    print("  3. Construire les index V3 (~2h17 avec qwen3-embedding:8b)")
     if args.no_benchmark:
         print("  4. Benchmark: SKIP")
     else:
         print("  4. Tester avec le benchmark Full (~45 min)")
     print()
-    print("Temps total estime : ~3h")
+    if args.no_benchmark:
+        print("Temps total estime : ~2h20")
+    else:
+        print("Temps total estime : ~3h05")
     print()
 
     total_start = time.time()
