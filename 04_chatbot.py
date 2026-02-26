@@ -345,15 +345,14 @@ def extract_message_text(message) -> str:
     return str(message)
 
 
-def history_to_llm_format(history: list[dict]) -> list[tuple[str, str]]:
-    """Convertit l'historique Gradio vers format LLM."""
+def history_to_llm_format(history: list) -> list[tuple[str, str]]:
+    """Convertit l'historique Gradio ChatMessage vers format LLM."""
     llm_history = []
     user_msg = None
 
     for msg in history:
-        role = msg.get("role", "")
-        raw_content = msg.get("content", "")
-        content = extract_message_text(raw_content)
+        role = msg.role if hasattr(msg, 'role') else msg.get("role", "")
+        content = msg.content if hasattr(msg, 'content') else msg.get("content", "")
 
         if role == "user":
             user_msg = content
@@ -366,14 +365,16 @@ def history_to_llm_format(history: list[dict]) -> list[tuple[str, str]]:
 
 def submit_message(
     message,
-    history: list[dict],
+    history: list,
     model_name: str,
     top_k: int,
     show_sources: bool,
 ):
     """Ajoute le message utilisateur à l'historique avec validation."""
-    # Extract text from Gradio 6.x message format
-    if isinstance(message, dict):
+    # Extract text from Gradio 6.x ChatMessage format
+    if hasattr(message, 'content'):
+        message_text = message.content
+    elif isinstance(message, dict):
         message_text = message.get("content", "")
     elif isinstance(message, str):
         message_text = message
@@ -390,29 +391,29 @@ def submit_message(
         message_text = validate_query(message_text)
     except ValueError as e:
         logger.warning("Input validation failed: %s", e)
-        history.append({"role": "assistant", "content": f"⚠️ **Question invalide**\n\n{str(e)}"})
+        history.append(gr.ChatMessage(role="assistant", content=f"⚠️ **Question invalide**\n\n{str(e)}"))
         return history
 
     ok, status = ensure_indexes()
     if not ok:
-        history.append({"role": "assistant", "content": f"❌ **Erreur d'index**\n\n{status}"})
+        history.append(gr.ChatMessage(role="assistant", content=f"❌ **Erreur d'index**\n\n{status}"))
         return history
 
-    history.append({"role": "user", "content": message_text})
+    history.append(gr.ChatMessage(role="user", content=message_text))
     return history
 
 
 def respond(
-    history: list[dict],
+    history: list,
     model_name: str,
     top_k: int,
     show_sources: bool,
 ):
     """Génère la réponse de l'assistant avec streaming (V3)."""
-    if not history or history[-1].get("role") != "user":
+    if not history or not hasattr(history[-1], 'role') or history[-1].role != "user":
         return history
 
-    message = history[-1]["content"]
+    message = history[-1].content
     logger.info("respond() V3 - message='%s...', model='%s', top_k=%d",
                 message[:30] if message else "", model_name, top_k)
 
@@ -425,22 +426,22 @@ def respond(
                    len(sources), low_confidence)
     except Exception as e:
         logger.error("❌ Erreur retrieval V3: %s", e)
-        history.append({"role": "assistant", "content": f"❌ **Erreur retrieval**\n\n{str(e)}"})
+        history.append(gr.ChatMessage(role="assistant", content=f"❌ **Erreur retrieval**\n\n{str(e)}"))
         yield history
         return
 
     if low_confidence or not context_str:
         response = FALLBACK_RESPONSE
-        history.append({"role": "assistant", "content": response})
+        history.append(gr.ChatMessage(role="assistant", content=response))
         yield history
         return
 
     llm_history = history_to_llm_format(history[:-1])
 
-    history.append({"role": "assistant", "content": "<div style='opacity: 0.7'>⏳ **Recherche en cours...**</div>"})
+    history.append(gr.ChatMessage(role="assistant", content="<div style='opacity: 0.7'>⏳ **Recherche en cours...**</div>"))
     yield history
 
-    history[-1]["content"] = ""
+    history[-1].content = ""
     logger.info("Génération avec modèle: %s", model_name)
 
     try:
@@ -451,20 +452,20 @@ def respond(
             history=llm_history,
             temperature=0.1,
         ):
-            history[-1]["content"] += token
+            history[-1].content += token
             yield history
 
-        logger.info("Génération terminée - %d caractères", len(history[-1]["content"]))
+        logger.info("Génération terminée - %d caractères", len(history[-1].content))
 
     except Exception as e:
         logger.error("❌ Erreur génération: %s", e)
-        history[-1]["content"] = f"❌ **Erreur génération**\n\n{str(e)}"
+        history[-1].content = f"❌ **Erreur génération**\n\n{str(e)}"
         yield history
         return
 
     # Add sources if enabled
     if show_sources and sources:
-        history[-1]["content"] += format_sources_markdown(sources)
+        history[-1].content += format_sources_markdown(sources)
 
     yield history
 
@@ -600,7 +601,7 @@ def build_ui():
                     elem_classes="chatbot-container",
                     buttons=["share", "copy", "copy_all"],
                     layout="bubble",
-                    value=[[{"role": "assistant", "content": get_welcome_message()}]],
+                    value=[gr.ChatMessage(role="assistant", content=get_welcome_message())],
                 )
 
         # ── Footer ─────────────────────────────────────────────────────
@@ -641,7 +642,7 @@ def build_ui():
         )
 
         clear_btn.click(
-            fn=lambda: [[{"role": "assistant", "content": get_welcome_message()}]],
+            fn=lambda: [gr.ChatMessage(role="assistant", content=get_welcome_message())],
             outputs=[chatbot],
         )
 
