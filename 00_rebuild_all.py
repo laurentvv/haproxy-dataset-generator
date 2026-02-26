@@ -14,6 +14,8 @@ Ce script :
 import subprocess
 import sys
 import io
+import time
+from datetime import datetime
 
 # Fix encoding Windows
 if sys.platform == 'win32':
@@ -22,7 +24,7 @@ if sys.platform == 'win32':
 
 
 def run_script(script_name, description, extra_args=None):
-    """Exécute un script et affiche la progression."""
+    """Exécute un script et affiche la progression en temps réel."""
     print("\n" + "="*70)
     print(f"  {description}")
     print("="*70)
@@ -31,20 +33,39 @@ def run_script(script_name, description, extra_args=None):
     if extra_args:
         cmd.extend(extra_args)
     
-    print(f"Execution: {' '.join(cmd)}\n")
+    print(f"Execution: {' '.join(cmd)}")
+    print(f"Start: {datetime.now().strftime('%H:%M:%S')}")
+    print("-" * 70)
 
-    result = subprocess.run(
+    # Exécution avec affichage en temps réel
+    start_time = time.time()
+    process = subprocess.Popen(
         cmd,
-        capture_output=True,
-        text=True
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1
     )
-
-    # Afficher la sortie
-    print(result.stdout)
-    if result.stderr:
-        print(result.stderr)
-
-    return result.returncode == 0
+    
+    # Afficher la sortie ligne par ligne avec timestamp
+    line_count = 0
+    if process.stdout:
+        for line in process.stdout:
+            line_count += 1
+            # Afficher uniquement les lignes importantes ou toutes les 10 lignes
+            if line_count % 1 == 0:  # Afficher chaque ligne
+                print(line, end='')
+    
+    process.wait()
+    elapsed_time = time.time() - start_time
+    
+    print("-" * 70)
+    duration = time.strftime('%H:%M:%S', time.gmtime(elapsed_time))
+    status = "✅ SUCCES" if process.returncode == 0 else "❌ ECHEC"
+    print(f"{status} | Duration: {duration} | Exit code: {process.returncode}")
+    print()
+    
+    return process.returncode == 0
 
 
 def main():
@@ -61,22 +82,14 @@ def main():
     print("Temps total estime : ~3h")
     print()
     
-    # Étape 1 : Scraper
-    if not run_script("01_scrape.py", "ETAPE 1/4 - SCRAPPING"):
-        print("\n❌ Erreur lors du scrapping")
-        return
+    total_start = time.time()
+    steps = [
+        ("01_scrape.py", "ETAPE 1/4 - SCRAPPING"),
+        ("02_chunking.py", "ETAPE 2/4 - CHUNKING"),
+        ("03_indexing.py", "ETAPE 3/4 - INDEXING"),
+    ]
     
-    # Étape 2 : Chunker
-    if not run_script("02_chunking.py", "ETAPE 2/4 - CHUNKING"):
-        print("\n❌ Erreur lors du chunking")
-        return
-    
-    # Étape 3 : Indexer
-    if not run_script("03_indexing.py", "ETAPE 3/4 - INDEXING"):
-        print("\n❌ Erreur lors de l'indexing")
-        return
-    
-    # Étape 4 : Benchmark
+    # Ajouter le benchmark si l'utilisateur le souhaite
     print("\n" + "="*70)
     print("  ETAPE 4/4 - BENCHMARK")
     print("="*70)
@@ -87,33 +100,69 @@ def main():
     
     # Demander à l'utilisateur s'il veut lancer le benchmark
     response = input("Voulez-vous lancer le benchmark maintenant ? (o/n) : ")
-
+    
     if response.lower() in ['o', 'oui', 'y', 'yes']:
-        if not run_script("06_bench_v3.py", "BENCHMARK FULL", extra_args=["--level", "full"]):
-            print("\n❌ Erreur lors du benchmark")
-            return
+        steps.append(("06_bench_v3.py", "BENCHMARK FULL", ["--level", "full"]))
+    
+    # Exécuter toutes les étapes
+    print("\n" + "="*70)
+    print("  PROGRESSION GLOBALE")
+    print("="*70)
+    
+    failed_step = None
+    for i, step in enumerate(steps, 1):
+        # Afficher la progression
+        progress = (i - 1) / len(steps) * 100
+        bar_length = 40
+        filled_length = int(bar_length * (i - 1) / len(steps))
+        bar = "█" * filled_length + "░" * (bar_length - filled_length)
+        print(f"\n[{bar}] {i-1}/{len(steps)} étapes complétées")
+        
+        if len(step) == 3:
+            script_name, description, extra_args = step
+            if not run_script(script_name, description, extra_args=extra_args):
+                failed_step = description
+                break
+        else:
+            script_name, description = step
+            if not run_script(script_name, description):
+                failed_step = description
+                break
+    
+    total_elapsed = time.time() - total_start
+    total_duration = time.strftime('%H:%M:%S', time.gmtime(total_elapsed))
+    
+    # Afficher la progression finale
+    bar_length = 40
+    bar = "█" * bar_length
+    print(f"\n[{bar}] {len(steps)}/{len(steps)} étapes complétées")
     
     # Résumé final
     print("\n" + "="*70)
-    print("  RECONSTRUCTION TERMINEE")
-    print("="*70)
+    if failed_step:
+        print("  RECONSTRUCTION ECHECUEE")
+        print("="*70)
+        print(f"\n❌ Echec à l'étape: {failed_step}")
+        print(f"\nTemps total: {total_duration}")
+        print("\nVous pouvez relancer le script pour reprendre depuis le début.")
+    else:
+        print("  RECONSTRUCTION TERMINEE")
+        print("="*70)
+        print(f"\n✅ Toutes les étapes sont complétées avec succès!")
+        print(f"\nTemps total: {total_duration}")
+        print()
+        print("Fichiers generes :")
+        print("  - data/sections.jsonl")
+        print("  - data/chunks.jsonl")
+        print("  - index_v3/chroma/")
+        print("  - index_v3/bm25.pkl")
+        print("  - index_v3/chunks.pkl")
+        print()
+        print("Pour lancer le chatbot :")
+        print("  uv run python 04_chatbot.py")
+        print()
+        print("Pour lancer un benchmark :")
+        print("  uv run python 06_bench_v3.py --level quick    # 7 questions, 3 min")
+        print("  uv run python 06_bench_v3.py --level standard # 20 questions, 8 min")
+        print("  uv run python 06_bench_v3.py --level full     # 100 questions, 45 min")
     print()
-    print("Fichiers generes :")
-    print("  - data/sections.jsonl")
-    print("  - data/chunks.jsonl")
-    print("  - index_v3/chroma/")
-    print("  - index_v3/bm25.pkl")
-    print("  - index_v3/chunks.pkl")
-    print()
-    print("Pour lancer le chatbot :")
-    print("  uv run python 04_chatbot.py")
-    print()
-    print("Pour lancer un benchmark :")
-    print("  uv run python 06_bench_v3.py --level quick    # 7 questions, 3 min")
-    print("  uv run python 06_bench_v3.py --level standard # 20 questions, 8 min")
-    print("  uv run python 06_bench_v3.py --level full     # 100 questions, 45 min")
-    print()
-
-
-if __name__ == "__main__":
-    main()
