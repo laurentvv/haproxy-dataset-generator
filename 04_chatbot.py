@@ -465,8 +465,21 @@ def respond(
         logger.info("Génération terminée - %d caractères", len(history[-1].content))
 
     except Exception as e:
-        logger.error("❌ Erreur génération: %s", e)
-        history[-1].content = f"❌ **Erreur génération**\n\n{str(e)}"
+        error_msg = str(e)
+        logger.error("❌ Erreur génération: %s", error_msg)
+        
+        # Check if model not loaded
+        if "model" in error_msg.lower() or "not found" in error_msg.lower():
+            history[-1].content = f"""❌ **Modèle non chargé : {model_name}**
+
+Lancez cette commande dans un terminal :
+```bash
+ollama run {model_name}
+```
+
+Ou sélectionnez un autre modèle dans la liste déroulante."""
+        else:
+            history[-1].content = f"❌ **Erreur génération**\n\n{error_msg}"
         yield history
         return
 
