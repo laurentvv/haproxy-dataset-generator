@@ -61,7 +61,7 @@ uv run python 00_rebuild_all.py --no-benchmark
 |--------|-----------|--------------|
 | **quick** | 7 | ~3 min |
 | **standard** | 20 | ~8 min |
-| **full** | 100 | ~45 min |
+| **full** | 92 | ~45 min |
 
 ### Temps total avec benchmark Full
 - **Reconstruction**: 02:16:41

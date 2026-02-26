@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-bench_questions.py - 100 questions de benchmark HAProxy
+bench_questions.py - 92 questions de benchmark HAProxy
 
 Niveaux :
 - QUICK     : 7 questions (3 min)
 - STANDARD  : 20 questions (8 min)
-- FULL      : 100 questions (45 min)
+- FULL      : 92 questions (45 min)
 
 Ce fichier est un module de données (base de questions), pas un script d'exécution.
 Il est importé par 05_bench_targeted.py et 06_bench_ollama.py.

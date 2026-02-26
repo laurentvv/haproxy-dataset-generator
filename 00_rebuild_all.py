@@ -70,7 +70,7 @@ def main():
     if args.no_benchmark:
         print("  4. Benchmark: SKIP")
     else:
-        print("  4. Tester avec le benchmark Full (~45 min)")
+        print("  4. Tester avec le benchmark Full (~45 min, 92 questions)")
     print()
     if args.no_benchmark:
         print("Temps total estime : ~2h20")
@@ -172,7 +172,7 @@ def main():
         print("Pour lancer un benchmark :")
         print("  uv run python 05_bench_targeted.py --level quick    # 7 questions, 3 min")
         print("  uv run python 05_bench_targeted.py --level standard # 20 questions, 8 min")
-        print("  uv run python 05_bench_targeted.py --level full     # 100 questions, 45 min")
+        print("  uv run python 05_bench_targeted.py --level full     # 92 questions, 45 min")
     print()
 
 

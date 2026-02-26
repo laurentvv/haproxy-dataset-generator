@@ -1,41 +1,127 @@
 {
   "index": "V3",
   "model": "qwen3:latest",
-  "questions_tested": 2,
+  "questions_tested": 7,
   "results": [
     {
-      "question_id": "full_backend_name",
-      "answer": "La documentation ne mentionne pas explicitement une variable ou une directive pour nommer un backend, mais le nom d'un backend est défini directement dans la configuration en utilisant la syntaxe `bac...",
-      "retrieval_time": 6.61,
-      "generation_time": 16.53,
+      "question_id": "quick_healthcheck",
+      "answer": "**Réponse directe** : Pour configurer un health check HTTP, utilisez `option httpchk` avec `http-check send` et `http-check expect` pour définir la requête et la réponse attendues (Source: 4.2. Alphab...",
+      "retrieval_time": 7.16,
+      "generation_time": 18.42,
+      "keyword_score": 0.8,
+      "length_ok": true,
+      "quality_score": 0.88,
+      "found_keywords": [
+        "option httpchk",
+        "check",
+        "http-check",
+        "server"
+      ],
+      "answer_length": 1083
+    },
+    {
+      "question_id": "quick_bind",
+      "answer": "La directive `bind` en HAProxy 3.2 a une syntaxe flexible pour définir les points d'entrée (listen) avec des options SSL et d'autres paramètres.  \n\n**Syntaxe générale** :  \n```haproxy\nbind [adresse]:[...",
+      "retrieval_time": 6.69,
+      "generation_time": 18.26,
       "keyword_score": 1.0,
       "length_ok": true,
       "quality_score": 1.0,
       "found_keywords": [
-        "backend",
-        "name",
-        "section"
+        "bind",
+        "port",
+        "ssl",
+        "crt",
+        "frontend"
       ],
-      "answer_length": 841
+      "answer_length": 957
     },
     {
-      "question_id": "full_server_weight",
-      "answer": "Cette information n'est pas dans la documentation fournie. La configuration du poids d'un serveur en HAProxy utilise généralement la directive `server` avec l'argument `weight` dans un contexte `backe...",
-      "retrieval_time": 7.42,
-      "generation_time": 13.25,
-      "keyword_score": 0.67,
+      "question_id": "quick_stick_table",
+      "answer": "La limitation des connexions par IP avec `stick-table` nécessite de suivre le taux de connexion et d'utiliser des ACL pour appliquer des règles de limitation.  \n\n**Détails techniques** :  \n- Déclarez ...",
+      "retrieval_time": 6.83,
+      "generation_time": 19.52,
+      "keyword_score": 0.8,
       "length_ok": true,
-      "quality_score": 0.8,
+      "quality_score": 0.88,
       "found_keywords": [
-        "weight",
-        "server"
+        "stick-table",
+        "conn_rate",
+        "deny",
+        "ip"
       ],
-      "answer_length": 368
+      "answer_length": 786
+    },
+    {
+      "question_id": "quick_acl",
+      "answer": "La configuration des ACLs pour filtrer le trafic repose sur la définition de règles de correspondance (ex: `path`, `hdr`, `req`), combinées avec des opérateurs logiques (`or`, `and`, `not`). Par exemp...",
+      "retrieval_time": 6.94,
+      "generation_time": 22.85,
+      "keyword_score": 1.0,
+      "length_ok": true,
+      "quality_score": 1.0,
+      "found_keywords": [
+        "acl",
+        "path_beg",
+        "hdr",
+        "if",
+        "deny"
+      ],
+      "answer_length": 1465
+    },
+    {
+      "question_id": "quick_timeout",
+      "answer": "La documentation fournie mentionne plusieurs options de timeout dans HAProxy 3.2 :  \n- `timeout connect` : délai maximal pour établir une connexion (contexte : `tcp`, `http`) (Source: 4.2, Source 5, S...",
+      "retrieval_time": 7.27,
+      "generation_time": 20.75,
+      "keyword_score": 1.0,
+      "length_ok": true,
+      "quality_score": 1.0,
+      "found_keywords": [
+        "timeout",
+        "connect",
+        "client",
+        "server",
+        "http-request"
+      ],
+      "answer_length": 1212
+    },
+    {
+      "question_id": "quick_ssl",
+      "answer": "**Réponse directe**  \nPour configurer SSL/TLS sur un frontend, utilisez la directive `bind` avec l'option `ssl`, spécifiez des certificats avec `default-crt` ou `crt`, et définissez des suites de chif...",
+      "retrieval_time": 19.5,
+      "generation_time": 29.75,
+      "keyword_score": 0.8,
+      "length_ok": true,
+      "quality_score": 0.88,
+      "found_keywords": [
+        "bind",
+        "ssl",
+        "crt",
+        "pem"
+      ],
+      "answer_length": 997
+    },
+    {
+      "question_id": "quick_backend",
+      "answer": "Cette information n'est pas dans la documentation fournie (Source: configuration)\n\nLa documentation fournie ne contient pas de section explicite sur la configuration d'un backend avec équilibrage de c...",
+      "retrieval_time": 5.88,
+      "generation_time": 32.76,
+      "keyword_score": 0.8,
+      "length_ok": true,
+      "quality_score": 0.88,
+      "found_keywords": [
+        "backend",
+        "balance",
+        "server",
+        "check"
+      ],
+      "answer_length": 955
     }
   ],
   "stats": {
-    "avg_quality": 0.9,
-    "questions_resolues": 2,
+    "avg_quality": 0.931,
+    "questions_resolues": 7,
     "taux_reussite": 100.0
   }
 }

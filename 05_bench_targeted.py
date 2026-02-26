@@ -2,6 +2,11 @@
 """
 05_bench_targeted.py - Benchmark V3 ciblé sur des questions spécifiques
 
+Niveaux disponibles :
+- quick     : 7 questions (~3 min)
+- standard  : 20 questions (~8 min)
+- full      : 92 questions (~45 min)
+
 Usage:
     # Questions spécifiques
     uv run python 05_bench_targeted.py --questions full_backend_name,full_server_weight
@@ -304,7 +309,7 @@ def main():
         type=str,
         choices=["quick", "standard", "full"],
         default="",
-        help="Niveau de benchmark (quick=7, standard=20, full=100 questions)",
+        help="Niveau de benchmark (quick=7, standard=20, full=92 questions)",
     )
     parser.add_argument(
         "--output",
