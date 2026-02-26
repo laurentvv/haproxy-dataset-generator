@@ -66,6 +66,10 @@ def respond(message, history):
     Yields:
         Streaming response text
     """
+    # Skip empty messages
+    if not message or not message.strip():
+        return
+
     logger.info("Question: %s", message[:50])
 
     # Retrieval
@@ -193,6 +197,8 @@ def build_ui():
 
         def user_submit(message, history):
             """Add user message to history."""
+            if not message or not message.strip():
+                return "", history  # Skip empty
             return "", history + [{"role": "user", "content": message}]
 
         # Submit on Enter
