@@ -209,7 +209,97 @@ def extract_markdown_sections(soup, base_url):
                             next_element = next_element.next_sibling
                     content = ''.join(html_to_markdown(element) for element in content_elements if element and (hasattr(element, 'name') or (isinstance(element, str) and element.strip())))
                     sections.append({"title": title, "content": content, "url": base_url})
+    
+    elif "configuration.html" in base_url:
+        # Configuration page: use numbered anchors (section IDs like "1", "2.1", "5.2", etc.)
+        all_anchors = soup.find_all('a', class_='anchor')
+        all_numbered_anchors = []
+        for anchor in all_anchors:
+            anchor_id = anchor.get('id', '')
+            if anchor_id:
+                # Match section IDs: "1", "2.1", "5.2.3", etc.
+                parts = anchor_id.split('.')
+                if all(part.isdigit() for part in parts):
+                    all_numbered_anchors.append(anchor)
+
+        if all_numbered_anchors:
+            all_body_contents = list(soup.body.children) if soup.body else []
+
+            for i, anchor in enumerate(all_numbered_anchors):
+                anchor_id = anchor.get('id', '')
+                
+                # Find the associated heading (h1-h6) after the anchor
+                heading = None
+                sibling = anchor.next_sibling
+                while sibling:
+                    if hasattr(sibling, 'name'):
+                        if sibling.name in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                            heading = sibling
+                            break
+                        # Also check for headings inside divs
+                        if sibling.name == 'div':
+                            inner_heading = sibling.find(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+                            if inner_heading:
+                                heading = inner_heading
+                                break
+                    sibling = sibling.next_sibling
+
+                title = ""
+                if heading:
+                    title = heading.get_text().strip()
+                    # Avoid duplicating the section number if it's already in the anchor_id
+                    if title.startswith(anchor_id):
+                        title = title[len(anchor_id):].strip()
+                        if title.startswith('.'):
+                            title = title[1:].strip()
+                    title = f"{anchor_id}. {title}" if title else anchor_id
+                else:
+                    title = anchor_id
+
+                content_elements = []
+                try:
+                    anchor_pos = all_body_contents.index(anchor)
+                    next_anchor = None
+                    for j in range(i + 1, len(all_numbered_anchors)):
+                        if all_numbered_anchors[j] in all_body_contents:
+                            next_anchor = all_numbered_anchors[j]
+                            break
+
+                    if next_anchor and next_anchor in all_body_contents:
+                        next_anchor_pos = all_body_contents.index(next_anchor)
+                        content_elements = all_body_contents[anchor_pos + 1:next_anchor_pos]
+                    else:
+                        for j in range(anchor_pos + 1, len(all_body_contents)):
+                            element = all_body_contents[j]
+                            if element in all_numbered_anchors:
+                                break
+                            content_elements.append(element)
+                except ValueError:
+                    next_element = anchor.next_sibling
+                    while next_element:
+                        if next_element in all_numbered_anchors:
+                            break
+                        content_elements.append(next_element)
+                        next_element = next_element.next_sibling
+
+                content = ''.join(html_to_markdown(element) for element in content_elements if element and (hasattr(element, 'name') or (isinstance(element, str) and element.strip())))
+                
+                # Only add if there's meaningful content
+                if content.strip():
+                    sections.append({"title": title, "content": content, "url": base_url})
+
+            # Add header content (before first anchor) if present
+            if all_body_contents and all_numbered_anchors and all_numbered_anchors[0] in all_body_contents:
+                first_anchor = all_numbered_anchors[0]
+                first_anchor_pos = all_body_contents.index(first_anchor)
+                header_content = all_body_contents[:first_anchor_pos]
+                if header_content:
+                    content = ''.join(html_to_markdown(element) for element in header_content if element and (hasattr(element, 'name') or (isinstance(element, str) and element.strip())))
+                    if content.strip():
+                        sections.insert(0, {"title": "", "content": content, "url": base_url})
+    
     else:
+        # Fallback: generic H2-based extraction
         h2_tags = soup.find_all(['h2'])
         if not h2_tags:
             content = ''.join(html_to_markdown(child) for child in soup.body.children if child.name not in ['h1', 'h2'])

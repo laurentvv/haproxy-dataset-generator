@@ -12,7 +12,7 @@
 haproxy-dataset-generator/
 ├── 00_rebuild_all.py      # ⭐ Script unique - Reconstruit tout
 ├── 01_scrape.py           # Scrapping docs.haproxy.org
-├── 02_chunking.py         # Chunking + chunks manquants inclus
+├── 02_chunking.py         # Chunking intelligent avec enrichment
 ├── 03_indexing.py         # Construction index V3
 ├── 04_chatbot.py          # Interface Gradio
 ├── 05_bench_questions.py  # 100 questions de benchmark
@@ -118,12 +118,12 @@ uv run python 07_bench_targeted.py --categories backend,acl
 - Keyword Boosting
 - Query Expansion
 
-### **Chunks manquants inclus**
-Le fichier `02_chunking.py` ajoute automatiquement :
-- `5.1. Backend` - Syntaxe de déclaration
-- `5.2. Server weight` - Paramètre de poids
+### **Chunks critiques correctement scrapés**
+Le fichier `01_scrape.py` capture désormais correctement :
+- `4. Proxies` - Syntaxe de déclaration `backend <name>`
+- `5.2. Server and default-server options` - Paramètre `weight`
 
-Ces chunks étaient manquants dans la V2 et causaient des scores de 0.00-0.20 aux questions critiques.
+Ces sections étaient mal extraites dans la V2 et causaient des scores de 0.00-0.20 aux questions critiques.
 
 ---
 
@@ -136,7 +136,7 @@ Ces chunks étaient manquants dans la V2 et causaient des scores de 0.00-0.20 au
 | V3 + TOP_K | 2026-02-25 | 0.863 | TOP_K_RRF=30, TOP_K_RERANK=10 |
 | V3 + Prompt | 2026-02-25 | 0.914 | Prompt few-shot strict |
 | V3 + Metadata | 2026-02-25 | 0.846 | Metadata Filtering v2 |
-| **V3 Finale** | **2026-02-25** | **0.846** | **Chunks manquants inclus** |
+| **V3 Fixed Scraper** | **2026-02-26** | **~0.846** | **Scrapping configuration.html amélioré** |
 
 ---
 

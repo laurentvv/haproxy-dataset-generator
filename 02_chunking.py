@@ -9,7 +9,6 @@ Features :
 - Parent section tracking
 - Taille optimale : 300-800 chars
 - Overlap contextuel intelligent
-- Ajout automatique des chunks manquants (backend name, server weight)
 """
 import json
 import re
@@ -348,81 +347,6 @@ def main():
             f.write(json.dumps(chunk, ensure_ascii=False) + '\n')
 
     print(f"\n✅ {len(chunks)} chunks sauvegardes dans {output_path}")
-
-    # ── Ajout des chunks manquants ───────────────────────────────────────────
-    # Ces chunks sont critiques pour les questions de benchmark
-    missing_chunks = [
-        {
-            "id": "chunk_missing_backend",
-            "title": "5.1. Backend",
-            "section": "5.1",
-            "content": """backend <name>
-
-Declare a backend and enter its configuration section.
-
-Syntax: backend <name>
-
-Arguments:
-  <name> : the name of the backend. This name is used to reference this backend 
-           from frontends via the 'use_backend' or 'default_backend' directives.
-           The name must be unique.
-
-Example:
-    backend web_servers
-        balance roundrobin
-        server web1 192.168.1.1:80 check
-
-See also: frontend, use_backend, default_backend, server, balance""",
-            "tags": ["backend", "name", "configuration"],
-            "has_code": True,
-            "char_len": 500,
-            "url": "https://docs.haproxy.org/3.2/configuration.html#5.1"
-        },
-        {
-            "id": "chunk_missing_weight",
-            "title": "5.2. Server weight",
-            "section": "5.2",
-            "content": """server <name> <address>:<port> [weight <weight>]
-
-The 'weight' parameter defines the server's weight in the load balancing 
-algorithm. Servers with higher weights receive more connections.
-
-Syntax: server <name> <address>:<port> [weight <weight>]
-
-Arguments:
-  <weight>  : the server's weight (default: 1, range: 0-256)
-
-Example:
-    backend web_servers
-        balance roundrobin
-        server web1 192.168.1.1:80 weight 100 check
-        server web2 192.168.1.2:80 weight 50 check
-
-In this example, web1 receives twice as many connections as web2.
-
-See also: balance, roundrobin, leastconn, server""",
-            "tags": ["server", "weight", "load balancing"],
-            "has_code": True,
-            "char_len": 550,
-            "url": "https://docs.haproxy.org/3.2/configuration.html#5.2"
-        },
-    ]
-    
-    # Ajouter les chunks manquants
-    start_id = len(chunks)
-    for i, missing in enumerate(missing_chunks):
-        missing['id'] = f"chunk_{start_id + i}"
-        chunks.append(missing)
-        print(f"  + Chunk manque ajoute: {missing['title']}")
-    
-    print(f"\n✅ Total final: {len(chunks)} chunks (dont {len(missing_chunks)} manquants ajoutes)")
-    
-    # Re-sauvegarder avec les chunks manquants
-    with open(output_path, 'w', encoding='utf-8') as f:
-        for chunk in chunks:
-            f.write(json.dumps(chunk, ensure_ascii=False) + '\n')
-    
-    print(f"   Fichier mis a jour: {output_path}")
     
     # Afficher quelques exemples
     print(f"\n📋 Exemples de chunks:")

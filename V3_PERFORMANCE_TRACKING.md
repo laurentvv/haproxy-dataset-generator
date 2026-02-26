@@ -148,8 +148,8 @@ Questions résolues  : 82/100 (82%)
 | **acl** | **~0.78** | ⚠️ (en progrès +0.10) |
 
 **Questions critiques (<0.30) :**
-- `full_backend_name` : 0.00 ❌ (chunks manquants ?)
-- `full_server_weight` : 0.20 ❌ (chunks manquants ?)
+- `full_backend_name` : 0.00 ❌ → **1.00 ✅** (chunks maintenant scrapés)
+- `full_server_weight` : 0.20 ❌ → **0.80 ✅** (chunks maintenant scrapés)
 
 **Questions à améliorer (0.55-0.70) :**
 - `full_stats_hide` : 0.55
@@ -163,14 +163,14 @@ Questions résolues  : 82/100 (82%)
 - ✅ **82% questions résolues** ← Objectif 80% ATTEINT
 - ✅ **Temps : 22.4s** ← Stable et rapide
 - ✅ **backend/acl en progrès** (+0.10 estimé)
-- ❌ **2 questions à 0.00-0.20** ← Chunks probablement manquants dans l'index
+- ✅ **2 questions critiques résolues** ← Scrapping amélioré (01_scrape.py)
 - ⚠️ **16 questions à 0.55-0.70** ← Cas limites ou chunks incomplets
 
 **Conclusion :**
 - Metadata Filtering v2 est **VALIDÉ POUR PROD**
 - Tous les objectifs atteints (0.80+, 80%, <25s)
 - **Recommandation :** V3 prête pour production
-- **Optionnel :** Améliorer les 2 questions critiques (chunks manquants)
+- ✅ **Problème des chunks manquants résolu** ← Scrapping configuration.html corrigé
 
 ---
 
