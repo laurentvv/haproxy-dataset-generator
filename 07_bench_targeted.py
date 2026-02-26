@@ -3,7 +3,14 @@
 07_bench_targeted.py - Benchmark V3 ciblé sur des questions spécifiques
 
 Usage:
+    # Questions spécifiques
     uv run python 07_bench_targeted.py --questions full_backend_name,full_server_weight
+    
+    # Par niveau (quick, standard, full)
+    uv run python 07_bench_targeted.py --level full
+    
+    # Modèle personnalisé
+    uv run python 07_bench_targeted.py --level quick --model qwen3:latest
 """
 import argparse
 import json
@@ -17,12 +24,13 @@ if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-# Importer les questions
+# Importer les questions depuis 05_bench_questions.py
 import importlib.util
-spec = importlib.util.spec_from_file_location("bench_questions", "05_bench_questions.py")
+spec = importlib.util.spec_from_file_location("05_bench_questions", "05_bench_questions.py")
 bench_questions = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bench_questions)
 QUESTIONS = bench_questions.QUESTIONS
+get_questions_by_level = bench_questions.get_questions_by_level
 
 
 # ── Configuration ─────────────────────────────────────────────────────────────
@@ -292,6 +300,13 @@ def main():
         help="Questions à tester (comma-separated)",
     )
     parser.add_argument(
+        "--level",
+        type=str,
+        choices=["quick", "standard", "full"],
+        default="",
+        help="Niveau de benchmark (quick=7, standard=20, full=100 questions)",
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default="bench_v3_targeted_report.json",
@@ -302,9 +317,9 @@ def main():
         action="store_true",
         help="Afficher plus de détails",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Vérifier Ollama
     print("🔍 Vérification d'Ollama...", flush=True)
     try:
@@ -312,36 +327,47 @@ def main():
         response.raise_for_status()
         available_models = [m["name"] for m in response.json().get("models", [])]
         print(f"✅ {len(available_models)} modèles disponibles\n", flush=True)
-        
+
         if args.model not in available_models:
             print(f"⚠️  Modèle '{args.model}' non disponible", flush=True)
             sys.exit(1)
-            
+
     except Exception as e:
         print(f"❌ Ollama inaccessible: {e}", flush=True)
         sys.exit(1)
-    
+
     # Charger retriever
     print("📥 Chargement du retriever V3...", flush=True)
     retrieve_v3 = load_retriever_v3()
-    
+
     if not retrieve_v3:
         print("❌ Impossible de charger le retriever V3", flush=True)
         sys.exit(1)
-    
+
     print("✅ Retriever V3 chargé\n", flush=True)
-    
+
     # Sélectionner les questions
-    if args.questions:
+    questions_to_test = []
+    
+    if args.level:
+        # Utiliser un niveau prédéfini
+        questions_to_test = get_questions_by_level(args.level)
+        print(f"📋 Niveau: {args.level.upper()} ({len(questions_to_test)} questions)", flush=True)
+    elif args.questions:
+        # Questions spécifiques
         question_ids = [q.strip() for q in args.questions.split(",")]
         questions_to_test = [q for q in QUESTIONS if q["id"] in question_ids]
         print(f"📋 Questions ciblées: {len(questions_to_test)}", flush=True)
         for q in questions_to_test:
             print(f"   - {q['id']} ({q['category']})", flush=True)
     else:
-        print("❌ Aucune question spécifiée. Utilisez --questions", flush=True)
+        print("❌ Spécifiez --level (quick/standard/full) ou --questions", flush=True)
+        print("\nExemples:")
+        print("  uv run python 07_bench_targeted.py --level quick")
+        print("  uv run python 07_bench_targeted.py --level full")
+        print("  uv run python 07_bench_targeted.py --questions full_backend_name,full_server_weight")
         sys.exit(1)
-    
+
     print(f"📋 Modèle LLM: {args.model}", flush=True)
     print(f"⏱️  Temps estimé: ~{len(questions_to_test) * 25:.0f}s\n", flush=True)
     

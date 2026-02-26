@@ -110,7 +110,7 @@ def main():
             print("Utilisez --benchmark pour le lancer automatiquement")
     
     if run_benchmark:
-        steps.append(("06_bench_v3.py", "BENCHMARK FULL", ["--level", "full"]))
+        steps.append(("07_bench_targeted.py", "BENCHMARK FULL", ["--level", "full"]))
     
     # Exécuter toutes les étapes
     print("\n" + "="*70)
@@ -170,9 +170,9 @@ def main():
         print("  uv run python 04_chatbot.py")
         print()
         print("Pour lancer un benchmark :")
-        print("  uv run python 06_bench_v3.py --level quick    # 7 questions, 3 min")
-        print("  uv run python 06_bench_v3.py --level standard # 20 questions, 8 min")
-        print("  uv run python 06_bench_v3.py --level full     # 100 questions, 45 min")
+        print("  uv run python 07_bench_targeted.py --level quick    # 7 questions, 3 min")
+        print("  uv run python 07_bench_targeted.py --level standard # 20 questions, 8 min")
+        print("  uv run python 07_bench_targeted.py --level full     # 100 questions, 45 min")
     print()
 
 
