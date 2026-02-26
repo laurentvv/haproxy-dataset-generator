@@ -548,7 +548,7 @@ def build_ui():
                 # Exemples
                 with gr.Group(elem_classes="examples-panel"):
                     gr.Markdown("### 💡 Exemples")
-                    
+
                     examples = [
                         "Comment configurer un health check HTTP ?",
                         "Syntaxe de bind avec SSL ?",
@@ -557,32 +557,19 @@ def build_ui():
                         "Configurer timeouts ?",
                         "Activer stats enable ?",
                     ]
-                    
+
+                    example_buttons = []
                     for q in examples:
-                        gr.Button(
+                        btn = gr.Button(
                             q,
                             variant="secondary",
                             elem_classes="example-card",
-                        ).click(fn=lambda x=q: x, outputs=None)
+                        )
+                        example_buttons.append(btn)
 
             # ── Right Main Area ────────────────────────────────────────
             with gr.Column(scale=4):
-                # Chatbot
-                chatbot = gr.Chatbot(
-                    label="Conversation",
-                    height="70vh",
-                    render_markdown=True,
-                    avatar_images=(None, "🔧"),
-                    elem_classes="chatbot-container",
-                    buttons=["share", "copy", "copy_all"],
-                    layout="bubble",
-                )
-
-                # Welcome message
-                if not chatbot.value:
-                    chatbot.value = [[None, get_welcome_message()]]
-
-                # Input
+                # Input (moved up for example clicks)
                 with gr.Group(elem_classes="input-area"):
                     msg_box = gr.Textbox(
                         placeholder="Posez votre question sur HAProxy 3.2...",
@@ -597,6 +584,21 @@ def build_ui():
                             elem_classes="btn-primary",
                         )
                         clear_btn = gr.Button("🗑️ Effacer", variant="secondary")
+
+                # Chatbot
+                chatbot = gr.Chatbot(
+                    label="Conversation",
+                    height="70vh",
+                    render_markdown=True,
+                    avatar_images=(None, "🔧"),
+                    elem_classes="chatbot-container",
+                    buttons=["share", "copy", "copy_all"],
+                    layout="bubble",
+                )
+
+                # Welcome message
+                if not chatbot.value:
+                    chatbot.value = [[None, get_welcome_message()]]
 
         # ── Footer ─────────────────────────────────────────────────────
         gr.HTML("""
@@ -640,10 +642,9 @@ def build_ui():
             outputs=[chatbot],
         )
 
-        # Example clicks
-        for btn in app.blocks:
-            if hasattr(btn, 'elem_classes') and 'example-card' in btn.elem_classes:
-                btn.click(fn=lambda: None, outputs=None)
+        # Example clicks - fill msg_box
+        for btn in example_buttons:
+            btn.click(fn=lambda x=x: x, outputs=msg_box)
 
     return app
 
