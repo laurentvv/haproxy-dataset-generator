@@ -712,13 +712,14 @@ def build_ui():
 
     with gr.Blocks(
         title="HAProxy Docs Chatbot V3",
-        css=CUSTOM_CSS,
         theme=gr.themes.Base(
             primary_hue="orange",
             secondary_hue="purple",
             neutral_hue="slate",
         ),
     ) as app:
+        # Load custom CSS via HTML
+        gr.HTML(f'<style>{CUSTOM_CSS}</style>')
         # ── Header avec gradient ────────────────────────────────────────────
         gr.HTML("""
             <div class="app-header">
@@ -731,7 +732,7 @@ def build_ui():
         """)
 
         # ── Main content area ───────────────────────────────────────────────
-        with gr.Row(equal_height=False, gap="lg"):
+        with gr.Row(equal_height=False):
             # ── Left Sidebar ───────────────────────────────────────────────
             with gr.Column(scale=1, min_width=320):
                 # Configuration Panel
@@ -954,7 +955,9 @@ if __name__ == "__main__":
             server_port=args.port,
             share=args.share,
             show_error=True,
-            favicon_path=None,  # Add a favicon.ico for custom favicon
+            favicon_path=None,
+            # Gradio 6.x parameters
+            css=CUSTOM_CSS,
         )
     except Exception as e:
         logger.critical("❌ Erreur critique: %s", e)
