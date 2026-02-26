@@ -10,6 +10,7 @@ import sys
 import io
 import threading
 import logging
+import re
 from pathlib import Path
 
 # Fix encoding Windows
@@ -17,16 +18,9 @@ if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-# Configuration du logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('gradio_app_v3.log', encoding='utf-8')
-    ]
-)
-logger = logging.getLogger(__name__)
+# Use centralized logging configuration
+from logging_config import setup_logging
+logger = setup_logging(__name__, log_file='gradio_app_v3.log')
 
 try:
     import gradio as gr
@@ -38,7 +32,7 @@ except ImportError:
 sys.path.insert(0, str(Path(__file__).parent))
 logger.info("Importation des modules V3 (qwen3-embedding:8b)...")
 try:
-    from retriever_v3 import retrieve_context_string, _load_indexes
+    from retriever_v3 import retrieve_context_string, _load_indexes, validate_query
     logger.info("✅ Module retriever_v3 importé avec succès")
 except ImportError as e:
     logger.error("❌ Erreur d'importation du module retriever_v3: %s", e)
@@ -179,18 +173,26 @@ def submit_message(
     top_k: int,
     show_sources: bool,
 ):
-    """Ajoute le message utilisateur à l'historique."""
+    """Ajoute le message utilisateur à l'historique avec validation."""
     message_text = extract_message_text(message)
     logger.info("submit_message() - message='%s...'", message_text[:30] if message_text else "")
-    
+
     if not message_text.strip():
         return history
-    
+
+    # Validate and sanitize user input
+    try:
+        message_text = validate_query(message_text)
+    except ValueError as e:
+        logger.warning("Input validation failed: %s", e)
+        history.append({"role": "assistant", "content": f"⚠️ Question invalide: {str(e)}"})
+        return history
+
     ok, status = ensure_indexes()
     if not ok:
         history.append({"role": "assistant", "content": status})
         return history
-    
+
     history.append({"role": "user", "content": message_text})
     return history
 

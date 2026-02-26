@@ -19,300 +19,305 @@ import io
 import time
 from pathlib import Path
 
-# Fix encoding Windows
-if sys.platform == 'win32':
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('build_index_v3.log', encoding='utf-8')
-    ]
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-try:
-    import chromadb
-    from chromadb.config import Settings
-except ImportError:
-    logger.error("❌ chromadb non installé : uv add chromadb")
-    sys.exit(1)
 
-try:
-    import requests
-except ImportError:
-    logger.error("❌ requests non installé : uv add requests")
-    sys.exit(1)
+# ── Metadata Sanitization ───────────────────────────────────────────────────
+def sanitize_metadata(value: str, max_length: int = 500) -> str:
+    """
+    Sanitize metadata string for safe storage in ChromaDB.
+    
+    Args:
+        value: Raw metadata value
+        max_length: Maximum length after sanitization
+        
+    Returns:
+        Sanitized metadata string
+    """
+    if not isinstance(value, str):
+        return ""
+    
+    # Remove control characters (except newlines, tabs)
+    sanitized = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', value)
+    
+    # Remove potentially dangerous characters for metadata storage
+    sanitized = sanitized.replace('\x00', '').replace('\\x00', '')
+    
+    # Truncate to max length
+    return sanitized[:max_length]
 
-try:
-    from rank_bm25 import BM25Okapi
-except ImportError:
-    logger.error("❌ rank-bm25 non installé : uv add rank-bm25")
-    sys.exit(1)
+
+def sanitize_metadata_list(items: list, max_items: int = 20, max_item_length: int = 100) -> list[str]:
+    """
+    Sanitize a list of metadata items.
+    
+    Args:
+        items: List of metadata strings
+        max_items: Maximum number of items to keep
+        max_item_length: Maximum length per item
+        
+    Returns:
+        Sanitized list of strings
+    """
+    if not isinstance(items, list):
+        return []
+    
+    sanitized = []
+    for item in items[:max_items]:
+        if isinstance(item, str):
+            clean_item = sanitize_metadata(item, max_length=max_item_length)
+            if clean_item:  # Only add non-empty items
+                sanitized.append(clean_item)
+    
+    return sanitized
+
 
 # Config V3
-OLLAMA_URL   = "http://localhost:11434"
-EMBED_MODEL  = "qwen3-embedding:8b"  # MTEB #1 mondial (70.58)
-CHUNKS_PATH  = Path("data/chunks_v2.jsonl")
-INDEX_DIR    = Path("index_v3")
-CHROMA_DIR   = INDEX_DIR / "chroma"
-BM25_PATH    = INDEX_DIR / "bm25.pkl"
-CHUNKS_PKL   = INDEX_DIR / "chunks.pkl"
+OLLAMA_URL        = "http://localhost:11434"
+EMBED_MODEL       = "qwen3-embedding:8b"
+CHROMA_COLLECTION = "haproxy_docs_v3"
+
+INDEX_DIR  = Path("index_v3")
+CHROMA_DIR = INDEX_DIR / "chroma"
+BM25_PATH  = INDEX_DIR / "bm25.pkl"
+CHUNKS_PKL = INDEX_DIR / "chunks.pkl"
+
+DATA_DIR = Path("data")
+CHUNKS_PATH = DATA_DIR / "chunks_v2.jsonl"
 
 
-def tokenize_haproxy(text: str) -> list[str]:
-    """Tokenisation optimisée pour HAProxy."""
-    text = text.lower()
-    haproxy_terms = re.findall(r'[a-z][a-z0-9\-]*[a-z0-9]|[a-z0-9]', text)
-    stopwords = {
-        'le', 'la', 'les', 'de', 'du', 'des', 'un', 'une', 'et', 'ou',
-        'en', 'au', 'aux', 'the', 'a', 'an', 'is', 'are', 'was', 'were',
-        'for', 'in', 'on', 'at', 'to', 'of', 'with', 'by', 'from', 'this', 'that',
-        'can', 'will', 'may', 'must', 'should', 'if', 'then', 'else',
-    }
-    return [t for t in haproxy_terms if t not in stopwords and len(t) > 1]
+# Cache Ollama
+_embedding_cache = {}
 
 
 def get_embedding(text: str) -> list[float]:
-    """Récupère l'embedding via qwen3-embedding:8b avec retry."""
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            with requests.post(
-                f"{OLLAMA_URL}/api/embeddings",
-                json={"model": EMBED_MODEL, "prompt": text},
-                timeout=180,  # qwen3-embedding:8b est plus lent (4.7 GB)
-            ) as response:
-                response.raise_for_status()
-                return response.json()["embedding"]
-        except requests.exceptions.ConnectionError:
-            if attempt == max_retries - 1:
-                raise
-            logger.warning("Retry connexion (%d/%d)...", attempt + 1, max_retries)
-        except requests.exceptions.Timeout:
-            if attempt == max_retries - 1:
-                raise
-            logger.warning("Retry timeout (%d/%d)...", attempt + 1, max_retries)
-        except Exception as e:
-            if attempt == max_retries - 1:
-                raise
-            logger.warning("Retry (%d/%d): %s", attempt + 1, max_retries, e)
-    return []
-
-
-def main():
-    logger.info("\n" + "="*60)
-    logger.info("  BUILD INDEX V3 - HAProxy RAG (qwen3-embedding:8b)")
-    logger.info("="*60)
+    """Embedding avec cache."""
+    if text in _embedding_cache:
+        return _embedding_cache[text]
     
-    if not CHUNKS_PATH.exists():
-        logger.error(f"\n❌ {CHUNKS_PATH} introuvable")
-        logger.error("   Lancez: uv run python 02_ingest_v2.py")
+    try:
+        import requests
+        with requests.post(
+            f"{OLLAMA_URL}/api/embeddings",
+            json={"model": EMBED_MODEL, "prompt": text},
+            timeout=120,
+        ) as response:
+            response.raise_for_status()
+            emb = response.json()["embedding"]
+            _embedding_cache[text] = emb
+            return emb
+    except Exception as e:
+        logger.error("Erreur embedding: %s", e)
+        # Fallback: vecteur nul (mieux que crash)
+        return [0.0] * 4096
+
+
+def build_index(chunks: list[dict], batch_size: int = 100):
+    """
+    Construit l'index ChromaDB + BM25 + embeddings.
+    
+    Args:
+        chunks: Liste des chunks avec metadata
+        batch_size: Taille des batches pour embeddings
+    """
+    try:
+        import chromadb
+        from chromadb.config import Settings
+    except ImportError:
+        logger.error("chromadb non installe: uv add chromadb")
         return
     
-    chunks = []
-    with open(CHUNKS_PATH, encoding='utf-8') as f:
-        for line in f:
-            if line.strip():
-                chunks.append(json.loads(line))
-    
-    logger.info(f"\n📦 {len(chunks)} chunks à indexer")
-
-    INDEX_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Vérifier si un index existe déjà et compter les documents
-    start_chunk_idx = 0
+    # Nettoyer ancien index
     if CHROMA_DIR.exists():
-        try:
-            client_check = chromadb.PersistentClient(
-                path=str(CHROMA_DIR),
-                settings=Settings(anonymized_telemetry=False),
-            )
-            existing_collection = client_check.get_collection("haproxy_docs_v3")
-            existing_count = existing_collection.count()
-            logger.info(f"♻️  Index existant trouvé : {existing_count} documents déjà indexés")
-
-            # Trouver l'index du prochain chunk à indexer
-            if existing_count > 0:
-                # Récupérer le dernier ID indexé pour déterminer où reprendre
-                # Note: order_by n'est pas disponible, on récupère tous les IDs et on trie
-                try:
-                    # Essayer d'abord avec include=['metadatas'] pour avoir un échantillon
-                    sample = existing_collection.get(include=[], limit=100)
-                    if sample and sample['ids']:
-                        # Extraire les index des chunks et trouver le maximum
-                        max_idx = -1
-                        for chunk_id in sample['ids']:
-                            match = re.match(r"chunk_(\d+)", chunk_id)
-                            if match:
-                                idx = int(match.group(1))
-                                if idx > max_idx:
-                                    max_idx = idx
-                        if max_idx >= 0:
-                            start_chunk_idx = max_idx + 1
-                            logger.info(f"🔄 Reprise de l'indexation au chunk #{start_chunk_idx}")
-                        else:
-                            logger.info("🔄 Reprise depuis le chunk #0")
-                    else:
-                        logger.info("🔄 Reprise depuis le chunk #0")
-                except Exception as e2:
-                    logger.warning(f"⚠️ Erreur lors de la lecture des IDs : {e2}")
-                    logger.info("🔄 Reprise depuis le chunk #0")
-            else:
-                logger.info("🔄 Index vide, reprise depuis le chunk #0")
-        except Exception as e:
-            logger.warning(f"⚠️  Impossible de lire l'index existant : {e}")
-            logger.info("🗑️  Suppression de l'index corrompu et reprise depuis zéro...")
-            import shutil
-            try:
-                shutil.rmtree(CHROMA_DIR)
-            except:
-                pass
-            start_chunk_idx = 0
-    else:
-        logger.info("✨ Nouvel index à créer")
-
-    logger.info("\n🔨 Index ChromaDB V3 (qwen3-embedding:8b)...")
+        import shutil
+        shutil.rmtree(CHROMA_DIR)
+        logger.info(f"🗑️  Ancien index supprime: {CHROMA_DIR}")
+    
+    # ChromaDB client
     client = chromadb.PersistentClient(
         path=str(CHROMA_DIR),
         settings=Settings(anonymized_telemetry=False),
     )
-
-    collection = client.get_or_create_collection(
-        name="haproxy_docs_v3",
-        metadata={"hnsw:space": "cosine"},
-    )
-
-    # Calculer les chunks restants à indexer
-    chunks_to_index = chunks[start_chunk_idx:]
-
-    if not chunks_to_index:
-        logger.info("✅ Tous les chunks sont déjà indexés !")
-        logger.info(f"   Collection : {collection.count()} documents")
-    else:
-        logger.info(f"   📍 {start_chunk_idx} chunks déjà indexés, {len(chunks_to_index)} restants")
-
-    batch_size = 100
-    total_batches = (len(chunks_to_index) + batch_size - 1) // batch_size if chunks_to_index else 0
-    start_time = time.time()
-
-    if total_batches > 0:
-        logger.info(f"   📦 {total_batches} batches de {batch_size} chunks")
-        logger.info(f"   ⏱️  Temps estimé: ~{total_batches * 2:.0f}-{total_batches * 4:.0f} min (qwen3-embedding:8b est lent)")
-
-    for batch_idx in range(total_batches):
-        start = batch_idx * batch_size
-        end = min(start + batch_size, len(chunks_to_index))
-        batch = chunks_to_index[start:end]
+    collection = client.create_collection(CHROMA_COLLECTION)
+    
+    # BM25
+    try:
+        from rank_bm25 import BM25Okapi
+    except ImportError:
+        logger.error("rank_bm25 non installe: uv add rank-bm25")
+        return
+    
+    # Tokenization pour BM25
+    def tokenize(text: str) -> list[str]:
+        text = text.lower()
+        tokens = re.findall(r'[a-z0-9][a-z0-9\-\.]*[a-z0-9]|[a-z0-9]', text)
+        stopwords = {
+            'le', 'la', 'les', 'de', 'du', 'des', 'un', 'une', 'et', 'ou',
+            'en', 'au', 'aux', 'the', 'a', 'an', 'is', 'are', 'for', 'in', 'on',
+            'at', 'to', 'of', 'with', 'by', 'from', 'this', 'that',
+        }
+        return [t for t in tokens if t not in stopwords and len(t) > 1]
+    
+    bm25_tokens = []
+    
+    # Progression
+    total = len(chunks)
+    done = 0
+    
+    logger.info(f"📦 Indexation de {total} chunks...")
+    
+    # Traiter par batches
+    for i in range(0, total, batch_size):
+        batch = chunks[i:i+batch_size]
         
         # Ajuster l'index global pour les IDs
-        global_start = start_chunk_idx + start
-
-        ids = [f"chunk_{start_chunk_idx + start + i}" for i in range(len(batch))]
+        global_start = i
+        ids = [f"chunk_{global_start + j}" for j in range(len(batch))]
         embeddings_list = []
         documents = []
         metadatas = []
-
+        
         for chunk in batch:
             embed_text = chunk.get('embed_text', chunk['content'])
             emb = get_embedding(embed_text)
             embeddings_list.append(emb)
             documents.append(chunk['content'])
-
-            # Metadata de base
+            
+            # Metadata de base (sanitized)
             meta = {
-                "title": chunk['title'][:500] if chunk['title'] else "",
-                "url": chunk.get('url', '')[:500],
-                "source": chunk.get('source', chunk.get('url', '')),
-                "has_code": chunk['has_code'],
+                "title": sanitize_metadata(chunk.get('title', ''), max_length=500),
+                "url": sanitize_metadata(chunk.get('url', ''), max_length=500),
+                "source": sanitize_metadata(chunk.get('source', chunk.get('url', '')), max_length=100),
+                "has_code": chunk.get('has_code', False),
             }
             
-            # Metadata HAProxy tags
+            # Metadata HAProxy tags (sanitized list)
             if chunk.get('tags'):
-                meta["tags"] = ",".join(chunk['tags'][:20])
+                tags_list = sanitize_metadata_list(chunk['tags'], max_items=20)
+                if tags_list:
+                    meta["tags"] = ",".join(tags_list)
             
-            # Keywords combines (HAProxy + IA)
+            # Keywords combines (HAProxy + IA) (sanitized list)
             if chunk.get('keywords'):
-                meta["keywords"] = ",".join(chunk['keywords'][:30])
+                keywords_list = sanitize_metadata_list(chunk['keywords'], max_items=30)
+                if keywords_list:
+                    meta["keywords"] = ",".join(keywords_list)
             
-            # Metadata IA (de gemma3:latest)
+            # Metadata IA (de gemma3:latest) (sanitized)
             if chunk.get('ia_keywords'):
-                meta["ia_keywords"] = ",".join(chunk['ia_keywords'][:20])
-            if chunk.get('ia_synonyms'):
-                meta["ia_synonyms"] = ",".join(chunk['ia_synonyms'][:10])
-            if chunk.get('ia_category'):
-                meta["ia_category"] = chunk['ia_category']
-            if chunk.get('ia_summary'):
-                meta["ia_summary"] = chunk['ia_summary'][:500]
+                ia_kw_list = sanitize_metadata_list(chunk['ia_keywords'], max_items=20)
+                if ia_kw_list:
+                    meta["ia_keywords"] = ",".join(ia_kw_list)
             
-            # Hierarchy
-            if chunk.get('parent_section'):
-                meta["parent_section"] = chunk['parent_section']
-            if chunk.get('section'):
-                meta["section"] = chunk['section']
-
+            if chunk.get('ia_synonyms'):
+                ia_syn_list = sanitize_metadata_list(chunk['ia_synonyms'], max_items=10)
+                if ia_syn_list:
+                    meta["ia_synonyms"] = ",".join(ia_syn_list)
+            
+            if chunk.get('ia_category'):
+                meta["ia_category"] = sanitize_metadata(chunk['ia_category'], max_length=50)
+            
+            if chunk.get('ia_summary'):
+                meta["ia_summary"] = sanitize_metadata(chunk['ia_summary'], max_length=500)
+            
             metadatas.append(meta)
-
-        collection.upsert(
+            
+            # BM25 tokens
+            bm25_tokens.append(tokenize(chunk['content']))
+        
+        # Add to ChromaDB
+        collection.add(
             ids=ids,
             embeddings=embeddings_list,
             documents=documents,
             metadatas=metadatas,
         )
-
-        elapsed = time.time() - start_time
-        progress = ((global_start + len(batch)) / len(chunks)) * 100
-        eta = (elapsed / (batch_idx + 1)) * (total_batches - batch_idx - 1) / 60 if batch_idx < total_batches - 1 else 0
-        logger.info(f"   [{global_start + len(batch):5d}/{len(chunks)}] {progress:5.1f}% - ETA: {eta:5.1f} min")
-
-    logger.info(f"✅ {collection.count()} documents indexés (V3)")
-
-    # Vérifier si l'indexation est complète
-    if collection.count() < len(chunks):
-        logger.info("\n⚠️  Indexation PARTIELLE - Relancez le script pour continuer")
-        logger.info(f"   {collection.count()}/{len(chunks)} documents indexés")
-        return
-
-    logger.info("\n🔨 Index BM25 V3...")
-    tokenized = [tokenize_haproxy(c['content']) for c in chunks]
-    bm25 = BM25Okapi(tokenized)
-
-    with open(BM25_PATH, 'wb') as f:
-        pickle.dump(bm25, f)
-    logger.info(f"✅ BM25 V3 créé ({len(tokenized)} chunks)")
-
-    logger.info("\n📦 Metadata V3...")
-    with open(CHUNKS_PKL, 'wb') as f:
-        pickle.dump(chunks, f)
-    logger.info(f"✅ {len(chunks)} chunks sauvegardés")
-
-    elapsed_total = (time.time() - start_time) / 60
-    logger.info("\n" + "="*60)
-    logger.info(f"  INDEX V3 CONSTRUIT EN {elapsed_total:.1f} MINUTES")
-    logger.info("="*60)
-    logger.info(f"  Embedding    : {EMBED_MODEL}")
-    logger.info(f"  Dimension    : 4096 (qwen3-embedding:8b)")
-    logger.info(f"  MTEB Score   : 70.58 (#1 mondial)")
-    logger.info(f"  Chunks       : {len(chunks)}")
-    logger.info(f"  ChromaDB     : {CHROMA_DIR}/")
-    logger.info(f"  BM25         : {BM25_PATH}")
-    logger.info(f"  Metadata     : {CHUNKS_PKL}")
-    logger.info("="*60)
-
-    avg_len = sum(c['char_len'] for c in chunks) // len(chunks)
-    avg_tags = sum(len(c.get('tags', [])) for c in chunks) // len(chunks)
-    chunks_with_ia = sum(1 for c in chunks if c.get('ia_keywords'))
-    total_ia_keywords = sum(len(c.get('ia_keywords', [])) for c in chunks)
+        
+        done += len(batch)
+        if done % 500 == 0 or done == total:
+            pct = done * 100 // total
+            eta_min = (total - done) * 2 // 60  # ~2s par chunk
+            logger.info(f"   Progression: {done}/{total} ({pct}%) | ETA: ~{eta_min} min")
     
-    logger.info(f"\n  Taille moy   : {avg_len} chars")
-    logger.info(f"  Tags moy     : {avg_tags}/chunk")
-    logger.info(f"  Avec code    : {sum(1 for c in chunks if c['has_code'])} ({sum(1 for c in chunks if c['has_code'])*100//len(chunks)}%)")
-    logger.info(f"  Avec IA      : {chunks_with_ia} ({chunks_with_ia*100//len(chunks)}%)")
-    logger.info(f"  IA keywords  : {total_ia_keywords} ({total_ia_keywords//len(chunks):.1f}/chunk)")
-    logger.info("")
+    # Sauvegarder BM25
+    bm25_index = BM25Okapi(bm25_tokens)
+    with open(BM25_PATH, "wb") as f:
+        pickle.dump(bm25_index, f)
+    logger.info(f"✅ Index BM25 sauvegarde: {BM25_PATH}")
+    
+    # Sauvegarder chunks
+    with open(CHUNKS_PKL, "wb") as f:
+        pickle.dump(chunks, f)
+    logger.info(f"✅ Chunks sauvegardes: {CHUNKS_PKL}")
+    
+    # Stats
+    logger.info(f"\n✅ Index V3 termine !")
+    logger.info(f"   Collection ChromaDB: {CHROMA_COLLECTION}")
+    logger.info(f"   Nombre de chunks: {collection.count()}")
+    logger.info(f"   Dimensions embedding: {len(embeddings_list[0]) if embeddings_list else 0}")
+
+
+def main():
+    """Script principal."""
+    print("=" * 70)
+    print("🔍 Indexation V3 - HAProxy RAG")
+    print("=" * 70)
+    
+    # Verifier dependencies
+    try:
+        import chromadb
+        import requests
+        from rank_bm25 import BM25Okapi
+    except ImportError as e:
+        logger.error("Dependencies manquantes: uv add chromadb requests rank-bm25")
+        return
+    
+    # Verifier chunks
+    if not CHUNKS_PATH.exists():
+        logger.error(f"❌ {CHUNKS_PATH} introuvable. Lance 02_chunking.py")
+        return
+    
+    # Charger chunks
+    chunks = []
+    with open(CHUNKS_PATH, encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                chunks.append(json.loads(line))
+    
+    logger.info(f"📂 {len(chunks)} chunks charges depuis {CHUNKS_PATH}")
+    
+    # Verifier Ollama
+    try:
+        resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
+        if resp.status_code == 200:
+            models = resp.json().get("models", [])
+            model_names = [m["name"] for m in models]
+            if EMBED_MODEL in model_names or any(EMBED_MODEL.split(":")[0] in m for m in model_names):
+                logger.info(f"✅ Ollama OK - Modele: {EMBED_MODEL}")
+            else:
+                logger.warning(f"⚠️  Modele {EMBED_MODEL} non trouve dans Ollama")
+                logger.info(f"   Modeles disponibles: {', '.join(model_names)}")
+        else:
+            logger.warning(f"⚠️  Ollama retourne status {resp.status_code}")
+    except requests.exceptions.ConnectionError:
+        logger.error(f"❌ Ollama non disponible sur {OLLAMA_URL}")
+        logger.error("   Lance: ollama serve")
+        return
+    except Exception as e:
+        logger.warning(f"⚠️ Erreur verification Ollama: %s", e)
+    
+    # Construire index
+    build_index(chunks, batch_size=100)
+    
+    print("\n" + "=" * 70)
+    print("✅ Indexation terminee !")
+    print("=" * 70)
 
 
 if __name__ == "__main__":

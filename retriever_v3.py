@@ -15,10 +15,108 @@ import logging
 import os
 import pickle
 import re
+import time
+from datetime import datetime, timedelta
 import numpy as np
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+# Use centralized logging configuration
+from logging_config import setup_logging
+logger = setup_logging(__name__)
+
+# Import configuration
+from config import (
+    ollama_config,
+    retrieval_config,
+    validation_config,
+    OLLAMA_URL,
+    EMBED_MODEL,
+    CHROMA_COLLECTION,
+    INDEX_DIR,
+    TOP_K_RETRIEVAL,
+    TOP_K_RRF,
+    TOP_K_RERANK,
+    RRF_K,
+    CONFIDENCE_THRESHOLD,
+)
+
+
+# ── Rate Limiting ───────────────────────────────────────────────────────────
+class RateLimiter:
+    """Rate limiter for API calls using token bucket algorithm."""
+    
+    def __init__(self, calls_per_minute: int = 30):
+        """
+        Initialize rate limiter.
+        
+        Args:
+            calls_per_minute: Maximum number of calls allowed per minute
+        """
+        self.min_interval = timedelta(seconds=60 / calls_per_minute)
+        self.last_call = datetime.min
+    
+    def wait_if_needed(self):
+        """Wait if necessary to respect rate limit."""
+        now = datetime.now()
+        elapsed = now - self.last_call
+        if elapsed < self.min_interval:
+            wait_time = (self.min_interval - elapsed).total_seconds()
+            if wait_time > 0:
+                time.sleep(wait_time)
+        self.last_call = datetime.now()
+
+
+# Global rate limiter for Ollama API calls
+_ollama_limiter = RateLimiter(calls_per_minute=ollama_config.rate_limit_calls_per_minute)
+
+
+# ── Input Validation ───────────────────────────────────────────────────────
+def validate_query(query: str, max_length: int = None) -> str:
+    """
+    Validate and sanitize user query before processing.
+    
+    Args:
+        query: User input string
+        max_length: Maximum allowed query length (default: from config)
+        
+    Returns:
+        Sanitized query string
+        
+    Raises:
+        ValueError: If query is invalid or contains dangerous content
+    """
+    if max_length is None:
+        max_length = validation_config.max_query_length
+    
+    if not query or not isinstance(query, str):
+        raise ValueError("Query must be a non-empty string")
+    
+    # Strip whitespace and truncate
+    query = query.strip()[:max_length]
+    
+    if not query:
+        raise ValueError("Query contains no valid content")
+    
+    # Remove potentially dangerous patterns (prompt injection, XSS, etc.)
+    dangerous_patterns = [
+        (r'<script[^>]*>.*?</script>', 'script tags'),
+        (r'javascript:', 'javascript protocol'),
+        (r'{{.*}}', 'template injection'),
+        (r'<[^>]*>', 'HTML tags'),
+    ]
+    
+    for pattern, description in dangerous_patterns:
+        if re.search(pattern, query, re.IGNORECASE | re.DOTALL):
+            logger.warning("Query contains potentially dangerous content: %s", description)
+            query = re.sub(pattern, '', query, flags=re.IGNORECASE | re.DOTALL)
+    
+    # Remove control characters except newlines and tabs
+    query = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', query)
+    
+    if not query.strip():
+        raise ValueError("Query contains no valid content after sanitization")
+    
+    return query
 
 try:
     import chromadb
@@ -38,8 +136,11 @@ except ImportError:
     FLASHRANK_AVAILABLE = False
     logger.warning("flashrank non disponible, reranking desactive")
 
-# DEBUG: Forcer sans FlashRank pour tester IA boosting seul
-FLASHRANK_AVAILABLE = False  # Decommenter pour tester sans FlashRank
+# Configuration: FlashRank can be disabled via environment variable
+# DISABLE_FLASHRANK=true uv run python 04_chatbot.py
+if os.getenv("DISABLE_FLASHRANK", "false").lower() == "true":
+    FLASHRANK_AVAILABLE = False
+    logger.info("FlashRank desactive via DISABLE_FLASHANK=true")
 
 
 # Config V3
@@ -324,19 +425,53 @@ def _load_indexes():
     logger.info(f"✅ Index V3+ charges : {len(_chunks)} chunks | ChromaDB: {_chroma_collection.count()} docs")
 
 
-def _get_embedding(text: str) -> list[float] | None:
-    """Embedding via qwen3-embedding:8b."""
-    try:
-        with requests.post(
-            f"{OLLAMA_URL}/api/embeddings",
-            json={"model": EMBED_MODEL, "prompt": text},
-            timeout=120,
-        ) as response:
-            response.raise_for_status()
-            return response.json()["embedding"]
-    except Exception as e:
-        logger.error("Erreur embedding: %s", e)
-        return None
+def _get_embedding(text: str, max_retries: int = None) -> list[float] | None:
+    """
+    Embedding via qwen3-embedding:8b with retry logic and rate limiting.
+    
+    Args:
+        text: Text to embed
+        max_retries: Maximum number of retry attempts (default: from config)
+        
+    Returns:
+        Embedding vector or None if all retries failed
+    """
+    if max_retries is None:
+        max_retries = ollama_config.max_retries
+    
+    for attempt in range(max_retries):
+        try:
+            # Wait if needed to respect rate limit
+            _ollama_limiter.wait_if_needed()
+            
+            with requests.post(
+                f"{OLLAMA_URL}/api/embeddings",
+                json={"model": EMBED_MODEL, "prompt": text},
+                timeout=120,
+            ) as response:
+                response.raise_for_status()
+                return response.json()["embedding"]
+        except requests.exceptions.ConnectionError as e:
+            if attempt == max_retries - 1:
+                logger.error("Embedding service unavailable after %d attempts", max_retries)
+                return None
+            wait_time = 2 ** attempt  # Exponential backoff
+            logger.warning("Embedding attempt %d/%d failed, retrying in %ds: %s", 
+                          attempt + 1, max_retries, wait_time, e)
+            time.sleep(wait_time)
+        except requests.exceptions.Timeout as e:
+            if attempt == max_retries - 1:
+                logger.error("Embedding request timeout after %d attempts", max_retries)
+                return None
+            wait_time = 2 ** attempt
+            logger.warning("Embedding timeout attempt %d/%d, retrying in %ds: %s", 
+                          attempt + 1, max_retries, wait_time, e)
+            time.sleep(wait_time)
+        except Exception as e:
+            logger.error("Embedding error: %s", e)
+            return None
+    
+    return None
 
 
 def _tokenize(text: str) -> list[str]:
@@ -610,7 +745,14 @@ def retrieve(
 ) -> dict:
     """Pipeline complet retrieval V3+."""
     _load_indexes()
-    
+
+    # Validate and sanitize query
+    try:
+        query = validate_query(query)
+    except ValueError as e:
+        logger.error("Query validation failed: %s", e)
+        return {"chunks": [], "low_confidence": True, "query": query, "best_score": 0.0, "error": str(e)}
+
     query_emb = _get_embedding(query)
     if query_emb is None:
         return {"chunks": [], "low_confidence": True, "query": query, "best_score": 0.0}

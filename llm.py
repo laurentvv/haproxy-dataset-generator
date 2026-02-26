@@ -4,7 +4,30 @@ Utilise le contexte récupéré par le retriever pour répondre avec précision.
 """
 import os
 import requests
+from datetime import datetime, timedelta
+import time
 from typing import Generator
+
+
+# ── Rate Limiting ───────────────────────────────────────────────────────────
+class RateLimiter:
+    """Rate limiter for API calls."""
+    
+    def __init__(self, calls_per_minute: int = 20):
+        self.min_interval = timedelta(seconds=60 / calls_per_minute)
+        self.last_call = datetime.min
+    
+    def wait_if_needed(self):
+        now = datetime.now()
+        elapsed = now - self.last_call
+        if elapsed < self.min_interval:
+            wait_time = (self.min_interval - elapsed).total_seconds()
+            if wait_time > 0:
+                time.sleep(wait_time)
+        self.last_call = datetime.now()
+
+
+_llm_limiter = RateLimiter(calls_per_minute=20)
 
 
 # ── Config ───────────────────────────────────────────────────────────────────
@@ -146,6 +169,9 @@ def generate_response(
         Tokens de la réponse au fur et à mesure
     """
     import json  # Pour le parsing du streaming
+
+    # Wait if needed to respect rate limit
+    _llm_limiter.wait_if_needed()
 
     messages = build_messages(question, context, history)
 
