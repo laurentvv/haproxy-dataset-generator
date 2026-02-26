@@ -72,44 +72,51 @@ CUSTOM_CSS = """
 
 /* ── Container ─────────────────────────────────────────────────────────── */
 .gradio-container {
-    max-width: 1800px !important;
+    max-width: 98% !important;
     margin: 0 auto !important;
+    padding: 8px !important;
     background: var(--bg-dark) !important;
 }
 
 /* ── Header compact ────────────────────────────────────────────────────── */
 .app-header {
     background: linear-gradient(135deg, var(--haproxy-orange) 0%, var(--haproxy-red) 100%);
-    border-radius: 12px;
-    padding: 16px 24px;
-    margin: 16px auto;
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin: 8px auto;
     text-align: center;
     color: white;
 }
 
 .app-header h1 {
-    font-size: 1.6em;
+    font-size: 1.4em;
     font-weight: 700;
     margin: 0;
 }
 
 .app-header .subtitle {
-    font-size: 0.9em;
+    font-size: 0.85em;
     opacity: 0.9;
     margin: 4px 0 0 0;
+}
+
+/* ── Row layout horizontal ───────────────────────────────────────────── */
+.row {
+    gap: 8px !important;
 }
 
 /* ── Chatbot en pleine largeur ────────────────────────────────────────── */
 .chatbot-container {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 8px;
     overflow: hidden;
+    height: 75vh !important;
 }
 
 .chatbot-container .chatbot {
-    height: 70vh !important;
-    max-height: 70vh !important;
+    height: 75vh !important;
+    max-height: 75vh !important;
 }
 
 /* ── Messages ──────────────────────────────────────────────────────────── */
@@ -525,36 +532,37 @@ def build_ui():
             </div>
         """)
 
-        # ── Main layout ──────────────────────────────────────────────────
-        with gr.Row(equal_height=False):
-            # ── Left Sidebar ───────────────────────────────────────────
-            with gr.Column(scale=1, min_width=280):
+        # ── Main layout - HORIZONTAL ───────────────────────────────────
+        with gr.Row(equal_height=True):
+            # ── Left Sidebar compact ───────────────────────────────────
+            with gr.Column(scale=0, min_width=250, max_width=300):
                 # Configuration
                 with gr.Group():
-                    gr.Markdown("### ⚙️ Configuration")
-                    
                     model_dd = gr.Dropdown(
                         choices=available_models,
                         value=default_model,
-                        label="Modèle LLM",
+                        label="LLM",
+                        info="",
                     )
-                    
+
                     top_k = gr.Slider(
                         minimum=1,
                         maximum=15,
                         value=5,
                         step=1,
-                        label="Profondeur (top-k)",
+                        label="Top-K",
+                        info="",
                     )
-                    
+
                     show_sources_chk = gr.Checkbox(
                         value=True,
-                        label="📚 Afficher les sources",
+                        label="Sources",
+                        info="",
                     )
 
                 # Exemples
                 with gr.Group(elem_classes="examples-panel"):
-                    gr.Markdown("### 💡 Exemples")
+                    gr.Markdown("**💡 Exemples**")
 
                     examples_list = [
                         "Comment configurer un health check HTTP ?",
@@ -571,11 +579,12 @@ def build_ui():
                             q,
                             variant="secondary",
                             elem_classes="example-card",
+                            size="sm",
                         )
                         example_buttons.append(btn)
 
-            # ── Right Main Area ────────────────────────────────────────
-            with gr.Column(scale=4):
+            # ── Right Main Area - FULL WIDTH ───────────────────────────
+            with gr.Column(scale=1):
                 # Input (moved up for example clicks)
                 with gr.Group(elem_classes="input-area"):
                     msg_box = gr.Textbox(
@@ -595,7 +604,7 @@ def build_ui():
                 # Chatbot
                 chatbot = gr.Chatbot(
                     label="Conversation",
-                    height="70vh",
+                    height="75vh",
                     render_markdown=True,
                     avatar_images=(None, "🔧"),
                     elem_classes="chatbot-container",
