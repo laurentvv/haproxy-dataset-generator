@@ -11,12 +11,13 @@
 1. [Vue d'ensemble](#vue-densemble)
 2. [Prérequis](#prérequis)
 3. [Étape 1 : Scraper la documentation](#etape-1-scraper-la-documentation)
-4. [Étape 2 : Parser et chunker](#etape-2-parser-et-chunker)
-5. [Étape 3 : Construire l'index](#etape-3-construire-lindex)
-6. [Étape 4 : Lancer le chatbot](#etape-4-lancer-le-chatbot)
-7. [Étape 5 : Benchmarker](#etape-5-benchmarker)
-8. [Architecture technique](#architecture-technique)
-9. [Dépannage](#depannage)
+4. [Étape 1.5 : Enrichir les metadata IA](#etape-15-enrichir-les-metadata-ia)
+5. [Étape 2 : Parser et chunker](#etape-2-parser-et-chunker)
+6. [Étape 3 : Construire l'index](#etape-3-construire-lindex)
+7. [Étape 4 : Lancer le chatbot](#etape-4-lancer-le-chatbot)
+8. [Étape 5 : Benchmarker](#etape-5-benchmarker)
+9. [Architecture technique](#architecture-technique)
+10. [Dépannage](#depannage)
 
 ---
 
@@ -37,19 +38,24 @@ Ce projet implémente un **chatbot RAG (Retrieval-Augmented Generation)** pour l
 │  └─────────────┘                                                │
 │       │                                                         │
 │       ▼                                                         │
-│  ┌─────────────┐  Chunking   →  data/chunks_v3.jsonl           │
-│  │02_ingest_v2 │                                                │
+│  ┌─────────────────┐  Enrichissement  →  data/sections_enrichies.jsonl │
+│  │01b_enrich_meta  │  IA (gemma3)     │  (keywords, synonyms,    │
+│  └─────────────────┘                  │   category, summary)     │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌─────────────┐  Chunking   →  data/chunks_v2.jsonl           │
+│  │02_chunking  │              + propagation metadata IA        │
 │  └─────────────┘                                                │
 │       │                                                         │
 │       ▼                                                         │
 │  ┌─────────────┐  Indexing   →  index_v3/                      │
-│  │03_build_    │              - chroma/ (embeddings)           │
-│  │ index_v3.py │              - bm25.pkl (lexical)             │
+│  │03_indexing  │              - chroma/ (embeddings)           │
+│  │.py          │              - bm25.pkl (lexical)             │
 │  └─────────────┘              - chunks.pkl (metadata)          │
 │       │                                                         │
 │       ▼                                                         │
 │  ┌─────────────┐  RAG Chat   →  Gradio UI                      │
-│  │ 04_app_v3.py│              - Retrieval hybride              │
+│  │ 04_chatbot  │              - Retrieval hybride              │
 │  └─────────────┘              - LLM (qwen3:latest)             │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -144,44 +150,118 @@ uv run python 01_scrape.py
 
 ---
 
-## Étape 2 : Parser et chunker
+## Étape 1.5 : Enrichir les metadata IA
 
-**Objectif :** Découper la documentation en chunks intelligents.
+**Objectif :** Générer des métadonnées sémantiques pour chaque section via IA.
 
 ### **Execution**
 
 ```bash
-uv run python 02_ingest_v2.py
+uv run python 01b_enrich_metadata.py
 ```
 
 ### **Ce que ça fait :**
 - Lit `data/sections.jsonl`
-- Découpe en chunks de ~500-800 caractères
-- Respecte les limites de sections (---)
-- Ajoute des metadata (title, section, tags, has_code)
-- Sauvegarde dans `data/chunks_v3.jsonl`
+- Pour chaque section, appelle gemma3:latest pour générer :
+  - `keywords` (5-10 mots-clés techniques présents dans le texte)
+  - `synonyms` (3-5 termes associés, variantes)
+  - `summary` (1 phrase résumé)
+  - `category` (backend/frontend/acl/ssl/timeout/healthcheck/stick-table/logs/stats/general/loadbalancing)
+- Sauvegarde dans `data/sections_enriched.jsonl`
 
 ### **Sortie attendue :**
 ```
-2026-02-25 10:10:00 - INFO - Chunking intelligent...
-2026-02-25 10:15:00 - INFO - ✅ 3645 chunks créés
-2026-02-25 10:15:00 - INFO - 📁 data/chunks_v3.jsonl (5.2 MB)
-2026-02-25 10:15:00 - INFO - 📊 Stats:
-  - Taille moy: 669 chars
-  - Tags moy: 3/chunk
-  - Avec code: 2121 (58%)
+[INFO] 150 sections chargees depuis data/sections.jsonl
+[INFO] Modele IA: gemma3:latest
+[INFO] Temps estime: ~5 min (150 sections x 2s)
+
+[1/150] 5.2. Server and default-server options... OK 8 keywords | backend
+[2/150] 4.2. Alphabetically sorted keywords reference... OK 7 keywords | general
+...
+
+[SUCCESS] ENRICHISSEMENT TERMINE
+[INFO] Sections enrichies: 150
+[INFO] Keywords totaux: 1050 (7.0/section)
+[INFO] Categories:
+   backend: 45 (30%)
+   general: 30 (20%)
+   acl: 25 (17%)
+   ...
 ```
 
-### **Contenu de `data/chunks_v3.jsonl` :**
+### **Contenu de `data/sections_enriched.jsonl` :**
 ```json
 {
-  "chunk_id": "chunk_0",
+  "id": "section_5.2",
   "title": "5.2. Server and default-server options",
-  "section": "5.2",
-  "content": "option httpchk - Enable HTTP protocol to check server health\n\nSyntax: option httpchk [<method> <uri> [<version>]]\n\nWhen this option is set...",
+  "content": "...",
+  "url": "https://docs.haproxy.org/3.2/configuration.html#5.2",
+  "metadata": {
+    "keywords": ["server", "backend", "weight", "check", "option httpchk", "inter", "fall", "rise"],
+    "synonyms": ["désactiver", "disabled", "down", "inactive"],
+    "summary": "Configuration des serveurs backend et options de health check HTTP.",
+    "category": "backend"
+  }
+}
+...
+```
+
+### **Durée :** ~5-10 minutes (gemma3:latest)
+
+---
+
+## Étape 2 : Parser et chunker
+
+**Objectif :** Découper la documentation en chunks intelligents avec propagation des metadata IA.
+
+### **Execution**
+
+```bash
+uv run python 02_chunking.py
+```
+
+### **Ce que ça fait :**
+- Lit `data/sections_enriched.jsonl` (avec metadata IA)
+- Découpe en chunks de ~300-800 caractères (chunking sémantique)
+- Propage les metadata IA aux chunks (ia_keywords, ia_synonyms, ia_category, ia_summary)
+- Ajoute des metadata HAProxy (tags, keywords, section hierarchy)
+- Sauvegarde dans `data/chunks_v2.jsonl`
+
+### **Sortie attendue :**
+```
+[INFO] 150 sections enrichies chargees depuis data/sections_enriched.jsonl
+   Apres fusion : 180 sections
+[INFO] Resultat re-chunking V2:
+   Chunks totaux     : 3645
+   Avec code         : 2121 (58%)
+   Taille moy.       : 669 chars
+   Min / Max         : 150 / 1200
+   Tags HAProxy      : 10935 (3.0/chunk)
+   Avec metadata IA  : 3645 (100%)
+   IA keywords tot.  : 25515 (7.0/chunk)
+
+[SUCCESS] 3645 chunks sauvegardes dans data/chunks_v2.jsonl
+```
+
+### **Contenu de `data/chunks_v2.jsonl` :**
+```json
+{
+  "id": "chunk_0",
+  "title": "5.2. Server and default-server options",
+  "content": "option httpchk - Enable HTTP protocol to check server health...",
+  "embed_text": "5.2. Server and default-server options\n\noption httpchk...",
+  "url": "https://docs.haproxy.org/3.2/configuration.html#5.2",
+  "source": "configuration",
+  "parent_section": "5",
+  "current_section": "5.2",
   "tags": ["healthcheck", "httpchk", "server", "option"],
+  "keywords": ["healthcheck", "httpchk", "server", "option", "backend", "weight"],
   "has_code": true,
-  "url": "https://docs.haproxy.org/3.2/configuration.html#5.2"
+  "char_len": 669,
+  "ia_keywords": ["server", "backend", "weight", "check", "option httpchk", "inter", "fall", "rise"],
+  "ia_synonyms": ["désactiver", "disabled", "down", "inactive"],
+  "ia_category": "backend",
+  "ia_summary": "Configuration des serveurs backend et options de health check HTTP."
 }
 ...
 ```
@@ -192,56 +272,48 @@ uv run python 02_ingest_v2.py
 
 ## Étape 3 : Construire l'index
 
-**Objectif :** Créer les index vectoriels et lexicaux.
+**Objectif :** Créer les index vectoriels et lexicaux avec metadata IA.
 
 ### **Execution**
 
 ```bash
-uv run python 03_build_index_v3.py
+uv run python 03_indexing.py
 ```
 
 ### **Ce que ça fait :**
-- Charge `data/chunks_v3.jsonl` (3645 chunks)
+- Charge `data/chunks_v2.jsonl` (3645 chunks avec metadata IA)
 - Génère les embeddings avec `qwen3-embedding:8b` (4096 dims)
-- Crée l'index ChromaDB (vectoriel)
+- Crée l'index ChromaDB (vectoriel) avec metadata :
+  - `ia_keywords` : Keywords IA de gemma3:latest
+  - `ia_synonyms` : Synonymes IA
+  - `ia_category` : Catégorie IA
+  - `ia_summary` : Résumé IA
+  - `keywords` : Keywords combines (HAProxy + IA)
+  - `tags` : Tags HAProxy
 - Crée l'index BM25 (lexical)
 - Sauvegarde les metadata
 
 ### **Sortie attendue :**
 ```
 2026-02-25 10:20:00 - INFO - ============================================================
-2026-02-25 10:20:00 - INFO -   BUILD INDEX V3 - HAProxy RAG (qwen3-embedding:8b)
+2026-02-25 10:20:00 - INFO - 🔍 Indexation V3 - HAProxy RAG
 2026-02-25 10:20:00 - INFO - ============================================================
+2026-02-25 10:20:00 - INFO - 📂 3645 chunks charges depuis data/chunks_v2.jsonl
+2026-02-25 10:20:00 - INFO - ✅ Ollama OK - Modele: qwen3-embedding:8b
 2026-02-25 10:20:00 - INFO -
-📦 3645 chunks à indexer
-2026-02-25 10:20:00 - INFO - ♻️  Index existant trouvé : 0 documents déjà indexés
-2026-02-25 10:20:00 - INFO - 🔄 Index vide, reprise depuis le chunk #0
-2026-02-25 10:20:00 - INFO -
-🔨 Index ChromaDB V3 (qwen3-embedding:8b)...
-2026-02-25 10:20:00 - INFO -    📍 0 chunks déjà indexés, 3645 restants
-2026-02-25 10:20:00 - INFO -    📦 37 batches de 100 chunks
-2026-02-25 10:20:00 - INFO -    ⏱️  Temps estimé: ~74-148 min (qwen3-embedding:8b est lent)
+📦 Indexation de 3645 chunks...
+2026-02-25 10:20:00 - INFO -    Progression: 500/3645 (13%) | ETA: ~104 min
+2026-02-25 10:20:00 - INFO -    Progression: 1000/3645 (27%) | ETA: ~88 min
 ...
-2026-02-25 12:31:22 - INFO -    [ 3645/3645] 100.0% - ETA:   0.0 min
-2026-02-25 12:31:22 - INFO - ✅ 3645 documents indexés (V3)
+2026-02-25 12:31:22 - INFO -    Progression: 3645/3645 (100%) | ETA: ~0 min
+2026-02-25 12:31:22 - INFO - ✅ Index BM25 sauvegarde: index_v3/bm25.pkl
+2026-02-25 12:31:22 - INFO - ✅ Chunks sauvegardes: index_v3/chunks.pkl
 2026-02-25 12:31:22 - INFO -
-🔨 Index BM25 V3...
-2026-02-25 12:31:23 - INFO - ✅ BM25 V3 créé (3645 chunks)
-2026-02-25 12:31:23 - INFO -
-📦 Metadata V3...
-2026-02-25 12:31:23 - INFO - ✅ 3645 chunks sauvegardés
-2026-02-25 12:31:23 - INFO -
-============================================================
-2026-02-25 12:31:23 - INFO -   INDEX V3 CONSTRUIT EN 135.9 MINUTES
-2026-02-25 12:31:23 - INFO - ============================================================
-2026-02-25 12:31:23 - INFO -   Embedding    : qwen3-embedding:8b
-2026-02-25 12:31:23 - INFO -   Dimension    : 4096 (qwen3-embedding:8b)
-2026-02-25 12:31:23 - INFO -   MTEB Score   : 70.58 (#1 mondial)
-2026-02-25 12:31:23 - INFO -   Chunks       : 3645
-2026-02-25 12:31:23 - INFO -   ChromaDB     : index_v3\chroma/
-2026-02-25 12:31:23 - INFO -   BM25         : index_v3\bm25.pkl
-2026-02-25 12:31:23 - INFO -   Metadata     : index_v3\chunks.pkl
-2026-02-25 12:31:23 - INFO - ============================================================
+✅ Index V3 termine !
+   Collection ChromaDB: haproxy_docs_v3
+   Nombre de chunks: 3645
+   Dimensions embedding: 4096
+```
 ```
 
 ### **Fichiers générés :**
@@ -265,7 +337,7 @@ index_v3/
 ### **Execution**
 
 ```bash
-uv run python 04_app_v3.py
+uv run python 04_chatbot.py
 ```
 
 ### **Ce que ça fait :**
@@ -274,6 +346,7 @@ uv run python 04_app_v3.py
 - Interface web pour poser des questions
 - Retrieval hybride (vectoriel + lexical + rerank)
 - Génération de réponse avec `qwen3:latest`
+- Utilise les metadata IA pour le keyword boosting
 
 ### **Sortie attendue :**
 ```
@@ -466,11 +539,11 @@ ollama pull qwen3-embedding:8b
 ### **Problème : Index manquants**
 ```bash
 # Reconstruire l'index
-uv run python 03_build_index_v3.py
+uv run python 03_indexing.py
 
 # Ou supprimer et reconstruire
 rm -rf index_v3/
-uv run python 03_build_index_v3.py
+uv run python 03_indexing.py
 ```
 
 ### **Problème : ChromaDB error**
@@ -518,11 +591,12 @@ uv run python 05_bench_targeted.py --questions full_backend_name,full_acl_status
 
 ```
 haproxy-dataset-generator/
+├── 00_rebuild_all.py         # ⭐ Script unique - Reconstruit tout
 ├── 01_scrape.py              # Scrapping → sections.jsonl
-├── 02_ingest_v2.py           # Chunking → chunks_v3.jsonl
-├── 03_build_index_v3.py      # Indexing → index_v3/
-├── 04_app_v3.py              # Chatbot Gradio
-├── 04_chatbot.py             # Chatbot Gradio (noms cohérents)
+├── 01b_enrich_metadata.py    # Enrichissement IA → sections_enriched.jsonl
+├── 02_chunking.py            # Chunking + propagation metadata → chunks_v2.jsonl
+├── 03_indexing.py            # Indexing → index_v3/
+├── 04_chatbot.py             # Chatbot Gradio
 ├── retriever_v3.py           # Retrieval hybride V3
 ├── llm.py                    # Génération LLM
 ├── bench_questions.py        # 92 questions de benchmark
@@ -531,7 +605,8 @@ haproxy-dataset-generator/
 ├── V3_PERFORMANCE_TRACKING.md# Historique des perfs
 ├── data/                     # Données brutes
 │   ├── sections.jsonl
-│   └── chunks_v3.jsonl
+│   ├── sections_enriched.jsonl
+│   └── chunks_v2.jsonl
 └── index_v3/                 # Index construits
     ├── chroma/
     ├── bm25.pkl
@@ -547,12 +622,21 @@ haproxy-dataset-generator/
 uv sync
 ollama pull qwen3-embedding:8b
 ollama pull qwen3:latest
+ollama pull gemma3:latest         # Pour l'enrichissement metadata
 
-# Scrapping
+# Reconstruction complète (~3h10)
+uv run python 00_rebuild_all.py
+
+# Ou étapes individuelles :
+
+# Scrapping (~5-10 min)
 uv run python 01_scrape.py
 
-# Chunking
-uv run python 02_ingest_v2.py
+# Enrichissement metadata IA (~5-10 min)
+uv run python 01b_enrich_metadata.py
+
+# Chunking (~5-10 min)
+uv run python 02_chunking.py
 
 # Indexing (~2h)
 uv run python 03_indexing.py

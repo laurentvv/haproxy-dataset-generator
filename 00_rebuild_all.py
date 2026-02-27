@@ -7,9 +7,10 @@ Usage:
 
 Ce script :
 1. Scraper la documentation HAProxy
-2. Chunker les documents
-3. Construire les index V3
-4. Tester avec le benchmark
+2. Enrichir les sections avec metadata IA (keywords, synonyms, category, summary)
+3. Chunker les documents avec propagation des metadata
+4. Construire les index V3
+5. Tester avec le benchmark
 """
 
 import subprocess
@@ -69,24 +70,26 @@ def main():
     print()
     print("Ce script va :")
     print("  1. Scraper docs.haproxy.org (~1 min)")
-    print("  2. Chunker les documents (~1 min)")
-    print("  3. Construire les index V3 (~2h17 avec qwen3-embedding:8b)")
+    print("  2. Enrichir les sections avec metadata IA (~5-10 min)")
+    print("  3. Chunker les documents avec propagation metadata (~1 min)")
+    print("  4. Construire les index V3 (~2h17 avec qwen3-embedding:8b)")
     if args.no_benchmark:
-        print("  4. Benchmark: SKIP")
+        print("  5. Benchmark: SKIP")
     else:
-        print("  4. Tester avec le benchmark Full (~45 min, 92 questions)")
+        print("  5. Tester avec le benchmark Full (~45 min, 92 questions)")
     print()
     if args.no_benchmark:
-        print("Temps total estime : ~2h20")
+        print("Temps total estime : ~2h25")
     else:
-        print("Temps total estime : ~3h05")
+        print("Temps total estime : ~3h10")
     print()
 
     total_start = time.time()
     steps = [
-        ("01_scrape.py", "ETAPE 1/4 - SCRAPPING"),
-        ("02_chunking.py", "ETAPE 2/4 - CHUNKING"),
-        ("03_indexing.py", "ETAPE 3/4 - INDEXING"),
+        ("01_scrape.py", "ETAPE 1/5 - SCRAPPING"),
+        ("01b_enrich_metadata.py", "ETAPE 2/5 - ENRICHISSEMENT METADATA IA"),
+        ("02_chunking.py", "ETAPE 3/5 - CHUNKING"),
+        ("03_indexing.py", "ETAPE 4/5 - INDEXING"),
     ]
 
     # Gérer le benchmark
@@ -99,7 +102,7 @@ def main():
     else:
         # Mode interactif
         print("\n" + "=" * 70)
-        print("  ETAPE 4/4 - BENCHMARK")
+        print("  ETAPE 5/5 - BENCHMARK")
         print("=" * 70)
         print()
         print("Lancement du benchmark Full (100 questions, ~45 min)...")
@@ -165,6 +168,7 @@ def main():
         print()
         print("Fichiers generes :")
         print("  - data/sections.jsonl")
+        print("  - data/sections_enriched.jsonl")
         print("  - data/chunks.jsonl")
         print("  - index_v3/chroma/")
         print("  - index_v3/bm25.pkl")

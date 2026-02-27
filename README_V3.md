@@ -12,7 +12,8 @@
 haproxy-dataset-generator/
 ├── 00_rebuild_all.py      # ⭐ Script unique - Reconstruit tout
 ├── 01_scrape.py           # Scrapping docs.haproxy.org
-├── 02_chunking.py         # Chunking intelligent avec enrichment
+├── 01b_enrich_metadata.py # Enrichissement metadata IA (keywords, synonyms, category)
+├── 02_chunking.py         # Chunking intelligent avec propagation metadata
 ├── 03_indexing.py         # Construction index V3
 ├── 04_chatbot.py          # Interface Gradio
 ├── 05_bench_targeted.py   # Benchmark (quick/standard/full)
@@ -37,9 +38,10 @@ uv run python 00_rebuild_all.py
 
 Ce script fait :
 1. Scrapping (~5-10 min)
-2. Chunking (~5-10 min)
-3. Indexing (~2h)
-4. Benchmark Full (optionnel, ~45 min)
+2. Enrichissement metadata IA avec gemma3:latest (~5-10 min)
+3. Chunking avec propagation metadata (~5-10 min)
+4. Indexing (~2h)
+5. Benchmark Full (optionnel, ~45 min)
 
 ---
 
@@ -49,13 +51,16 @@ Ce script fait :
 # Étape 1 : Scraper (~5-10 min)
 uv run python 01_scrape.py
 
-# Étape 2 : Chunker (~5-10 min)
+# Étape 2 : Enrichir les sections avec metadata IA (~5-10 min)
+uv run python 01b_enrich_metadata.py
+
+# Étape 3 : Chunker (~5-10 min)
 uv run python 02_chunking.py
 
-# Étape 3 : Indexer (~2h)
+# Étape 4 : Indexer (~2h)
 uv run python 03_indexing.py
 
-# Étape 4 : Tester
+# Étape 5 : Tester
 uv run python 06_bench_v3.py --level full
 ```
 
@@ -98,6 +103,16 @@ uv run python 05_bench_targeted.py --questions full_backend_name,full_acl
 ---
 
 ## 🔧 Features V3
+
+### **Enrichissement IA (01b_enrich_metadata.py)**
+- **Modèle :** gemma3:latest
+- **Metadata générées par section :**
+  - `keywords` (5-10 mots-clés techniques présents dans le texte)
+  - `synonyms` (3-5 termes associés, variantes)
+  - `summary` (1 phrase résumé)
+  - `category` (backend/frontend/acl/ssl/timeout/healthcheck/stick-table/logs/stats/general/loadbalancing)
+- **Sortie :** `data/sections_enriched.jsonl`
+- **Durée :** ~5-10 min
 
 ### **Indexing**
 - **Embedding :** qwen3-embedding:8b (MTEB 70.58, #1 mondial)
@@ -176,7 +191,7 @@ Question utilisateur
        │
        ▼
 ┌─────────────────────┐
-│  Keyword Boosting   │  Booste les chunks avec keywords
+│  Keyword Boosting   │  Booste les chunks avec keywords IA
 └─────────────────────┘
        │
        ▼
@@ -186,6 +201,36 @@ Question utilisateur
        │
        ▼
 Réponse finale + sources
+```
+
+### **Pipeline de données**
+```
+docs.haproxy.org
+       │
+       ▼
+┌─────────────────────┐
+│ 01_scrape.py        │  Scrapping HTML → Markdown
+└─────────────────────┘
+       │
+       ▼
+┌─────────────────────┐
+│ 01b_enrich_metadata │  IA enrichment (gemma3:latest)
+└─────────────────────┘
+       │
+       ▼
+┌─────────────────────┐
+│ 02_chunking.py      │  Chunking + propagation metadata
+└─────────────────────┘
+       │
+       ▼
+┌─────────────────────┐
+│ 03_indexing.py      │  Embedding + BM25 + ChromaDB
+└─────────────────────┘
+       │
+       ▼
+┌─────────────────────┐
+│ 04_chatbot.py       │  RAG chatbot
+└─────────────────────┘
 ```
 
 ---
