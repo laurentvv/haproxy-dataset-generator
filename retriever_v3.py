@@ -236,6 +236,43 @@ TOP_K_RERANK = 10
 RRF_K = 60
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.0"))
 
+# ── Boosting Weights for IA Metadata ────────────────────────────────────────────
+# These constants control the impact of different metadata types on reranking.
+# All weights are applied multiplicatively to the original score.
+#
+# IA Keyword Boost:
+#   - Boosts chunks where IA-extracted keywords match the query
+#   - Weight: 0.3 (moderate impact, keywords are reliable but not definitive)
+#   - Formula: weight * (matching_keywords / total_keywords)
+IA_KEYWORD_BOOST_WEIGHT = 0.3
+
+# IA Synonym Boost:
+#   - Boosts chunks where IA-extracted synonyms match the query
+#   - Weight: 0.2 (lower impact, synonyms are less precise than keywords)
+#   - Formula: weight * (matching_synonyms / total_synonyms)
+IA_SYNONYM_BOOST_WEIGHT = 0.2
+
+# IA Category Boost:
+#   - Boosts chunks based on category matching between query and chunk
+#   - Direct match: 0.5 (high impact, category is a strong signal)
+#   - Related match: 0.3 (moderate impact, for semantically related categories)
+#   - General match: 0.2 (low impact, for broad categories like ACL)
+CATEGORY_BOOST_DIRECT = 0.5
+CATEGORY_BOOST_RELATED = 0.3
+CATEGORY_BOOST_GENERAL = 0.2
+
+# Title Boost:
+#   - Boosts chunks where strong keywords appear in the title
+#   - Weight: 0.3 per matching keyword (cumulative)
+#   - Strong keywords: ["stick-table", "track-sc", "http_req_rate", "conn_rate", "deny", "acl"]
+TITLE_BOOST_WEIGHT = 0.3
+
+# Match Ratio Boost:
+#   - Boosts chunks based on keyword matching ratio in content/title
+#   - Weight: 0.5 (moderate impact, measures overall keyword relevance)
+#   - Formula: weight * (matches / total_expanded_keywords)
+MATCH_RATIO_BOOST_WEIGHT = 0.5
+
 
 # ── Metadata Filtering V3+ ───────────────────────────────────────────────────
 # Mapping IA (keywords → categories) - ENRICHED WITH SYNONYMS
@@ -826,7 +863,7 @@ def _apply_boosting(
             or kw.lower() in content_lower
             or kw.lower() in title_lower
         )
-        ia_boost = 0.3 * (ia_matches / len(ia_keywords))
+        ia_boost = IA_KEYWORD_BOOST_WEIGHT * (ia_matches / len(ia_keywords))
     else:
         ia_matches = 0
         ia_boost = 0
@@ -841,7 +878,7 @@ def _apply_boosting(
             or syn.lower() in content_lower
             or syn.lower() in title_lower
         )
-        synonym_boost = 0.2 * (synonym_matches / len(ia_synonyms))
+        synonym_boost = IA_SYNONYM_BOOST_WEIGHT * (synonym_matches / len(ia_synonyms))
     else:
         synonym_matches = 0
         synonym_boost = 0
@@ -852,31 +889,31 @@ def _apply_boosting(
         chunk_category = chunk.get("ia_category", "")
         # Direct match
         if chunk_category == category_hint:
-            category_boost = 0.5
+            category_boost = CATEGORY_BOOST_DIRECT
         # Related categories
         elif category_hint == "backend" and chunk_category == "loadbalancing":
-            category_boost = 0.3
+            category_boost = CATEGORY_BOOST_RELATED
         elif category_hint == "loadbalancing" and chunk_category == "backend":
-            category_boost = 0.3
+            category_boost = CATEGORY_BOOST_RELATED
         elif category_hint == "ssl" and chunk_category == "frontend":
-            category_boost = 0.3  # SSL config souvent dans bind options (frontend)
+            category_boost = CATEGORY_BOOST_RELATED  # SSL config souvent dans bind options (frontend)
         elif category_hint == "frontend" and chunk_category == "ssl":
-            category_boost = 0.3
+            category_boost = CATEGORY_BOOST_RELATED
         elif category_hint == "healthcheck" and chunk_category == "loadbalancing":
-            category_boost = 0.3  # Health checks dans server options
+            category_boost = CATEGORY_BOOST_RELATED  # Health checks dans server options
         elif category_hint == "acl" and chunk_category == "general":
-            category_boost = 0.2  # ACL dans toutes sections
+            category_boost = CATEGORY_BOOST_GENERAL  # ACL dans toutes sections
 
     # Title boost
     title_boost = 0.0
     for strong_kw in strong_keywords:
         if strong_kw in title_lower:
-            title_boost += 0.3
+            title_boost += TITLE_BOOST_WEIGHT
 
     original_score = chunk.get("rerank_score", 0)
     chunk["rerank_score"] = original_score * (
         1.0
-        + 0.5 * match_ratio
+        + MATCH_RATIO_BOOST_WEIGHT * match_ratio
         + ia_boost
         + synonym_boost
         + category_boost
