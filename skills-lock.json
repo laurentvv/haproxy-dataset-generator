@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "gradio": {
+      "source": "huggingface/skills",
+      "sourceType": "github",
+      "computedHash": "9a91b7777b551d054ecd32c93ebe2f29487c13704d53a5e6d71675ca176ca186"
+    }
+  }
+}

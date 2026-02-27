@@ -1,2 +1,0 @@
- # TODO
- - [] Voir si c'est possible d'ajouter la partie "title" et  "content" qui se trouve dans @data/sections.jsonl en plus des questions réponses du modèle dans @data/haproxy_dataset_qa.jsonl ? onrisque de perdre des infos comme c'est de la doc ? 

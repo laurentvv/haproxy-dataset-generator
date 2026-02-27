@@ -1,0 +1,122 @@
+# ── Python ───────────────────────────────────────────────────────────────────
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── uv ───────────────────────────────────────────────────────────────────────
+# uv virtual environments
+.venv/
+
+# uv lock file (keep it!)
+# uv.lock  ← Uncomment if you don't want to commit the lock file
+
+# ── Project specific ─────────────────────────────────────────────────────────
+# Logs
+*.log
+gradio_app.log
+
+# Data files (generated)
+data/sections.jsonl
+data/chunks_v2.jsonl
+
+# Benchmark reports
+bench_*.json
+bench_*.html
+bench_*.md
+test_benchmark_report*
+
+# Temporary test files
+test_*.py
+test_*.txt
+
+# Development artifacts
+*.backup
+*_backup.py
+
+# Temporary files
+input_reprise.txt
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Secrets ──────────────────────────────────────────────────────────────────
+# Environment variables
+.env.local
+.env.*.local
+
+# API keys / credentials
+*.pem
+*.key
+credentials
+*.credentials
