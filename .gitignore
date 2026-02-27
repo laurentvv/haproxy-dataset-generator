@@ -87,7 +87,18 @@ data/sections.jsonl
 data/chunks_v2.jsonl
 
 # Benchmark reports
-benchmark_report.json
+bench_*.json
+bench_*.html
+bench_*.md
+test_benchmark_report*
+
+# Temporary test files
+test_*.py
+test_*.txt
+
+# Development artifacts
+*.backup
+*_backup.py
 
 # Temporary files
 input_reprise.txt
