@@ -99,7 +99,7 @@ def validate_query(query: str, max_length: int = None) -> str:
     if not query:
         raise ValueError("Query contains no valid content")
 
-    # Remove potentially dangerous patterns (prompt injection, XSS, etc.)
+    # Reject potentially dangerous patterns (prompt injection, XSS, etc.)
     dangerous_patterns = [
         (r"<script[^>]*>.*?</script>", "script tags"),
         (r"javascript:", "javascript protocol"),
@@ -112,7 +112,7 @@ def validate_query(query: str, max_length: int = None) -> str:
             logger.warning(
                 "Query contains potentially dangerous content: %s", description
             )
-            query = re.sub(pattern, "", query, flags=re.IGNORECASE | re.DOTALL)
+            raise ValueError(f"Query rejected: {description} detected")
 
     # Remove control characters except newlines and tabs
     query = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", query)
