@@ -155,7 +155,6 @@ def extract_section_hierarchy(title: str) -> tuple[Optional[str], Optional[str]]
         chapter = match.group(1)
         section = match.group(2)
         subsection = match.group(3)
-        match.group(4)
 
         if subsection:
             parent = f"{chapter}.{section}"
@@ -205,7 +204,6 @@ def split_into_semantic_chunks(text: str, title: str) -> list[str]:
                 before = window[:idx]
                 if before.count("```") % 2 == 0:  # Pas dans un bloc
                     best_cut = idx + len(sep)
-                    separators.index((sep, name))
                     break
 
         if best_cut is None:
