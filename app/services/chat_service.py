@@ -65,7 +65,7 @@ class ChatService:
         logger.info("[DEBUG] message: %s", message)
         logger.info("[DEBUG] session_id: %s", session_id)
         logger.info("[DEBUG] config: %s", config)
-        
+
         # 1. Valider l'entrée
         try:
             logger.info("[DEBUG] Validating message...")

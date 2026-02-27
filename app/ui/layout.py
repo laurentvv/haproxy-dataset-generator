@@ -2,7 +2,6 @@
 
 import gradio as gr
 
-from app.ui.styles import CUSTOM_CSS
 from app.ui.components import (
     build_header,
     build_config_panel,
@@ -137,7 +136,7 @@ def _wire_events(
         logger.info("[DEBUG] handle_submit called with message: %s", message)
         logger.info("[DEBUG] message type: %s", type(message))
         logger.info("[DEBUG] history length: %d", len(history) if history else 0)
-        
+
         # Extraire le texte du message
         if hasattr(message, "content"):
             message_text = message.content
@@ -156,7 +155,11 @@ def _wire_events(
 
         # Ajouter le message utilisateur à l'historique
         # Dans Gradio 6.x, le content doit être une liste de blocs
-        history.append(gr.ChatMessage(role="user", content=[{"type": "text", "text": message_text}]))
+        history.append(
+            gr.ChatMessage(
+                role="user", content=[{"type": "text", "text": message_text}]
+            )
+        )
         logger.info("[DEBUG] message added to history, new length: %d", len(history))
         return history
 
@@ -182,17 +185,19 @@ def _wire_events(
         logger.info("[DEBUG] model_name: %s", model_name)
         logger.info("[DEBUG] top_k: %d", top_k)
         logger.info("[DEBUG] show_sources_flag: %s", show_sources_flag)
-        
+
         # Vérifier qu'il y a un message utilisateur valide
         # Dans Gradio 6.x, le rôle peut être None ou "user"
         if not history or not history[-1]:
-            logger.warning("[DEBUG] No history or last message, returning history unchanged")
+            logger.warning(
+                "[DEBUG] No history or last message, returning history unchanged"
+            )
             yield history
             return
-        
+
         # Extraire le message utilisateur
         user_message = history[-1]
-        
+
         # Vérifier le contenu du message
         # Dans Gradio 6.x, le content peut être une liste d'objets ou une chaîne
         if hasattr(user_message, "content"):
@@ -201,7 +206,7 @@ def _wire_events(
             content = user_message.get("content", "")
         else:
             content = str(user_message)
-        
+
         # Si content est une liste, extraire le texte
         if isinstance(content, list):
             # Gradio 6.x: content est une liste d'objets avec 'text' et 'type'
@@ -212,18 +217,20 @@ def _wire_events(
                 else:
                     text_parts.append(str(item))
             content = " ".join(text_parts)
-        
+
         if not content or not content.strip():
-            logger.warning("[DEBUG] No valid content in last message, returning history unchanged")
+            logger.warning(
+                "[DEBUG] No valid content in last message, returning history unchanged"
+            )
             yield history
             return
-        
+
         logger.info("[DEBUG] Valid user message found: %s", content[:50])
-        
+
         # Le message utilisateur a déjà été extrait dans la variable 'content'
         # Utiliser 'content' directement pour le traitement
         message = content
-        
+
         logger.info("[DEBUG] User message: %s", message)
 
         # Créer la configuration
@@ -240,7 +247,12 @@ def _wire_events(
         history.append(
             gr.ChatMessage(
                 role="assistant",
-                content=[{"type": "text", "text": '<div style="opacity: 0.7">⏳ **Recherche en cours...**</div>'}],
+                content=[
+                    {
+                        "type": "text",
+                        "text": '<div style="opacity: 0.7">⏳ **Recherche en cours...**</div>',
+                    }
+                ],
             )
         )
         logger.info("[DEBUG] Assistant message added for streaming")
@@ -258,7 +270,10 @@ def _wire_events(
                 session_id=session_id,
                 config=config,
             ):
-                logger.info("[DEBUG] Received response chunk: %s", response[:50] if response else "empty")
+                logger.info(
+                    "[DEBUG] Received response chunk: %s",
+                    response[:50] if response else "empty",
+                )
                 # Dans Gradio 6.x, le content doit être une liste de blocs
                 history[-1].content = [{"type": "text", "text": response}]
                 yield history
@@ -266,9 +281,12 @@ def _wire_events(
         except Exception as e:
             logger.error("Error in handle_respond: %s", e)
             import traceback
+
             traceback.print_exc()
             # Dans Gradio 6.x, le content doit être une liste de blocs
-            history[-1].content = [{"type": "text", "text": f"❌ **Erreur de génération**\n\n{str(e)}"}]
+            history[-1].content = [
+                {"type": "text", "text": f"❌ **Erreur de génération**\n\n{str(e)}"}
+            ]
             yield history
 
     def handle_clear() -> list[gr.ChatMessage]:
@@ -290,7 +308,12 @@ def _wire_events(
         loop.run_until_complete(chat_service.clear_session(session_id))
 
         # Dans Gradio 6.x, le content doit être une liste de blocs
-        return [gr.ChatMessage(role="assistant", content=[{"type": "text", "text": get_welcome_message()}])]
+        return [
+            gr.ChatMessage(
+                role="assistant",
+                content=[{"type": "text", "text": get_welcome_message()}],
+            )
+        ]
 
     # Submit sur msg_input
     msg_input.submit(

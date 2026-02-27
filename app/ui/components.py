@@ -126,7 +126,12 @@ def build_chat_area() -> tuple:
             elem_classes="chatbot-container",
             buttons=["share", "copy", "copy_all"],
             layout="bubble",
-            value=[gr.ChatMessage(role="assistant", content=[{"type": "text", "text": get_welcome_message()}])],
+            value=[
+                gr.ChatMessage(
+                    role="assistant",
+                    content=[{"type": "text", "text": get_welcome_message()}],
+                )
+            ],
         )
 
     return chat_area, msg_input, send_btn, clear_btn, chatbot
