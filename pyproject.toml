@@ -24,9 +24,9 @@ dependencies = [
 
 [project.scripts]
 scrape      = "01_scrape:main"
-ingest      = "02_ingest_v2:main"
-build-index = "03_build_index_v2:main"
-app         = "04_app:main"
+chunking    = "02_chunking:main"
+indexing    = "03_indexing:main"
+chatbot     = "04_chatbot:main"
 
 [dependency-groups]
 dev = [
