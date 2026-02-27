@@ -781,6 +781,117 @@ def _reciprocal_rank_fusion(
     return sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
 
 
+def _apply_boosting(
+    chunk: dict,
+    query_keywords: set[str],
+    expanded_query_keywords: set[str],
+    category_hint: str | None,
+    strong_keywords: list[str],
+) -> dict:
+    """
+    Applique le boosting IA metadata (keywords, synonyms, category, title) à un chunk.
+
+    Args:
+        chunk: Chunk à booster (avec keys: content, title, ia_keywords, ia_synonyms, ia_category)
+        query_keywords: Mots-clés extraits de la requête
+        expanded_query_keywords: Mots-clés étendus de la requête
+        category_hint: Catégorie IA suggérée par la requête
+        strong_keywords: Liste des mots-clés forts pour le boost de titre
+
+    Returns:
+        Chunk modifié avec les scores de boosting appliqués
+    """
+    content_lower = chunk.get("content", "").lower()
+    title_lower = chunk.get("title", "").lower()
+
+    # Match keywords de base
+    matches_base = sum(
+        1 for kw in query_keywords if kw in content_lower or kw in title_lower
+    )
+    matches_expanded = sum(
+        1 for kw in expanded_query_keywords if kw in content_lower or kw in title_lower
+    )
+    matches = max(matches_base, matches_expanded)
+    match_ratio = (
+        matches / len(expanded_query_keywords) if expanded_query_keywords else 0
+    )
+
+    # IA keywords boost
+    ia_keywords = chunk.get("ia_keywords", [])
+    if ia_keywords:
+        ia_matches = sum(
+            1
+            for kw in ia_keywords
+            if kw.lower() in expanded_query_keywords
+            or kw.lower() in content_lower
+            or kw.lower() in title_lower
+        )
+        ia_boost = 0.3 * (ia_matches / len(ia_keywords))
+    else:
+        ia_matches = 0
+        ia_boost = 0
+
+    # IA synonyms boost
+    ia_synonyms = chunk.get("ia_synonyms", [])
+    if ia_synonyms:
+        synonym_matches = sum(
+            1
+            for syn in ia_synonyms
+            if syn.lower() in expanded_query_keywords
+            or syn.lower() in content_lower
+            or syn.lower() in title_lower
+        )
+        synonym_boost = 0.2 * (synonym_matches / len(ia_synonyms))
+    else:
+        synonym_matches = 0
+        synonym_boost = 0
+
+    # IA Category Boost (SOFT - backend ↔ loadbalancing, ssl ↔ frontend related)
+    category_boost = 0.0
+    if category_hint:
+        chunk_category = chunk.get("ia_category", "")
+        # Direct match
+        if chunk_category == category_hint:
+            category_boost = 0.5
+        # Related categories
+        elif category_hint == "backend" and chunk_category == "loadbalancing":
+            category_boost = 0.3
+        elif category_hint == "loadbalancing" and chunk_category == "backend":
+            category_boost = 0.3
+        elif category_hint == "ssl" and chunk_category == "frontend":
+            category_boost = 0.3  # SSL config souvent dans bind options (frontend)
+        elif category_hint == "frontend" and chunk_category == "ssl":
+            category_boost = 0.3
+        elif category_hint == "healthcheck" and chunk_category == "loadbalancing":
+            category_boost = 0.3  # Health checks dans server options
+        elif category_hint == "acl" and chunk_category == "general":
+            category_boost = 0.2  # ACL dans toutes sections
+
+    # Title boost
+    title_boost = 0.0
+    for strong_kw in strong_keywords:
+        if strong_kw in title_lower:
+            title_boost += 0.3
+
+    original_score = chunk.get("rerank_score", 0)
+    chunk["rerank_score"] = original_score * (
+        1.0
+        + 0.5 * match_ratio
+        + ia_boost
+        + synonym_boost
+        + category_boost
+        + title_boost
+    )
+    chunk["_keyword_matches"] = matches
+    chunk["_ia_matches"] = ia_matches
+    chunk["_match_ratio"] = match_ratio
+    chunk["_ia_boost"] = ia_boost
+    chunk["_category_boost"] = category_boost
+    chunk["_title_boost"] = title_boost
+
+    return chunk
+
+
 def _rerank(query: str, candidates: list[dict], verbose: bool = False) -> list[dict]:
     """Reranking avec FlashRank + IA metadata boosting (SOFT)."""
 
@@ -806,99 +917,13 @@ def _rerank(query: str, candidates: list[dict], verbose: bool = False) -> list[d
         # No FlashRank: apply simple boosting based on keyword/category matching
         for chunk in candidates:
             chunk["rerank_score"] = chunk.get("rrf_score", 0.5)
-            content_lower = chunk.get("content", "").lower()
-            title_lower = chunk.get("title", "").lower()
-
-            # Match keywords de base
-            matches_base = sum(
-                1 for kw in query_keywords if kw in content_lower or kw in title_lower
+            _apply_boosting(
+                chunk,
+                query_keywords,
+                expanded_query_keywords,
+                category_hint,
+                strong_keywords,
             )
-            matches_expanded = sum(
-                1
-                for kw in expanded_query_keywords
-                if kw in content_lower or kw in title_lower
-            )
-            matches = max(matches_base, matches_expanded)
-            match_ratio = (
-                matches / len(expanded_query_keywords) if expanded_query_keywords else 0
-            )
-
-            # IA keywords boost
-            ia_keywords = chunk.get("ia_keywords", [])
-            if ia_keywords:
-                ia_matches = sum(
-                    1
-                    for kw in ia_keywords
-                    if kw.lower() in expanded_query_keywords
-                    or kw.lower() in content_lower
-                    or kw.lower() in title_lower
-                )
-                ia_boost = 0.3 * (ia_matches / len(ia_keywords))
-            else:
-                ia_matches = 0
-                ia_boost = 0
-
-            # IA synonyms boost
-            ia_synonyms = chunk.get("ia_synonyms", [])
-            if ia_synonyms:
-                synonym_matches = sum(
-                    1
-                    for syn in ia_synonyms
-                    if syn.lower() in expanded_query_keywords
-                    or syn.lower() in content_lower
-                    or syn.lower() in title_lower
-                )
-                synonym_boost = 0.2 * (synonym_matches / len(ia_synonyms))
-            else:
-                synonym_matches = 0
-                synonym_boost = 0
-
-            # IA Category Boost (SOFT - backend ↔ loadbalancing, ssl ↔ frontend related)
-            category_boost = 0.0
-            if category_hint:
-                chunk_category = chunk.get("ia_category", "")
-                # Direct match
-                if chunk_category == category_hint:
-                    category_boost = 0.5
-                # Related categories
-                elif category_hint == "backend" and chunk_category == "loadbalancing":
-                    category_boost = 0.3
-                elif category_hint == "loadbalancing" and chunk_category == "backend":
-                    category_boost = 0.3
-                elif category_hint == "ssl" and chunk_category == "frontend":
-                    category_boost = (
-                        0.3  # SSL config souvent dans bind options (frontend)
-                    )
-                elif category_hint == "frontend" and chunk_category == "ssl":
-                    category_boost = 0.3
-                elif (
-                    category_hint == "healthcheck" and chunk_category == "loadbalancing"
-                ):
-                    category_boost = 0.3  # Health checks dans server options
-                elif category_hint == "acl" and chunk_category == "general":
-                    category_boost = 0.2  # ACL dans toutes sections
-
-            # Title boost
-            title_boost = 0.0
-            for strong_kw in strong_keywords:
-                if strong_kw in title_lower:
-                    title_boost += 0.3
-
-            original_score = chunk.get("rerank_score", 0)
-            chunk["rerank_score"] = original_score * (
-                1.0
-                + 0.5 * match_ratio
-                + ia_boost
-                + synonym_boost
-                + category_boost
-                + title_boost
-            )
-            chunk["_keyword_matches"] = matches
-            chunk["_ia_matches"] = ia_matches
-            chunk["_match_ratio"] = match_ratio
-            chunk["_ia_boost"] = ia_boost
-            chunk["_category_boost"] = category_boost
-            chunk["_title_boost"] = title_boost
 
         candidates.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
         return candidates
@@ -941,98 +966,13 @@ def _rerank(query: str, candidates: list[dict], verbose: bool = False) -> list[d
 
     # Apply boosting (category, keywords, title) to FlashRank results
     for chunk in reranked:
-        content_lower = chunk.get("content", "").lower()
-        title_lower = chunk.get("title", "").lower()
-
-        # Match keywords de base
-        matches_base = sum(
-            1 for kw in query_keywords if kw in content_lower or kw in title_lower
+        _apply_boosting(
+            chunk,
+            query_keywords,
+            expanded_query_keywords,
+            category_hint,
+            strong_keywords,
         )
-        matches_expanded = sum(
-            1
-            for kw in expanded_query_keywords
-            if kw in content_lower or kw in title_lower
-        )
-        matches = max(matches_base, matches_expanded)
-        match_ratio = (
-            matches / len(expanded_query_keywords) if expanded_query_keywords else 0
-        )
-
-        # IA keywords boost (via metadata injectee dans FlashRank)
-        # Use expanded query keywords for better synonym matching
-        ia_keywords = chunk.get("ia_keywords", [])
-        if ia_keywords:
-            # Match IA keywords against expanded query (includes synonyms)
-            ia_matches = sum(
-                1
-                for kw in ia_keywords
-                if kw.lower() in expanded_query_keywords
-                or kw.lower() in content_lower
-                or kw.lower() in title_lower
-            )
-            ia_boost = 0.3 * (ia_matches / len(ia_keywords))
-        else:
-            ia_matches = 0
-            ia_boost = 0
-
-        # IA synonyms boost
-        ia_synonyms = chunk.get("ia_synonyms", [])
-        if ia_synonyms:
-            synonym_matches = sum(
-                1
-                for syn in ia_synonyms
-                if syn.lower() in expanded_query_keywords
-                or syn.lower() in content_lower
-                or syn.lower() in title_lower
-            )
-            synonym_boost = 0.2 * (synonym_matches / len(ia_synonyms))
-        else:
-            synonym_matches = 0
-            synonym_boost = 0
-
-        # IA Category Boost (SOFT - boost au lieu de filtre)
-        # Note: backend ↔ loadbalancing, ssl ↔ frontend sont des catégories liées
-        category_boost = 0.0
-        if category_hint:
-            chunk_category = chunk.get("ia_category", "")
-            # Direct match
-            if chunk_category == category_hint:
-                category_boost = 0.5
-            # Related categories
-            elif category_hint == "backend" and chunk_category == "loadbalancing":
-                category_boost = 0.3
-            elif category_hint == "loadbalancing" and chunk_category == "backend":
-                category_boost = 0.3
-            elif category_hint == "ssl" and chunk_category == "frontend":
-                category_boost = 0.3  # SSL config souvent dans bind options (frontend)
-            elif category_hint == "frontend" and chunk_category == "ssl":
-                category_boost = 0.3
-            elif category_hint == "healthcheck" and chunk_category == "loadbalancing":
-                category_boost = 0.3  # Health checks dans server options
-            elif category_hint == "acl" and chunk_category == "general":
-                category_boost = 0.2  # ACL dans toutes sections
-
-        # Title boost
-        title_boost = 0.0
-        for strong_kw in strong_keywords:
-            if strong_kw in title_lower:
-                title_boost += 0.3
-
-        original_score = chunk.get("rerank_score", 0)
-        chunk["rerank_score"] = original_score * (
-            1.0
-            + 0.5 * match_ratio
-            + ia_boost
-            + synonym_boost
-            + category_boost
-            + title_boost
-        )
-        chunk["_keyword_matches"] = matches
-        chunk["_ia_matches"] = ia_matches
-        chunk["_match_ratio"] = match_ratio
-        chunk["_ia_boost"] = ia_boost
-        chunk["_category_boost"] = category_boost
-        chunk["_title_boost"] = title_boost
 
     reranked.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
     return reranked
