@@ -8,6 +8,9 @@ import requests
 from datetime import datetime, timedelta
 import time
 from typing import Generator
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ── HTTP Session Pooling ─────────────────────────────────────────────────────
@@ -204,11 +207,11 @@ def generate_response(
     messages = build_messages(question, context, history)
 
     # DEBUG: Afficher les messages
-    print("\n[DEBUG] Messages envoyés à Ollama:")
+    logger.debug("Messages envoyés à Ollama:")
     for msg in messages:
         content_preview = msg["content"][:100].replace("\n", " ")
-        print(f"  - {msg['role']}: {content_preview}...")
-    print(f"[DEBUG] Modèle: {model}, Temperature: {temperature}")
+        logger.debug("  - %s: %s...", msg["role"], content_preview)
+    logger.debug("Modèle: %s, Temperature: %s", model, temperature)
 
     # Détecter si c'est un modèle GGUF (qui nécessite un format différent)
     is_gguf = "GGUF" in model or "gguf" in model.lower()

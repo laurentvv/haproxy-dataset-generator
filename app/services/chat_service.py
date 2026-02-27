@@ -61,16 +61,16 @@ class ChatService:
             ValidationError: Si l'entrée est invalide
             ChatError: Si une erreur survient lors du traitement
         """
-        logger.info("[DEBUG] process_message called")
-        logger.info("[DEBUG] message: %s", message)
-        logger.info("[DEBUG] session_id: %s", session_id)
-        logger.info("[DEBUG] config: %s", config)
+        logger.debug("process_message called")
+        logger.debug("message: %s", message)
+        logger.debug("session_id: %s", session_id)
+        logger.debug("config: %s", config)
 
         # 1. Valider l'entrée
         try:
-            logger.info("[DEBUG] Validating message...")
+            logger.debug("Validating message...")
             validated_message = self.validator.validate(message)
-            logger.info("[DEBUG] Message validated: %s", validated_message)
+            logger.debug("Message validated: %s", validated_message)
         except ValidationError as e:
             logger.warning("Validation failed: %s", e)
             yield f"⚠️ **Question invalide**\n\n{str(e)}"
