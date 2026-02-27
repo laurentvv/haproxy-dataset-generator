@@ -36,7 +36,10 @@ class RAGService:
         # Charger les index si nécessaire
         await self._ensure_indexes()
 
-        # Importer le retriever (lazy loading)
+        # Lazy loading du module retriever_v3 pour éviter de charger les index
+        # au démarrage de l'application. Cela permet un démarrage plus rapide
+        # et une meilleure gestion de la mémoire. Le module n'est chargé que
+        # lors de la première requête de retrieval.
         from retriever_v3 import retrieve_context_string
 
         # Exécuter le retrieval dans un thread séparé
@@ -54,6 +57,8 @@ class RAGService:
                 return
 
             try:
+                # Lazy loading du module retriever_v3 pour éviter de charger
+                # les index au démarrage de l'application.
                 from retriever_v3 import _load_indexes
 
                 _load_indexes()

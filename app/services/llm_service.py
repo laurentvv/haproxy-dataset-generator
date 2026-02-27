@@ -44,6 +44,10 @@ Suggestions :
         Yields:
             Tokens de la réponse
         """
+        # Lazy loading du module llm pour éviter de charger les dépendances
+        # Ollama au démarrage de l'application. Cela permet un démarrage
+        # plus rapide et une meilleure gestion de la mémoire. Le module n'est
+        # chargé que lors de la première requête de génération.
         from llm import generate_response
 
         # Exécuter la génération dans un thread séparé
@@ -75,6 +79,9 @@ Suggestions :
         Returns:
             Liste des noms de modèles disponibles
         """
+        # Lazy loading du module llm pour éviter de charger les dépendances
+        # Ollama au démarrage de l'application. Cela permet un démarrage
+        # plus rapide et une meilleure gestion de la mémoire.
         from llm import list_ollama_models
 
         return list_ollama_models()
