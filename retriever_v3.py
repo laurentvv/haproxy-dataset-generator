@@ -123,6 +123,68 @@ def validate_query(query: str, max_length: int = None) -> str:
     return query
 
 
+def validate_filter_source(
+    filter_source: str | None, allowed_sources: set[str] | None = None
+) -> str | None:
+    """
+    Validate and sanitize filter_source parameter before using in ChromaDB query.
+
+    Args:
+        filter_source: User-provided source filter value
+        allowed_sources: Set of allowed source values (optional, validates against known sources)
+
+    Returns:
+        Sanitized filter_source or None if invalid
+
+    Raises:
+        ValueError: If filter_source contains dangerous content
+    """
+    if filter_source is None:
+        return None
+
+    if not isinstance(filter_source, str):
+        logger.warning("Invalid filter_source type: %s", type(filter_source))
+        return None
+
+    # Strip whitespace
+    filter_source = filter_source.strip()
+
+    # Check for empty string
+    if not filter_source:
+        return None
+
+    # Check for potentially dangerous patterns (SQL injection, NoSQL injection, etc.)
+    dangerous_patterns = [
+        (r"\$where", "MongoDB $where operator"),
+        (r"\$ne", "MongoDB inequality operator"),
+        (r"\$gt|\$lt|\$gte|\$lte", "MongoDB comparison operators"),
+        (r"\$in|\$nin", "MongoDB array operators"),
+        (r"\$or|\$and|\$not", "MongoDB logical operators"),
+        (r"\$regex|\$expr", "MongoDB regex/expression operators"),
+        (r"__proto__|__defineGetter__|constructor", "JavaScript prototype pollution"),
+        (r"eval\(|Function\(", "JavaScript eval/Function"),
+        (r"<script[^>]*>", "script tags"),
+        (r"javascript:", "javascript protocol"),
+    ]
+
+    for pattern, description in dangerous_patterns:
+        if re.search(pattern, filter_source, re.IGNORECASE):
+            logger.warning(
+                "filter_source contains potentially dangerous content: %s", description
+            )
+            raise ValueError(f"Invalid filter_source: {description} detected")
+
+    # If allowed_sources is provided, validate against it
+    if allowed_sources is not None:
+        if filter_source not in allowed_sources:
+            logger.warning(
+                "Invalid filter_source: %s (not in allowed sources)", filter_source
+            )
+            return None
+
+    return filter_source
+
+
 try:
     import chromadb
     from chromadb.config import Settings
@@ -481,6 +543,26 @@ _chroma_collection = None
 _bm25 = None
 _chunks = None
 _reranker = None
+_allowed_sources: set[str] | None = None
+
+
+def _get_allowed_sources() -> set[str]:
+    """Extract unique source values from loaded chunks for validation."""
+    global _allowed_sources
+    if _allowed_sources is not None:
+        return _allowed_sources
+
+    if _chunks is None:
+        return set()
+
+    _allowed_sources = set()
+    for chunk in _chunks:
+        source = chunk.get("source")
+        if source and isinstance(source, str):
+            _allowed_sources.add(source)
+
+    logger.debug("Extracted %d unique sources from chunks", len(_allowed_sources))
+    return _allowed_sources
 
 
 def _load_indexes():
@@ -968,6 +1050,21 @@ def retrieve(
     query_emb = _get_embedding(query)
     if query_emb is None:
         return {"chunks": [], "low_confidence": True, "query": query, "best_score": 0.0}
+
+    # Validate and sanitize filter_source before using in ChromaDB query
+    if filter_source:
+        try:
+            allowed_sources = _get_allowed_sources()
+            filter_source = validate_filter_source(filter_source, allowed_sources)
+        except ValueError as e:
+            logger.error("filter_source validation failed: %s", e)
+            return {
+                "chunks": [],
+                "low_confidence": True,
+                "query": query,
+                "best_score": 0.0,
+                "error": str(e),
+            }
 
     if filter_source:
         chroma_results_raw = _chroma_collection.query(
