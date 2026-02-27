@@ -229,13 +229,6 @@ CHROMA_DIR = INDEX_DIR / "chroma"
 BM25_PATH = INDEX_DIR / "bm25.pkl"
 CHUNKS_PKL = INDEX_DIR / "chunks.pkl"
 
-# Retrieval parameters (from config, kept for backward compatibility)
-TOP_K_RETRIEVAL = retrieval_config.top_k_retrieval
-TOP_K_RRF = 30
-TOP_K_RERANK = 10
-RRF_K = 60
-CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.0"))
-
 # ── Boosting Weights for IA Metadata ────────────────────────────────────────────
 # These constants control the impact of different metadata types on reranking.
 # All weights are applied multiplicatively to the original score.
