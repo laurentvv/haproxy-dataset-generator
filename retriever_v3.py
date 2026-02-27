@@ -211,6 +211,19 @@ if os.getenv("DISABLE_FLASHRANK", "false").lower() == "true":
     logger.info("FlashRank desactive via DISABLE_FLASHANK=true")
 
 
+# ── HTTP Session Pooling ─────────────────────────────────────────────────────
+# Session globale pour le pooling de connexions HTTP
+_retriever_session = requests.Session()
+_retriever_session.mount(
+    "http://",
+    requests.adapters.HTTPAdapter(
+        pool_connections=10,
+        pool_maxsize=10,
+        max_retries=3,
+    ),
+)
+
+
 # Paths (derived from config)
 CHROMA_DIR = INDEX_DIR / "chroma"
 BM25_PATH = INDEX_DIR / "bm25.pkl"
@@ -629,7 +642,7 @@ def _get_embedding(text: str, max_retries: int = None) -> list[float] | None:
             # Wait if needed to respect rate limit
             _ollama_limiter.wait_if_needed()
 
-            with requests.post(
+            with _retriever_session.post(
                 f"{OLLAMA_URL}/api/embeddings",
                 json={"model": EMBED_MODEL, "prompt": text},
                 timeout=120,

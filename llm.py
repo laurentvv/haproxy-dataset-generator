@@ -10,6 +10,19 @@ import time
 from typing import Generator
 
 
+# ── HTTP Session Pooling ─────────────────────────────────────────────────────
+# Session globale pour le pooling de connexions HTTP
+_llm_session = requests.Session()
+_llm_session.mount(
+    "http://",
+    requests.adapters.HTTPAdapter(
+        pool_connections=10,
+        pool_maxsize=10,
+        max_retries=3,
+    ),
+)
+
+
 # ── Rate Limiting ───────────────────────────────────────────────────────────
 class RateLimiter:
     """Rate limiter for API calls."""
@@ -98,7 +111,7 @@ def list_ollama_models() -> list[str]:
         Liste des noms de modèles disponibles
     """
     try:
-        response = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
+        response = _llm_session.get(f"{OLLAMA_URL}/api/tags", timeout=5)
         response.raise_for_status()
         all_models = [m["name"] for m in response.json().get("models", [])]
 
@@ -246,7 +259,7 @@ def generate_response(
         endpoint = f"{OLLAMA_URL}/api/chat"
 
     try:
-        with requests.post(
+        with _llm_session.post(
             endpoint, json=payload, stream=True, timeout=LLM_TIMEOUT
         ) as response:
             response.raise_for_status()
