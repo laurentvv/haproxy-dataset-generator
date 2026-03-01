@@ -33,7 +33,7 @@ SCRAPING_DIFF_REPORT_PATH = DATA_DIR / 'scraping_diff_report.json'
 
 # Configuration chunking parent/child
 CHUNKING_CONFIG: dict[str, Any] = {
-    'parent_max_tokens': 4000,
+    'parent_max_tokens': 500000,  # Augmenté de 4000 à 500K pour garder les grosses sections
     'child_max_tokens': 500,
     'chunk_overlap': 50,
     'min_chunk_size': 100,

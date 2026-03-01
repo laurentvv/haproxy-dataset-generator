@@ -1,10 +1,12 @@
 {
-  "date": "2026-03-01T20:31:54.670524",
+  "date": "2026-03-01T21:23:52.272500",
   "system": "LangGraph Direct",
   "total": 92,
-  "processed": 90,
-  "ok": 40,
-  "avg_time": 31.18,
+  "processed": 92,
+  "ok": 45,
+  "pass_rate": 48.91,
+  "total_time": 2745.34,
+  "avg_time": 29.84,
   "results": [
     {
       "id": "quick_healthcheck",
@@ -17,15 +19,16 @@
         "server"
       ],
       "keywords_found": [
+        "option httpchk",
         "check",
         "GET",
         "http-check",
         "server"
       ],
-      "quality": 0.8,
-      "total_time": 29.68,
+      "quality": 1.0,
+      "total_time": 29.28,
       "passed": true,
-      "response_length": 1451
+      "response_length": 1406
     },
     {
       "id": "quick_bind",
@@ -40,12 +43,14 @@
       "keywords_found": [
         "bind",
         "port",
-        "ssl"
+        "ssl",
+        "crt",
+        "frontend"
       ],
-      "quality": 0.6,
-      "total_time": 37.8,
-      "passed": false,
-      "response_length": 1334
+      "quality": 1.0,
+      "total_time": 26.97,
+      "passed": true,
+      "response_length": 1111
     },
     {
       "id": "quick_stick_table",
@@ -59,13 +64,13 @@
       ],
       "keywords_found": [
         "stick-table",
-        "deny",
+        "conn_rate",
         "ip"
       ],
       "quality": 0.6,
-      "total_time": 49.36,
+      "total_time": 24.95,
       "passed": false,
-      "response_length": 3139
+      "response_length": 1427
     },
     {
       "id": "quick_acl",
@@ -84,9 +89,9 @@
         "deny"
       ],
       "quality": 0.8,
-      "total_time": 30.29,
+      "total_time": 29.14,
       "passed": true,
-      "response_length": 1810
+      "response_length": 2128
     },
     {
       "id": "quick_timeout",
@@ -106,9 +111,9 @@
         "http-request"
       ],
       "quality": 1.0,
-      "total_time": 27.74,
+      "total_time": 33.0,
       "passed": true,
-      "response_length": 2098
+      "response_length": 2882
     },
     {
       "id": "quick_ssl",
@@ -127,9 +132,9 @@
         "pem"
       ],
       "quality": 0.8,
-      "total_time": 29.91,
+      "total_time": 28.42,
       "passed": true,
-      "response_length": 1867
+      "response_length": 1237
     },
     {
       "id": "quick_backend",
@@ -148,9 +153,9 @@
         "check"
       ],
       "quality": 0.8,
-      "total_time": 25.5,
+      "total_time": 34.69,
       "passed": true,
-      "response_length": 1359
+      "response_length": 1881
     },
     {
       "id": "std_tcp_check",
@@ -167,9 +172,9 @@
         "check"
       ],
       "quality": 0.4,
-      "total_time": 36.0,
+      "total_time": 30.23,
       "passed": false,
-      "response_length": 3082
+      "response_length": 1528
     },
     {
       "id": "std_bind_ssl",
@@ -185,13 +190,12 @@
         "bind",
         "ssl",
         "crt",
-        "cert",
-        "pem"
+        "cert"
       ],
-      "quality": 1.0,
-      "total_time": 23.57,
+      "quality": 0.8,
+      "total_time": 29.45,
       "passed": true,
-      "response_length": 1360
+      "response_length": 1705
     },
     {
       "id": "std_acl_path",
@@ -205,15 +209,12 @@
       ],
       "keywords_found": [
         "acl",
-        "path_beg",
-        "path_end",
-        "path",
         "url"
       ],
-      "quality": 1.0,
-      "total_time": 25.85,
-      "passed": true,
-      "response_length": 1214
+      "quality": 0.4,
+      "total_time": 29.48,
+      "passed": false,
+      "response_length": 1316
     },
     {
       "id": "std_stick_http_req",
@@ -227,13 +228,12 @@
       ],
       "keywords_found": [
         "stick-table",
-        "deny",
         "ip"
       ],
-      "quality": 0.6,
-      "total_time": 40.06,
+      "quality": 0.4,
+      "total_time": 43.82,
       "passed": false,
-      "response_length": 2245
+      "response_length": 1827
     },
     {
       "id": "std_balance_leastconn",
@@ -251,9 +251,9 @@
         "server"
       ],
       "quality": 1.0,
-      "total_time": 30.42,
+      "total_time": 31.22,
       "passed": true,
-      "response_length": 1607
+      "response_length": 1349
     },
     {
       "id": "std_timeout_http",
@@ -268,9 +268,9 @@
         "http-request"
       ],
       "quality": 0.67,
-      "total_time": 24.17,
+      "total_time": 22.88,
       "passed": false,
-      "response_length": 996
+      "response_length": 1191
     },
     {
       "id": "std_frontend_http",
@@ -290,9 +290,9 @@
         "http"
       ],
       "quality": 1.0,
-      "total_time": 28.68,
+      "total_time": 24.88,
       "passed": true,
-      "response_length": 1461
+      "response_length": 1351
     },
     {
       "id": "std_backend_server",
@@ -311,9 +311,9 @@
         "check"
       ],
       "quality": 0.8,
-      "total_time": 25.41,
+      "total_time": 26.48,
       "passed": true,
-      "response_length": 1381
+      "response_length": 1411
     },
     {
       "id": "std_acl_hdr",
@@ -331,9 +331,9 @@
         "http-request"
       ],
       "quality": 1.0,
-      "total_time": 30.58,
-      "passed": true,
-      "response_length": 1337
+      "total_time": 46.09,
+      "passed": false,
+      "response_length": 3526
     },
     {
       "id": "std_ssl_verify",
@@ -349,12 +349,13 @@
         "ssl",
         "verify",
         "ca-file",
+        "cafile",
         "certificate"
       ],
-      "quality": 0.8,
-      "total_time": 32.25,
+      "quality": 1.0,
+      "total_time": 30.92,
       "passed": true,
-      "response_length": 1827
+      "response_length": 1916
     },
     {
       "id": "std_stats_enable",
@@ -368,12 +369,13 @@
       "keywords_found": [
         "stats",
         "enable",
-        "uri"
+        "uri",
+        "listen"
       ],
-      "quality": 0.75,
-      "total_time": 36.33,
-      "passed": false,
-      "response_length": 1720
+      "quality": 1.0,
+      "total_time": 24.14,
+      "passed": true,
+      "response_length": 1323
     },
     {
       "id": "std_log_global",
@@ -386,12 +388,13 @@
       ],
       "keywords_found": [
         "log",
-        "global"
+        "global",
+        "syslog"
       ],
-      "quality": 0.5,
-      "total_time": 26.11,
+      "quality": 0.75,
+      "total_time": 40.32,
       "passed": false,
-      "response_length": 1053
+      "response_length": 1887
     },
     {
       "id": "std_tcp_request",
@@ -409,9 +412,9 @@
         "backend"
       ],
       "quality": 1.0,
-      "total_time": 34.17,
+      "total_time": 31.68,
       "passed": true,
-      "response_length": 1715
+      "response_length": 1870
     },
     {
       "id": "full_httpchk_method",
@@ -424,15 +427,15 @@
         "method"
       ],
       "keywords_found": [
-        "option httpchk",
         "GET",
         "POST",
+        "HEAD",
         "method"
       ],
       "quality": 0.8,
-      "total_time": 32.21,
+      "total_time": 24.57,
       "passed": true,
-      "response_length": 1025
+      "response_length": 1546
     },
     {
       "id": "full_httpchk_uri",
@@ -447,9 +450,9 @@
         "uri"
       ],
       "quality": 0.25,
-      "total_time": 43.05,
+      "total_time": 26.46,
       "passed": false,
-      "response_length": 1546
+      "response_length": 1338
     },
     {
       "id": "full_httpchk_version",
@@ -469,9 +472,9 @@
         "2"
       ],
       "quality": 1.0,
-      "total_time": 36.42,
+      "total_time": 27.18,
       "passed": true,
-      "response_length": 1437
+      "response_length": 1331
     },
     {
       "id": "full_check_inter",
@@ -489,9 +492,9 @@
         "server"
       ],
       "quality": 1.0,
-      "total_time": 24.05,
+      "total_time": 25.84,
       "passed": true,
-      "response_length": 1081
+      "response_length": 1355
     },
     {
       "id": "full_check_fall_rise",
@@ -509,9 +512,9 @@
         "server"
       ],
       "quality": 1.0,
-      "total_time": 39.03,
+      "total_time": 27.62,
       "passed": true,
-      "response_length": 1378
+      "response_length": 837
     },
     {
       "id": "full_backend_name",
@@ -523,13 +526,12 @@
       ],
       "keywords_found": [
         "backend",
-        "name",
         "section"
       ],
-      "quality": 1.0,
-      "total_time": 25.03,
-      "passed": true,
-      "response_length": 1079
+      "quality": 0.67,
+      "total_time": 28.04,
+      "passed": false,
+      "response_length": 1352
     },
     {
       "id": "full_balance_roundrobin",
@@ -545,9 +547,9 @@
         "algorithm"
       ],
       "quality": 1.0,
-      "total_time": 28.78,
+      "total_time": 25.34,
       "passed": true,
-      "response_length": 1025
+      "response_length": 1456
     },
     {
       "id": "full_balance_source",
@@ -563,9 +565,9 @@
         "ip"
       ],
       "quality": 0.5,
-      "total_time": 26.41,
+      "total_time": 28.99,
       "passed": false,
-      "response_length": 1251
+      "response_length": 1562
     },
     {
       "id": "full_balance_uri",
@@ -578,13 +580,12 @@
       ],
       "keywords_found": [
         "balance",
-        "uri",
-        "hash"
+        "uri"
       ],
-      "quality": 0.75,
-      "total_time": 31.12,
+      "quality": 0.5,
+      "total_time": 28.69,
       "passed": false,
-      "response_length": 1399
+      "response_length": 1156
     },
     {
       "id": "full_server_weight",
@@ -600,7 +601,7 @@
         "balance"
       ],
       "quality": 1.0,
-      "total_time": 27.35,
+      "total_time": 27.08,
       "passed": true,
       "response_length": 1337
     },
@@ -614,13 +615,12 @@
       ],
       "keywords_found": [
         "backup",
-        "server",
-        "failover"
+        "server"
       ],
-      "quality": 1.0,
-      "total_time": 41.92,
-      "passed": true,
-      "response_length": 2481
+      "quality": 0.67,
+      "total_time": 29.02,
+      "passed": false,
+      "response_length": 1641
     },
     {
       "id": "full_server_disabled",
@@ -631,13 +631,14 @@
         "disable"
       ],
       "keywords_found": [
+        "disabled",
         "server",
         "disable"
       ],
-      "quality": 0.67,
-      "total_time": 26.48,
-      "passed": false,
-      "response_length": 1127
+      "quality": 1.0,
+      "total_time": 25.84,
+      "passed": true,
+      "response_length": 1252
     },
     {
       "id": "full_server_check_port",
@@ -655,9 +656,9 @@
         "health"
       ],
       "quality": 1.0,
-      "total_time": 27.93,
+      "total_time": 29.45,
       "passed": true,
-      "response_length": 1341
+      "response_length": 1282
     },
     {
       "id": "full_acl_host",
@@ -674,9 +675,9 @@
         "host"
       ],
       "quality": 0.75,
-      "total_time": 31.1,
+      "total_time": 25.26,
       "passed": false,
-      "response_length": 1305
+      "response_length": 1171
     },
     {
       "id": "full_acl_method",
@@ -695,9 +696,9 @@
         "POST"
       ],
       "quality": 0.8,
-      "total_time": 30.68,
+      "total_time": 27.86,
       "passed": true,
-      "response_length": 1802
+      "response_length": 991
     },
     {
       "id": "full_acl_status",
@@ -711,13 +712,12 @@
       "keywords_found": [
         "acl",
         "status",
-        "code",
-        "response"
+        "code"
       ],
-      "quality": 1.0,
-      "total_time": 37.66,
-      "passed": true,
-      "response_length": 1544
+      "quality": 0.75,
+      "total_time": 32.7,
+      "passed": false,
+      "response_length": 1393
     },
     {
       "id": "full_acl_src",
@@ -736,9 +736,9 @@
         "ip"
       ],
       "quality": 0.8,
-      "total_time": 29.92,
+      "total_time": 29.4,
       "passed": true,
-      "response_length": 1036
+      "response_length": 1049
     },
     {
       "id": "full_acl_dst",
@@ -750,12 +750,14 @@
         "ip"
       ],
       "keywords_found": [
-        "acl"
+        "acl",
+        "destination",
+        "ip"
       ],
-      "quality": 0.25,
-      "total_time": 42.34,
+      "quality": 0.75,
+      "total_time": 47.25,
       "passed": false,
-      "response_length": 2609
+      "response_length": 2669
     },
     {
       "id": "full_acl_port",
@@ -768,13 +770,14 @@
       ],
       "keywords_found": [
         "acl",
+        "dst_port",
         "port",
         "destination"
       ],
-      "quality": 0.75,
-      "total_time": 36.01,
-      "passed": false,
-      "response_length": 1299
+      "quality": 1.0,
+      "total_time": 38.34,
+      "passed": true,
+      "response_length": 1004
     },
     {
       "id": "full_acl_beg",
@@ -791,9 +794,9 @@
         "path"
       ],
       "quality": 0.75,
-      "total_time": 28.42,
+      "total_time": 23.17,
       "passed": false,
-      "response_length": 1038
+      "response_length": 1253
     },
     {
       "id": "full_acl_end",
@@ -811,9 +814,9 @@
         "end"
       ],
       "quality": 1.0,
-      "total_time": 36.95,
+      "total_time": 27.08,
       "passed": true,
-      "response_length": 1180
+      "response_length": 1532
     },
     {
       "id": "full_acl_regex",
@@ -826,13 +829,12 @@
       ],
       "keywords_found": [
         "acl",
-        "regex",
-        "pattern"
+        "regex"
       ],
-      "quality": 0.75,
-      "total_time": 29.56,
+      "quality": 0.5,
+      "total_time": 26.97,
       "passed": false,
-      "response_length": 1503
+      "response_length": 877
     },
     {
       "id": "full_acl_negation",
@@ -850,9 +852,9 @@
         "acl"
       ],
       "quality": 0.6,
-      "total_time": 28.06,
+      "total_time": 33.24,
       "passed": false,
-      "response_length": 1299
+      "response_length": 1202
     },
     {
       "id": "full_stick_type",
@@ -872,9 +874,9 @@
         "integer"
       ],
       "quality": 1.0,
-      "total_time": 29.37,
+      "total_time": 25.68,
       "passed": true,
-      "response_length": 1065
+      "response_length": 803
     },
     {
       "id": "full_stick_size",
@@ -888,13 +890,12 @@
       "keywords_found": [
         "stick-table",
         "size",
-        "entries",
         "m"
       ],
-      "quality": 1.0,
-      "total_time": 28.05,
-      "passed": true,
-      "response_length": 1516
+      "quality": 0.75,
+      "total_time": 28.37,
+      "passed": false,
+      "response_length": 1136
     },
     {
       "id": "full_stick_expire",
@@ -909,14 +910,13 @@
       "keywords_found": [
         "stick-table",
         "expire",
-        "time",
         "s",
         "m"
       ],
-      "quality": 1.0,
-      "total_time": 28.74,
+      "quality": 0.8,
+      "total_time": 25.49,
       "passed": true,
-      "response_length": 1339
+      "response_length": 996
     },
     {
       "id": "full_stick_store",
@@ -929,12 +929,14 @@
       ],
       "keywords_found": [
         "stick-table",
-        "store"
+        "store",
+        "conn_rate",
+        "http_req_rate"
       ],
-      "quality": 0.5,
-      "total_time": 41.24,
-      "passed": false,
-      "response_length": 2034
+      "quality": 1.0,
+      "total_time": 29.77,
+      "passed": true,
+      "response_length": 1324
     },
     {
       "id": "full_track_sc",
@@ -950,9 +952,9 @@
         "sc"
       ],
       "quality": 0.5,
-      "total_time": 32.85,
+      "total_time": 25.2,
       "passed": false,
-      "response_length": 1784
+      "response_length": 1160
     },
     {
       "id": "full_http_req_rate",
@@ -963,13 +965,11 @@
         "store",
         "period"
       ],
-      "keywords_found": [
-        "http_req_rate"
-      ],
-      "quality": 0.25,
-      "total_time": 26.74,
+      "keywords_found": [],
+      "quality": 0.0,
+      "total_time": 36.62,
       "passed": false,
-      "response_length": 1353
+      "response_length": 2195
     },
     {
       "id": "full_conn_rate",
@@ -980,13 +980,11 @@
         "store",
         "period"
       ],
-      "keywords_found": [
-        "conn_rate"
-      ],
-      "quality": 0.25,
-      "total_time": 31.05,
+      "keywords_found": [],
+      "quality": 0.0,
+      "total_time": 44.3,
       "passed": false,
-      "response_length": 1735
+      "response_length": 2749
     },
     {
       "id": "full_deny_429",
@@ -1003,9 +1001,9 @@
         "http-request"
       ],
       "quality": 0.75,
-      "total_time": 30.71,
+      "total_time": 34.85,
       "passed": false,
-      "response_length": 1064
+      "response_length": 1519
     },
     {
       "id": "full_ssl_cert",
@@ -1019,12 +1017,13 @@
       "keywords_found": [
         "ssl",
         "crt",
+        "certificate",
         "pem"
       ],
-      "quality": 0.75,
-      "total_time": 23.84,
-      "passed": false,
-      "response_length": 1172
+      "quality": 1.0,
+      "total_time": 25.0,
+      "passed": true,
+      "response_length": 1351
     },
     {
       "id": "full_ssl_crt_list",
@@ -1041,9 +1040,9 @@
         "list"
       ],
       "quality": 0.75,
-      "total_time": 25.84,
+      "total_time": 29.46,
       "passed": false,
-      "response_length": 1410
+      "response_length": 1599
     },
     {
       "id": "full_ssl_ca_file",
@@ -1061,9 +1060,9 @@
         "ssl"
       ],
       "quality": 1.0,
-      "total_time": 25.19,
+      "total_time": 26.14,
       "passed": true,
-      "response_length": 1427
+      "response_length": 1493
     },
     {
       "id": "full_ssl_verify_required",
@@ -1081,9 +1080,9 @@
         "client"
       ],
       "quality": 1.0,
-      "total_time": 26.32,
+      "total_time": 21.69,
       "passed": true,
-      "response_length": 1182
+      "response_length": 1088
     },
     {
       "id": "full_ssl_sni",
@@ -1097,13 +1096,12 @@
       "keywords_found": [
         "sni",
         "ssl",
-        "certificate",
         "bind"
       ],
-      "quality": 1.0,
-      "total_time": 32.0,
-      "passed": true,
-      "response_length": 1736
+      "quality": 0.75,
+      "total_time": 32.57,
+      "passed": false,
+      "response_length": 1565
     },
     {
       "id": "full_ssl_force_tlsv",
@@ -1121,9 +1119,9 @@
         "ssl"
       ],
       "quality": 1.0,
-      "total_time": 30.22,
+      "total_time": 25.26,
       "passed": true,
-      "response_length": 1164
+      "response_length": 1225
     },
     {
       "id": "full_ssl_default_bind",
@@ -1138,9 +1136,9 @@
         "global"
       ],
       "quality": 0.67,
-      "total_time": 38.7,
+      "total_time": 37.75,
       "passed": false,
-      "response_length": 1628
+      "response_length": 1137
     },
     {
       "id": "full_ssl_backend_verify",
@@ -1154,12 +1152,13 @@
       "keywords_found": [
         "verify",
         "ssl",
-        "backend"
+        "backend",
+        "ca-file"
       ],
-      "quality": 0.75,
-      "total_time": 28.23,
-      "passed": false,
-      "response_length": 1234
+      "quality": 1.0,
+      "total_time": 34.25,
+      "passed": true,
+      "response_length": 1821
     },
     {
       "id": "full_timeout_connect",
@@ -1174,9 +1173,9 @@
         "connect"
       ],
       "quality": 0.67,
-      "total_time": 25.42,
+      "total_time": 26.37,
       "passed": false,
-      "response_length": 952
+      "response_length": 1298
     },
     {
       "id": "full_timeout_client",
@@ -1191,9 +1190,9 @@
         "client"
       ],
       "quality": 0.67,
-      "total_time": 36.41,
+      "total_time": 29.98,
       "passed": false,
-      "response_length": 1109
+      "response_length": 1728
     },
     {
       "id": "full_timeout_server",
@@ -1204,12 +1203,13 @@
         "server-fin"
       ],
       "keywords_found": [
+        "timeout",
         "server"
       ],
-      "quality": 0.33,
-      "total_time": 43.88,
+      "quality": 0.67,
+      "total_time": 31.38,
       "passed": false,
-      "response_length": 2647
+      "response_length": 1904
     },
     {
       "id": "full_timeout_queue",
@@ -1224,9 +1224,9 @@
         "queue"
       ],
       "quality": 0.67,
-      "total_time": 32.46,
+      "total_time": 32.76,
       "passed": false,
-      "response_length": 1270
+      "response_length": 1259
     },
     {
       "id": "full_timeout_tunnel",
@@ -1243,9 +1243,9 @@
         "tcp"
       ],
       "quality": 0.75,
-      "total_time": 35.16,
+      "total_time": 25.65,
       "passed": false,
-      "response_length": 1923
+      "response_length": 1108
     },
     {
       "id": "full_log_stdout",
@@ -1262,9 +1262,9 @@
         "global"
       ],
       "quality": 0.75,
-      "total_time": 27.4,
+      "total_time": 36.66,
       "passed": false,
-      "response_length": 1101
+      "response_length": 2184
     },
     {
       "id": "full_log_format",
@@ -1281,9 +1281,9 @@
         "format"
       ],
       "quality": 0.75,
-      "total_time": 35.86,
+      "total_time": 27.33,
       "passed": false,
-      "response_length": 2014
+      "response_length": 1224
     },
     {
       "id": "full_stats_uri",
@@ -1294,14 +1294,11 @@
         "enable",
         "listen"
       ],
-      "keywords_found": [
-        "stats",
-        "uri"
-      ],
-      "quality": 0.5,
-      "total_time": 30.11,
+      "keywords_found": [],
+      "quality": 0.0,
+      "total_time": 37.37,
       "passed": false,
-      "response_length": 1276
+      "response_length": 1734
     },
     {
       "id": "full_stats_auth",
@@ -1315,12 +1312,13 @@
       "keywords_found": [
         "stats",
         "auth",
+        "realm",
         "password"
       ],
-      "quality": 0.75,
-      "total_time": 29.64,
-      "passed": false,
-      "response_length": 1248
+      "quality": 1.0,
+      "total_time": 29.2,
+      "passed": true,
+      "response_length": 1201
     },
     {
       "id": "full_stats_refresh",
@@ -1338,9 +1336,9 @@
         "auto"
       ],
       "quality": 1.0,
-      "total_time": 31.21,
+      "total_time": 30.9,
       "passed": true,
-      "response_length": 1249
+      "response_length": 1141
     },
     {
       "id": "full_stats_hide",
@@ -1353,12 +1351,13 @@
       ],
       "keywords_found": [
         "stats",
+        "hide",
         "server"
       ],
-      "quality": 0.5,
-      "total_time": 30.58,
+      "quality": 0.75,
+      "total_time": 30.67,
       "passed": false,
-      "response_length": 1034
+      "response_length": 1548
     },
     {
       "id": "full_stats_socket",
@@ -1375,9 +1374,9 @@
         "unix"
       ],
       "quality": 0.75,
-      "total_time": 39.11,
+      "total_time": 27.2,
       "passed": false,
-      "response_length": 2594
+      "response_length": 1493
     },
     {
       "id": "full_log_backend",
@@ -1393,9 +1392,9 @@
         "backend"
       ],
       "quality": 0.5,
-      "total_time": 27.56,
+      "total_time": 34.25,
       "passed": false,
-      "response_length": 1397
+      "response_length": 1763
     },
     {
       "id": "full_mode_tcp",
@@ -1407,12 +1406,13 @@
       ],
       "keywords_found": [
         "mode",
-        "tcp"
+        "tcp",
+        "layer4"
       ],
-      "quality": 0.67,
-      "total_time": 33.12,
-      "passed": false,
-      "response_length": 1418
+      "quality": 1.0,
+      "total_time": 32.73,
+      "passed": true,
+      "response_length": 1661
     },
     {
       "id": "full_mode_http",
@@ -1427,9 +1427,9 @@
         "http"
       ],
       "quality": 0.67,
-      "total_time": 28.32,
+      "total_time": 28.71,
       "passed": false,
-      "response_length": 1405
+      "response_length": 1798
     },
     {
       "id": "full_listen_section",
@@ -1443,12 +1443,13 @@
       "keywords_found": [
         "listen",
         "frontend",
-        "backend"
+        "backend",
+        "combine"
       ],
-      "quality": 0.75,
-      "total_time": 41.39,
-      "passed": false,
-      "response_length": 1965
+      "quality": 1.0,
+      "total_time": 27.52,
+      "passed": true,
+      "response_length": 1255
     },
     {
       "id": "full_tcp_request",
@@ -1460,12 +1461,13 @@
       ],
       "keywords_found": [
         "tcp-request",
-        "connection"
+        "connection",
+        "content"
       ],
-      "quality": 0.67,
-      "total_time": 29.53,
-      "passed": false,
-      "response_length": 1500
+      "quality": 1.0,
+      "total_time": 30.04,
+      "passed": true,
+      "response_length": 1319
     },
     {
       "id": "full_tcp_response",
@@ -1476,12 +1478,13 @@
         "content"
       ],
       "keywords_found": [
-        "tcp-response"
+        "tcp-response",
+        "connection"
       ],
-      "quality": 0.33,
-      "total_time": 25.16,
+      "quality": 0.67,
+      "total_time": 28.25,
       "passed": false,
-      "response_length": 1035
+      "response_length": 1310
     },
     {
       "id": "full_default_server",
@@ -1497,9 +1500,9 @@
         "server"
       ],
       "quality": 1.0,
-      "total_time": 30.88,
+      "total_time": 33.17,
       "passed": true,
-      "response_length": 1056
+      "response_length": 1497
     },
     {
       "id": "full_option_forwardfor",
@@ -1515,9 +1518,9 @@
         "option"
       ],
       "quality": 1.0,
-      "total_time": 29.39,
+      "total_time": 26.19,
       "passed": true,
-      "response_length": 1077
+      "response_length": 1141
     },
     {
       "id": "full_option_httplog",
@@ -1530,13 +1533,14 @@
       ],
       "keywords_found": [
         "option",
+        "httplog",
         "log",
         "format"
       ],
-      "quality": 0.75,
-      "total_time": 30.49,
-      "passed": false,
-      "response_length": 1213
+      "quality": 1.0,
+      "total_time": 25.47,
+      "passed": true,
+      "response_length": 1146
     },
     {
       "id": "full_map_file",
@@ -1549,12 +1553,13 @@
       ],
       "keywords_found": [
         "map",
+        "file",
         "acl"
       ],
-      "quality": 0.5,
-      "total_time": 30.06,
+      "quality": 0.75,
+      "total_time": 27.52,
       "passed": false,
-      "response_length": 1829
+      "response_length": 1748
     },
     {
       "id": "full_map_str",
@@ -1572,9 +1577,9 @@
         "exact"
       ],
       "quality": 1.0,
-      "total_time": 34.5,
+      "total_time": 30.04,
       "passed": true,
-      "response_length": 1990
+      "response_length": 1627
     },
     {
       "id": "full_map_beg",
@@ -1587,14 +1592,12 @@
       ],
       "keywords_found": [
         "map",
-        "beg",
-        "begin",
-        "prefix"
+        "beg"
       ],
-      "quality": 1.0,
-      "total_time": 33.59,
-      "passed": true,
-      "response_length": 1546
+      "quality": 0.5,
+      "total_time": 46.3,
+      "passed": false,
+      "response_length": 2094
     },
     {
       "id": "full_var_set",
@@ -1610,9 +1613,9 @@
         "http-request"
       ],
       "quality": 1.0,
-      "total_time": 37.08,
+      "total_time": 29.84,
       "passed": true,
-      "response_length": 2089
+      "response_length": 1784
     },
     {
       "id": "full_var_get",
@@ -1623,12 +1626,13 @@
         "fetch"
       ],
       "keywords_found": [
-        "var"
+        "var",
+        "variable"
       ],
-      "quality": 0.33,
-      "total_time": 32.26,
+      "quality": 0.67,
+      "total_time": 28.37,
       "passed": false,
-      "response_length": 1768
+      "response_length": 1407
     },
     {
       "id": "full_var_scope",
@@ -1646,9 +1650,9 @@
         "scope"
       ],
       "quality": 1.0,
-      "total_time": 29.86,
+      "total_time": 29.72,
       "passed": true,
-      "response_length": 1396
+      "response_length": 1866
     },
     {
       "id": "full_converter_lower",
@@ -1660,12 +1664,12 @@
       ],
       "keywords_found": [
         "lower",
-        "string"
+        "converter"
       ],
       "quality": 0.67,
-      "total_time": 20.13,
+      "total_time": 27.18,
       "passed": false,
-      "response_length": 1109
+      "response_length": 1417
     },
     {
       "id": "full_converter_upper",
@@ -1676,12 +1680,13 @@
         "string"
       ],
       "keywords_found": [
-        "upper"
+        "upper",
+        "converter"
       ],
-      "quality": 0.33,
-      "total_time": 4.82,
+      "quality": 0.67,
+      "total_time": 23.48,
       "passed": false,
-      "response_length": 837
+      "response_length": 1229
     },
     {
       "id": "full_converter_json",
@@ -1693,12 +1698,13 @@
         "path"
       ],
       "keywords_found": [
-        "json"
+        "json",
+        "extract"
       ],
-      "quality": 0.25,
-      "total_time": 38.57,
+      "quality": 0.5,
+      "total_time": 28.52,
       "passed": false,
-      "response_length": 2077
+      "response_length": 1644
     },
     {
       "id": "full_converter_url",
@@ -1713,9 +1719,48 @@
         "encode"
       ],
       "quality": 0.67,
-      "total_time": 28.64,
+      "total_time": 21.45,
       "passed": false,
-      "response_length": 1652
+      "response_length": 987
+    },
+    {
+      "id": "full_http_request_set_header",
+      "question": "Comment ajouter un header HTTP avec http-request set-header ?",
+      "keywords_expected": [
+        "http-request",
+        "set-header",
+        "header",
+        "add"
+      ],
+      "keywords_found": [
+        "http-request",
+        "set-header",
+        "header",
+        "add"
+      ],
+      "quality": 1.0,
+      "total_time": 29.95,
+      "passed": true,
+      "response_length": 1398
+    },
+    {
+      "id": "full_http_request_del_header",
+      "question": "Comment supprimer un header HTTP avec http-request del-header ?",
+      "keywords_expected": [
+        "http-request",
+        "del-header",
+        "header",
+        "remove"
+      ],
+      "keywords_found": [
+        "http-request",
+        "del-header",
+        "header"
+      ],
+      "quality": 0.75,
+      "total_time": 25.31,
+      "passed": false,
+      "response_length": 1184
     }
   ]
 }

@@ -238,6 +238,71 @@ SECTION_HINTS = {
     "allow": ["7.3", "7.4"],
     "abort": ["7.3", "7.4"],
     "tarpit": ["7.3", "7.4"],
+    # Converter keywords (missing in 4 questions)
+    "converter": ["7.1", "7.2", "7.5"],
+    "lower": ["7.1", "7.2"],
+    "upper": ["7.1", "7.2"],
+    "url": ["7.1", "7.2", "7.3"],
+    "extract": ["7.1", "7.2"],
+    # TCP-check keywords
+    "tcp-check": ["5.2", "5.3", "5.4"],
+    "rise": ["5.2", "5.3"],
+    "fall": ["5.2", "5.3"],
+    # Stick-table rate limiting
+    "stick": ["11.1", "11.2", "7.3"],
+    "counter": ["11.1", "11.2", "7.3"],
+    # Timeout keywords
+    "http-request-timeout": ["3.1", "3.2"],
+    "connection": ["3.1", "3.2", "11.1"],
+    "client-fin": ["3.1", "3.2"],
+    "server-fin": ["3.1", "3.2"],
+    "waiting": ["3.1", "3.2"],
+    "inactivity": ["3.1", "3.2"],
+    # ACL keywords
+    "domain": ["7.1", "7.2", "7.3"],
+    "dst": ["7.1", "7.2", "7.3"],
+    "destination": ["7.1", "7.2", "7.3"],
+    "dst_port": ["7.1", "7.2", "7.3"],
+    "begin": ["7.1", "7.2"],
+    "regexp": ["7.1", "7.2", "7.5"],
+    "unless": ["7.1", "7.2", "7.3"],
+    "negation": ["7.1", "7.2"],
+    # SSL/Bind keywords
+    "frontend": ["5.1", "5.2", "4.1"],
+    "certificates": ["9.1", "9.2", "9.3"],
+    "default-bind": ["3.1", "9.1"],
+    # Stats keywords
+    "listen": ["4.1", "4.2", "4.3"],
+    "enable": ["3.3", "4.2"],
+    "realm": ["4.2"],
+    "hide": ["4.2"],
+    "chmod": ["4.2"],
+    # Log keywords
+    "syslog": ["3.1", "3.2"],
+    "facility": ["3.1", "3.2"],
+    "fd@": ["3.1", "3.2"],
+    "custom": ["8.1", "8.2"],
+    "disable": ["3.1", "3.2"],
+    # Mode keywords
+    "option httpchk": ["5.2", "5.3"],
+    "GET": ["5.2", "5.3"],
+    "layer4": ["3.1", "3.2"],
+    "layer7": ["3.1", "3.2"],
+    # Balance keywords
+    "persistence": ["5.3", "11.1", "11.2"],
+    # Server keywords
+    "disabled": ["5.1", "5.2", "5.3"],
+    # Deny/rate
+    "deny_status": ["7.3", "7.4", "7.5"],
+    # Sections
+    "combine": ["4.1", "4.2"],
+    # Maps/vars
+    "file": ["7.1", "7.2"],
+    "variable": ["7.1", "7.2"],
+    "fetch": ["7.1", "7.2"],
+    # HTTP request
+    "add": ["7.1", "7.2", "7.4"],
+    "remove": ["7.1", "7.2", "7.4"],
 }
 
 
@@ -259,6 +324,10 @@ def search_child_chunks(query: str, k: int = DEFAULT_K_CHILD) -> dict:
     try:
         from langchain_ollama import OllamaEmbeddings
         embeddings_model = OllamaEmbeddings(model='qwen3-embedding:8b')
+        
+        # DEBUG: Log the query received from LLM
+        print(f"DEBUG search_child_chunks: query='{query}'", flush=True)
+        
         query_embedding = embeddings_model.embed_query(query)
         chroma_manager = ChromaManager()
 
@@ -286,11 +355,22 @@ def search_child_chunks(query: str, k: int = DEFAULT_K_CHILD) -> dict:
                         section_boost = 0.15
                         break
 
+            # BOOST CRITIQUE: configuration.html > intro.html > management.html
+            # La documentation technique est dans configuration.html, pas dans intro.html
+            source = metadata.get('source', '')
+            source_boost = 0.0
+            if 'configuration.html' in source:
+                source_boost = 0.25  # Forte priorité à configuration.html
+            elif 'intro.html' in source:
+                source_boost = -0.15  # Pénaliser intro.html (trop générique)
+
             # Threshold dynamique avec boost (plus permissif si pas de résultats)
-            threshold = 0.20
-            if len(filtered_results) < k and score + section_boost >= threshold - 0.10:
+            # Ajusté de 0.20 à 0.15 pour être plus permissif et éviter les résultats vides
+            threshold = 0.15
+            total_boost = section_boost + source_boost
+            if len(filtered_results) < k and score + total_boost >= threshold - 0.10:
                 filtered_results.append(r)
-            elif score + section_boost >= threshold:
+            elif score + total_boost >= threshold:
                 filtered_results.append(r)
 
         # Si toujours pas de résultats, retourner les meilleurs sans filtering
