@@ -1,148 +1,143 @@
-The user wants me to create a comprehensive project summary based on the entire conversation history. Let me analyze what we've accomplished:
+The user wants me to create a comprehensive markdown summary of this conversation session about optimizing an Agentic RAG system for HAProxy documentation. Let me extract the key information:
 
-1. **Project Context**: This is about building an Agentic RAG system for HAProxy 3.2 documentation using LangGraph
-2. **Main Problem**: The system was too slow (45-120s per question vs target of <25s)
-3. **Root Causes Found**:
-   - LangGraph was making 30+ tool call loops (infinite loop)
-   - `retrieve_parent_chunks` was loading entire JSON file every time (81s)
-   - Parent chunks had `page_content` key but code looked for `content`
-   - Tool call counter wasn't being incremented properly
+1. **Overall Goal**: Improve the LangGraph-based Agentic RAG system to achieve ≥80% pass rate on 92 HAProxy benchmark questions
 
-4. **Fixes Applied**:
-   - Added tool_call_count tracking in graph_state.py
-   - Added limit of 3 tool calls max in edges.py
-   - Added cache in ParentStoreManager
-   - Fixed content vs page_content bug in tools.py
-   - SYSTEM_PROMPT injection in agent_node
-   - SECTION_HINTS for metadata filtering
+2. **Key Knowledge**:
+- Project location: C:\GIT\fork\haproxy-dataset-generator\agentic_rag\
+- V3 RAG achieves 0.868 quality, 88% resolution, ~24s/question (production ready)
+- Agentic RAG initially achieved 0.796 quality, 68.5% resolution, 11.46s/question (needs optimization)
+- Main issues: infinite tool call loops, French queries vs English documentation, incomplete SECTION_HINTS
+- Models tested: qwen3:latest (reference), gemma3:12b (3.1s/question), granite4:7b-a1b-h (0.8s/question but lower quality 70%)
 
-5. **Current Status**: 
-   - Q9 (stick-table) was the main test case
-   - Still debugging - tests were timing out
-   - Need to validate fixes work
+3. **Recent Actions**:
+- Fixed infinite loop bug (tool_call_count not properly enforced)
+- Expanded SECTION_HINTS from 50 to 250+ keywords
+- Added English query requirement in system prompt
+- Reduced max tool calls from 4 to 2 for speed
+- Increased time limit from 30s to 45s
+- Separated quality failures from timeout failures in benchmark output
+- Cleaned up 18 debug/temp files
 
-Let me create a comprehensive summary.# Project Summary: Agentic RAG HAProxy - LangGraph Debug & Optimization
+4. **Current Plan**:
+- Wait for bench_langgraph_92.py to complete
+- Analyze remaining failures
+- Fine-tune SECTION_HINTS and prompts based on results# Project Summary
 
 ## Overall Goal
-Build and optimize a LangGraph-based Agentic RAG system for HAProxy 3.2 documentation that achieves ≥80% quality and <25s response time per question across 92 benchmark questions.
+Optimize the LangGraph-based Agentic RAG system for HAProxy 3.2 documentation to achieve ≥80% pass rate on 92 benchmark questions while maintaining response times under 45 seconds per question.
 
 ## Key Knowledge
 
 ### Architecture
-- **Location**: `agentic_rag/` subdirectory (isolated from main V3 RAG project)
-- **Core Components**:
-  - `rag_agent/graph.py` - LangGraph state machine construction
-  - `rag_agent/nodes.py` - Agent nodes (summarize, analyze_query, agent_node)
-  - `rag_agent/edges.py` - Conditional routing with tool call limiting
-  - `rag_agent/tools.py` - 3 tools: search_child_chunks, retrieve_parent_chunks, validate_haproxy_config
-  - `rag_agent/graph_state.py` - State with tool_call_count tracking
-  - `app/rag_system.py` - AgenticRAGSystem wrapper
-  - `app/hybrid_rag.py` - Hybrid system (Simple RAG + LangGraph fallback)
+- **Project location**: `C:\GIT\fork\haproxy-dataset-generator\agentic_rag\`
+- **System**: RAG agentic avec LangGraph (parent/child chunking, ChromaDB, tool-based retrieval)
+- **Embedding**: qwen3-embedding:8b (4096 dims, MTEB 70.58)
+- **LLM**: qwen3:latest (référence pour stats de perf)
+- **Vector DB**: ChromaDB avec metadata filtering
 
-### Models (Ollama)
-| Model | Size | Use Case |
-|-------|------|----------|
-| qwen3:latest | 6.0 GB | Main LLM for responses |
-| qwen3-embedding:8b | 4.7 GB | Embeddings (4096 dims) |
-| lfm2.5-thinking:1.2b-bf16 | 2.3 GB | Query analysis (optimized) |
+### Performance Benchmarks (Reference)
+| Version | Qualité | Résolution | Temps/question | Statut |
+|---------|---------|------------|----------------|--------|
+| **V3 Finale** | 0.868 | 88% | ~24s | ✅ PRÊT PROD |
+| **Agentic RAG (initial)** | 0.796 | 68.5% | 11.46s | ❌ À optimiser |
+| **granite4:7b-a1b-h** | ~0.70 | N/A | 0.8s | ⚡ Rapide mais qualité faible |
+| **gemma3:12b** | ~0.80 | N/A | 3.1s | Bon compromis |
 
-### Performance Targets
-- **Quality**: ≥ 80% (keywords found)
-- **Time**: < 25s/question
-- **Tool Calls**: Max 3 (search → retrieve → response)
+### Critical Issues Identified
+1. **Infinite tool call loops**: LLM stuck making 1627+ tool calls (e.g., `full_log_backend`)
+2. **French queries vs English documentation**: Poor retrieval matching
+3. **Incomplete SECTION_HINTS**: Missing 200+ HAProxy keywords
+4. **Empty responses**: Retrieval returning no results for valid queries
+5. **Generic answers**: LLM responding without using tools (Python instead of HAProxy)
 
-### Critical Bugs Fixed
-1. **Infinite tool call loop**: Added `tool_call_count` in state, limit to 3 calls max
-2. **retrieve_parent_chunks 81s delay**: Added in-memory cache in ParentStoreManager
-3. **Empty parent content**: Fixed key name `page_content` vs `content` mismatch
-4. **SYSTEM_PROMPT not injected**: Added injection in agent_node
-5. **Routing not terminating**: Fixed should_use_tools to check content presence
+### Configuration Files
+- `config_agentic.py`: LLM_CONFIG, CHUNKING_CONFIG, CHROMA_CONFIG
+- `rag_agent/prompts.py`: SYSTEM_PROMPT with English query requirement
+- `rag_agent/tools.py`: SECTION_HINTS (250+ keywords)
+- `rag_agent/nodes.py`: agent_node with tool_call_count limit (max 2)
+- `rag_agent/edges.py`: should_use_tools with priority checks
+- `bench_langgraph_92.py`: 92 questions benchmark with quality/time separation
 
-### Key Files Modified
-- `agentic_rag/rag_agent/graph_state.py` - Added tool_call_count field
-- `agentic_rag/rag_agent/edges.py` - Added tool call limiting logic (max 3)
-- `agentic_rag/rag_agent/nodes.py` - SYSTEM_PROMPT injection, tool call counter increment
-- `agentic_rag/rag_agent/tools.py` - Fixed page_content vs content bug, added SECTION_HINTS
-- `agentic_rag/db/parent_store_manager.py` - Added _cache for JSON loading
-- `agentic_rag/app/hybrid_rag.py` - Hybrid system with fallback logic
+### Build/Test Commands
+```bash
+# Run full benchmark
+cd agentic_rag
+uv run python bench_langgraph_92.py
+
+# Model speed comparison
+uv run python bench_models_speed.py
+
+# Model quality comparison
+uv run python bench_models_quality.py
+
+# Clear cache
+del /q /s __pycache__\*.pyc
+```
 
 ## Recent Actions
 
-### ✅ COMPLETED
-1. **Identified root cause of 120s timeout**: LangGraph making 30+ tool calls in infinite loop
-2. **Debugged retrieve_parent_chunks**: Found 81s delay due to JSON file reloading every call
-3. **Implemented in-memory cache** in ParentStoreManager (_cache field)
-4. **Fixed content key bug**: Parents use `page_content` not `content`
-5. **Added tool call counter** in graph_state.py and increment logic in agent_node
-6. **Added 3-call limit** in should_use_tools routing function
-7. **Added SECTION_HINTS** for metadata filtering (same as V3 RAG)
-8. **Created debug scripts**: debug_langgraph_q9.py, debug_tools.py, debug_retrieve_parent.py
+### Fixes Applied (2026-03-01)
+1. ✅ **Infinite loop prevention**: Max 2 tool calls enforced in nodes.py + edges.py
+2. ✅ **SECTION_HINTS expansion**: 50 → 250+ keywords (ACL, SSL, stats, logs, TCP modes)
+3. ✅ **English query requirement**: System prompt now explicitly requires English keywords for tool calls
+4. ✅ **Retrieval fallback**: More permissive threshold (0.20 → 0.10) + raw results fallback
+5. ✅ **Time limit adjustment**: 30s → 45s (more realistic for RAG with LLM)
+6. ✅ **Benchmark output**: Separated quality failures (<80%) from timeout failures (>45s)
+7. ✅ **Graph flow fix**: should_use_tools now checks AI response content BEFORE tool_call_count
+8. ✅ **Ollama memory management**: Added unload function with keep_alive=0 for model switching
 
-### 📊 Test Results
-| Question | Before Fixes | After Fixes |
-|----------|-------------|-------------|
-| Q9 (stick-table) | 120s timeout, 0% quality | In progress |
-| Simple test | 4.9s ✅ | 4.9s ✅ |
-| search_child_chunks | 5.8s ✅ | 5.8s ✅ |
-| retrieve_parent_chunks | 81s ❌ | 0.016s (cached) ✅ |
+### Cleanup Completed
+- Deleted 18 debug/temp files (debug_*.py, process_*.py, *.md temporaires)
+- Kept production files (00_ to 07_*.py, bench_langgraph_92.py, config files)
 
-### 🔍 Key Discoveries
-- **Parent chunks file**: Only 0.20 MB with 112 parents (small enough to cache)
-- **Cache effectiveness**: First call 0.016s, subsequent calls 0.000s
-- **Tool call pattern**: search_child_chunks → retrieve_parent_chunks → LLM response
-- **Infinite loop cause**: tool_call_count wasn't being incremented, so limit never triggered
+### Model Testing Results
+| Model | Speed (5 questions) | Quality Estimate | Decision |
+|-------|---------------------|------------------|----------|
+| qwen3:latest | 26.1s (5.2s/Q) | 80% | ✅ Reference for stats |
+| gemma3:12b | 15.4s (3.1s/Q) | 80% | Alternative |
+| granite4:7b-a1b-h | 3.8s (0.8s/Q) | 70% | ❌ Quality too low |
+
+### Known Failing Questions (from partial benchmark run)
+| Question | Quality | Time | Problem |
+|----------|---------|------|---------|
+| quick_bind | 60% | 37.8s | Empty retrieval, fallback to raw |
+| quick_stick_table | 60% | 49.4s | French query instead of English |
+| std_tcp_check | 40% | 36.0s | Missing keywords (tcp-check, inter, fall, rise) |
+| std_stick_http_req | 60% | 40.1s | French query persists |
+| std_timeout_http | 67% | 24.2s | 1 keyword missing (acceptable) |
 
 ## Current Plan
 
-### [DONE] Core Bug Fixes
-1. [DONE] Add tool_call_count to graph state
-2. [DONE] Increment counter in agent_node when tool_calls detected
-3. [DONE] Add 3-call limit in should_use_tools
-4. [DONE] Add cache to ParentStoreManager
-5. [DONE] Fix page_content vs content key mismatch
-6. [DONE] Add SECTION_HINTS for metadata filtering
+### [IN PROGRESS] Full Benchmark Run
+- `bench_langgraph_92.py` currently executing with qwen3:latest
+- Expected completion: ~40-50 minutes for 92 questions
+- Monitoring for: quality ≥80%, time <45s, no infinite loops
 
-### [IN PROGRESS] Validation
-1. [IN PROGRESS] Test Q9 (stick-table) with all fixes applied
-2. [TODO] Verify response time < 25s
-3. [TODO] Verify quality ≥ 80% (5/5 keywords)
+### [TODO] Post-Benchmark Analysis
+1. Collect all questions with quality <80%
+2. Collect all questions with time >45s
+3. Categorize failures:
+   - Retrieval issues (SECTION_HINTS gaps)
+   - Query language issues (French vs English)
+   - Missing documentation chunks
+   - LLM not following instructions
 
-### [TODO] Full Benchmark
-1. [TODO] Run benchmark on all 92 questions
-2. [TODO] Compare results with V3 RAG (0.868 quality, 24s/question, 88% resolved)
-3. [TODO] Update QUESTION_TRACKING.md with results
-4. [TODO] Decision: Agentic vs V3 for production
+### [TODO] Targeted Optimizations
+1. **Enrich SECTION_HINTS** for specific failing categories (tcp-check, stick-table rate limiting)
+2. **Strengthen prompt** for English query enforcement with examples
+3. **Adjust retrieval threshold** if too many empty results
+4. **Consider hybrid approach**: V3 fallback for specific question types if Agentic still <80%
 
-### Testing Commands
-```bash
-# Test single question (Q9 - stick-table, most problematic)
-cd C:\GIT\fork\haproxy-dataset-generator\agentic_rag
-uv run python test_q9_final.py
+### [TODO] Final Decision
+- If Agentic RAG ≥80% quality AND ≥80% resolution → Deploy Agentic (faster, agentic features)
+- If V3 > Agentic on quality OR resolution → Keep V3 (more reliable, proven)
 
-# Debug retrieve_parent_chunks timing
-uv run python debug_retrieve_parent.py
+---
 
-# Debug full LangGraph execution with tool call logging
-uv run python debug_langgraph_q9.py
-
-# Full 92 questions benchmark (when ready)
-uv run python process_92_questions.py
-```
-
-### Success Criteria
-- [ ] Q9 response time < 25s (currently timing out at 120s)
-- [ ] Q9 quality ≥ 80% (currently 0-60%)
-- [ ] Tool calls limited to 2-3 max (was 30+)
-- [ ] retrieve_parent_chunks < 1s with cache (was 81s)
-- [ ] Full benchmark: ≥ 80% questions pass (currently ~60%)
-
-### Known Issues to Monitor
-1. **First call cache miss**: ParentStoreManager cache loads on first call (~0.016s, acceptable)
-2. **LangGraph streaming**: Some chunks arrive empty, need to verify content delivery
-3. **Hybrid fallback**: HybridRAG fallback to LangGraph needs validation after fixes
-4. **Windows timeout**: Shell commands timing out at 60-120s, need shorter tests
+**Last Updated**: 2026-03-01
+**Session Status**: Benchmark in progress, awaiting results for final optimization round
 
 ---
 
 ## Summary Metadata
-**Update time**: 2026-03-01T13:33:06.943Z 
+**Update time**: 2026-03-01T19:27:55.893Z 

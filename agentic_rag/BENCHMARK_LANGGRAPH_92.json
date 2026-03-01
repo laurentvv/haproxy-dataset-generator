@@ -1,10 +1,10 @@
 {
-  "date": "2026-03-01T20:19:12.763128",
+  "date": "2026-03-01T20:31:54.670524",
   "system": "LangGraph Direct",
   "total": 92,
-  "processed": 65,
-  "ok": 33,
-  "avg_time": 31.45,
+  "processed": 90,
+  "ok": 40,
+  "avg_time": 31.18,
   "results": [
     {
       "id": "quick_healthcheck",
@@ -1265,6 +1265,457 @@
       "total_time": 27.4,
       "passed": false,
       "response_length": 1101
+    },
+    {
+      "id": "full_log_format",
+      "question": "Comment configurer un format de log personnalisé ?",
+      "keywords_expected": [
+        "log-format",
+        "log",
+        "format",
+        "custom"
+      ],
+      "keywords_found": [
+        "log-format",
+        "log",
+        "format"
+      ],
+      "quality": 0.75,
+      "total_time": 35.86,
+      "passed": false,
+      "response_length": 2014
+    },
+    {
+      "id": "full_stats_uri",
+      "question": "Comment configurer l'URI pour la page de stats ?",
+      "keywords_expected": [
+        "stats",
+        "uri",
+        "enable",
+        "listen"
+      ],
+      "keywords_found": [
+        "stats",
+        "uri"
+      ],
+      "quality": 0.5,
+      "total_time": 30.11,
+      "passed": false,
+      "response_length": 1276
+    },
+    {
+      "id": "full_stats_auth",
+      "question": "Comment configurer l'authentification pour les stats ?",
+      "keywords_expected": [
+        "stats",
+        "auth",
+        "realm",
+        "password"
+      ],
+      "keywords_found": [
+        "stats",
+        "auth",
+        "password"
+      ],
+      "quality": 0.75,
+      "total_time": 29.64,
+      "passed": false,
+      "response_length": 1248
+    },
+    {
+      "id": "full_stats_refresh",
+      "question": "Comment configurer le rafraîchissement automatique des stats ?",
+      "keywords_expected": [
+        "stats",
+        "refresh",
+        "interval",
+        "auto"
+      ],
+      "keywords_found": [
+        "stats",
+        "refresh",
+        "interval",
+        "auto"
+      ],
+      "quality": 1.0,
+      "total_time": 31.21,
+      "passed": true,
+      "response_length": 1249
+    },
+    {
+      "id": "full_stats_hide",
+      "question": "Comment masquer certains serveurs dans les stats ?",
+      "keywords_expected": [
+        "stats",
+        "hide",
+        "server",
+        "disabled"
+      ],
+      "keywords_found": [
+        "stats",
+        "server"
+      ],
+      "quality": 0.5,
+      "total_time": 30.58,
+      "passed": false,
+      "response_length": 1034
+    },
+    {
+      "id": "full_stats_socket",
+      "question": "Comment configurer le socket de statistiques HAProxy ?",
+      "keywords_expected": [
+        "stats",
+        "socket",
+        "unix",
+        "chmod"
+      ],
+      "keywords_found": [
+        "stats",
+        "socket",
+        "unix"
+      ],
+      "quality": 0.75,
+      "total_time": 39.11,
+      "passed": false,
+      "response_length": 2594
+    },
+    {
+      "id": "full_log_backend",
+      "question": "Comment configurer les logs spécifiques à un backend ?",
+      "keywords_expected": [
+        "log",
+        "backend",
+        "global",
+        "disable"
+      ],
+      "keywords_found": [
+        "log",
+        "backend"
+      ],
+      "quality": 0.5,
+      "total_time": 27.56,
+      "passed": false,
+      "response_length": 1397
+    },
+    {
+      "id": "full_mode_tcp",
+      "question": "Comment configurer HAProxy en mode TCP pur ?",
+      "keywords_expected": [
+        "mode",
+        "tcp",
+        "layer4"
+      ],
+      "keywords_found": [
+        "mode",
+        "tcp"
+      ],
+      "quality": 0.67,
+      "total_time": 33.12,
+      "passed": false,
+      "response_length": 1418
+    },
+    {
+      "id": "full_mode_http",
+      "question": "Comment configurer HAProxy en mode HTTP ?",
+      "keywords_expected": [
+        "mode",
+        "http",
+        "layer7"
+      ],
+      "keywords_found": [
+        "mode",
+        "http"
+      ],
+      "quality": 0.67,
+      "total_time": 28.32,
+      "passed": false,
+      "response_length": 1405
+    },
+    {
+      "id": "full_listen_section",
+      "question": "Comment utiliser une section listen au lieu de frontend/backend ?",
+      "keywords_expected": [
+        "listen",
+        "frontend",
+        "backend",
+        "combine"
+      ],
+      "keywords_found": [
+        "listen",
+        "frontend",
+        "backend"
+      ],
+      "quality": 0.75,
+      "total_time": 41.39,
+      "passed": false,
+      "response_length": 1965
+    },
+    {
+      "id": "full_tcp_request",
+      "question": "Comment utiliser tcp-request en mode TCP ?",
+      "keywords_expected": [
+        "tcp-request",
+        "connection",
+        "content"
+      ],
+      "keywords_found": [
+        "tcp-request",
+        "connection"
+      ],
+      "quality": 0.67,
+      "total_time": 29.53,
+      "passed": false,
+      "response_length": 1500
+    },
+    {
+      "id": "full_tcp_response",
+      "question": "Comment utiliser tcp-response en mode TCP ?",
+      "keywords_expected": [
+        "tcp-response",
+        "connection",
+        "content"
+      ],
+      "keywords_found": [
+        "tcp-response"
+      ],
+      "quality": 0.33,
+      "total_time": 25.16,
+      "passed": false,
+      "response_length": 1035
+    },
+    {
+      "id": "full_default_server",
+      "question": "Comment configurer un default-server pour tous les serveurs d'un backend ?",
+      "keywords_expected": [
+        "default-server",
+        "backend",
+        "server"
+      ],
+      "keywords_found": [
+        "default-server",
+        "backend",
+        "server"
+      ],
+      "quality": 1.0,
+      "total_time": 30.88,
+      "passed": true,
+      "response_length": 1056
+    },
+    {
+      "id": "full_option_forwardfor",
+      "question": "Comment ajouter l'header X-Forwarded-For ?",
+      "keywords_expected": [
+        "forwardfor",
+        "X-Forwarded-For",
+        "option"
+      ],
+      "keywords_found": [
+        "forwardfor",
+        "X-Forwarded-For",
+        "option"
+      ],
+      "quality": 1.0,
+      "total_time": 29.39,
+      "passed": true,
+      "response_length": 1077
+    },
+    {
+      "id": "full_option_httplog",
+      "question": "Comment activer le format de log HTTP ?",
+      "keywords_expected": [
+        "option",
+        "httplog",
+        "log",
+        "format"
+      ],
+      "keywords_found": [
+        "option",
+        "log",
+        "format"
+      ],
+      "quality": 0.75,
+      "total_time": 30.49,
+      "passed": false,
+      "response_length": 1213
+    },
+    {
+      "id": "full_map_file",
+      "question": "Comment utiliser un fichier map dans HAProxy ?",
+      "keywords_expected": [
+        "map",
+        "file",
+        "path",
+        "acl"
+      ],
+      "keywords_found": [
+        "map",
+        "acl"
+      ],
+      "quality": 0.5,
+      "total_time": 30.06,
+      "passed": false,
+      "response_length": 1829
+    },
+    {
+      "id": "full_map_str",
+      "question": "Comment utiliser map avec une correspondance string ?",
+      "keywords_expected": [
+        "map",
+        "str",
+        "string",
+        "exact"
+      ],
+      "keywords_found": [
+        "map",
+        "str",
+        "string",
+        "exact"
+      ],
+      "quality": 1.0,
+      "total_time": 34.5,
+      "passed": true,
+      "response_length": 1990
+    },
+    {
+      "id": "full_map_beg",
+      "question": "Comment utiliser map avec une correspondance par début ?",
+      "keywords_expected": [
+        "map",
+        "beg",
+        "begin",
+        "prefix"
+      ],
+      "keywords_found": [
+        "map",
+        "beg",
+        "begin",
+        "prefix"
+      ],
+      "quality": 1.0,
+      "total_time": 33.59,
+      "passed": true,
+      "response_length": 1546
+    },
+    {
+      "id": "full_var_set",
+      "question": "Comment définir une variable avec http-request set-var ?",
+      "keywords_expected": [
+        "set-var",
+        "var",
+        "http-request"
+      ],
+      "keywords_found": [
+        "set-var",
+        "var",
+        "http-request"
+      ],
+      "quality": 1.0,
+      "total_time": 37.08,
+      "passed": true,
+      "response_length": 2089
+    },
+    {
+      "id": "full_var_get",
+      "question": "Comment récupérer une variable avec var() ?",
+      "keywords_expected": [
+        "var",
+        "variable",
+        "fetch"
+      ],
+      "keywords_found": [
+        "var"
+      ],
+      "quality": 0.33,
+      "total_time": 32.26,
+      "passed": false,
+      "response_length": 1768
+    },
+    {
+      "id": "full_var_scope",
+      "question": "Comment utiliser les scopes de variables (txn, sess, req, res) ?",
+      "keywords_expected": [
+        "var",
+        "txn",
+        "sess",
+        "scope"
+      ],
+      "keywords_found": [
+        "var",
+        "txn",
+        "sess",
+        "scope"
+      ],
+      "quality": 1.0,
+      "total_time": 29.86,
+      "passed": true,
+      "response_length": 1396
+    },
+    {
+      "id": "full_converter_lower",
+      "question": "Comment convertir une string en minuscules avec lower() ?",
+      "keywords_expected": [
+        "lower",
+        "converter",
+        "string"
+      ],
+      "keywords_found": [
+        "lower",
+        "string"
+      ],
+      "quality": 0.67,
+      "total_time": 20.13,
+      "passed": false,
+      "response_length": 1109
+    },
+    {
+      "id": "full_converter_upper",
+      "question": "Comment convertir une string en majuscules avec upper() ?",
+      "keywords_expected": [
+        "upper",
+        "converter",
+        "string"
+      ],
+      "keywords_found": [
+        "upper"
+      ],
+      "quality": 0.33,
+      "total_time": 4.82,
+      "passed": false,
+      "response_length": 837
+    },
+    {
+      "id": "full_converter_json",
+      "question": "Comment extraire des données JSON avec json() ?",
+      "keywords_expected": [
+        "json",
+        "converter",
+        "extract",
+        "path"
+      ],
+      "keywords_found": [
+        "json"
+      ],
+      "quality": 0.25,
+      "total_time": 38.57,
+      "passed": false,
+      "response_length": 2077
+    },
+    {
+      "id": "full_converter_url",
+      "question": "Comment encoder une URL avec url() ?",
+      "keywords_expected": [
+        "url",
+        "encode",
+        "converter"
+      ],
+      "keywords_found": [
+        "url",
+        "encode"
+      ],
+      "quality": 0.67,
+      "total_time": 28.64,
+      "passed": false,
+      "response_length": 1652
     }
   ]
 }
