@@ -120,3 +120,4 @@ desktop.ini
 *.key
 credentials
 *.credentials
+uv.lock

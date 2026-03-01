@@ -1,0 +1,1270 @@
+{
+  "date": "2026-03-01T20:19:12.763128",
+  "system": "LangGraph Direct",
+  "total": 92,
+  "processed": 65,
+  "ok": 33,
+  "avg_time": 31.45,
+  "results": [
+    {
+      "id": "quick_healthcheck",
+      "question": "Comment configurer un health check HTTP dans HAProxy ?",
+      "keywords_expected": [
+        "option httpchk",
+        "check",
+        "GET",
+        "http-check",
+        "server"
+      ],
+      "keywords_found": [
+        "check",
+        "GET",
+        "http-check",
+        "server"
+      ],
+      "quality": 0.8,
+      "total_time": 29.68,
+      "passed": true,
+      "response_length": 1451
+    },
+    {
+      "id": "quick_bind",
+      "question": "Quelle est la syntaxe de la directive bind ?",
+      "keywords_expected": [
+        "bind",
+        "port",
+        "ssl",
+        "crt",
+        "frontend"
+      ],
+      "keywords_found": [
+        "bind",
+        "port",
+        "ssl"
+      ],
+      "quality": 0.6,
+      "total_time": 37.8,
+      "passed": false,
+      "response_length": 1334
+    },
+    {
+      "id": "quick_stick_table",
+      "question": "Comment limiter les connexions par IP avec stick-table ?",
+      "keywords_expected": [
+        "stick-table",
+        "conn_rate",
+        "track-sc",
+        "deny",
+        "ip"
+      ],
+      "keywords_found": [
+        "stick-table",
+        "deny",
+        "ip"
+      ],
+      "quality": 0.6,
+      "total_time": 49.36,
+      "passed": false,
+      "response_length": 3139
+    },
+    {
+      "id": "quick_acl",
+      "question": "Comment utiliser les ACLs pour filtrer le trafic ?",
+      "keywords_expected": [
+        "acl",
+        "path_beg",
+        "hdr",
+        "if",
+        "deny"
+      ],
+      "keywords_found": [
+        "acl",
+        "hdr",
+        "if",
+        "deny"
+      ],
+      "quality": 0.8,
+      "total_time": 30.29,
+      "passed": true,
+      "response_length": 1810
+    },
+    {
+      "id": "quick_timeout",
+      "question": "Quelles sont les options de timeout disponibles ?",
+      "keywords_expected": [
+        "timeout",
+        "connect",
+        "client",
+        "server",
+        "http-request"
+      ],
+      "keywords_found": [
+        "timeout",
+        "connect",
+        "client",
+        "server",
+        "http-request"
+      ],
+      "quality": 1.0,
+      "total_time": 27.74,
+      "passed": true,
+      "response_length": 2098
+    },
+    {
+      "id": "quick_ssl",
+      "question": "Comment configurer SSL/TLS sur un frontend ?",
+      "keywords_expected": [
+        "bind",
+        "ssl",
+        "crt",
+        "pem",
+        "certificate"
+      ],
+      "keywords_found": [
+        "bind",
+        "ssl",
+        "crt",
+        "pem"
+      ],
+      "quality": 0.8,
+      "total_time": 29.91,
+      "passed": true,
+      "response_length": 1867
+    },
+    {
+      "id": "quick_backend",
+      "question": "Comment configurer un backend avec équilibrage de charge ?",
+      "keywords_expected": [
+        "backend",
+        "balance",
+        "roundrobin",
+        "server",
+        "check"
+      ],
+      "keywords_found": [
+        "backend",
+        "balance",
+        "server",
+        "check"
+      ],
+      "quality": 0.8,
+      "total_time": 25.5,
+      "passed": true,
+      "response_length": 1359
+    },
+    {
+      "id": "std_tcp_check",
+      "question": "Comment configurer un health check TCP dans HAProxy ?",
+      "keywords_expected": [
+        "tcp-check",
+        "check",
+        "inter",
+        "fall",
+        "rise"
+      ],
+      "keywords_found": [
+        "tcp-check",
+        "check"
+      ],
+      "quality": 0.4,
+      "total_time": 36.0,
+      "passed": false,
+      "response_length": 3082
+    },
+    {
+      "id": "std_bind_ssl",
+      "question": "Comment activer SSL sur un bind avec certificat ?",
+      "keywords_expected": [
+        "bind",
+        "ssl",
+        "crt",
+        "cert",
+        "pem"
+      ],
+      "keywords_found": [
+        "bind",
+        "ssl",
+        "crt",
+        "cert",
+        "pem"
+      ],
+      "quality": 1.0,
+      "total_time": 23.57,
+      "passed": true,
+      "response_length": 1360
+    },
+    {
+      "id": "std_acl_path",
+      "question": "Comment créer une ACL basée sur le chemin URL ?",
+      "keywords_expected": [
+        "acl",
+        "path_beg",
+        "path_end",
+        "path",
+        "url"
+      ],
+      "keywords_found": [
+        "acl",
+        "path_beg",
+        "path_end",
+        "path",
+        "url"
+      ],
+      "quality": 1.0,
+      "total_time": 25.85,
+      "passed": true,
+      "response_length": 1214
+    },
+    {
+      "id": "std_stick_http_req",
+      "question": "Comment limiter le nombre de requêtes HTTP par IP avec stick-table ?",
+      "keywords_expected": [
+        "stick-table",
+        "http_req_rate",
+        "track-sc",
+        "deny",
+        "ip"
+      ],
+      "keywords_found": [
+        "stick-table",
+        "deny",
+        "ip"
+      ],
+      "quality": 0.6,
+      "total_time": 40.06,
+      "passed": false,
+      "response_length": 2245
+    },
+    {
+      "id": "std_balance_leastconn",
+      "question": "Comment configurer l'algorithme leastconn pour le load balancing ?",
+      "keywords_expected": [
+        "balance",
+        "leastconn",
+        "backend",
+        "server"
+      ],
+      "keywords_found": [
+        "balance",
+        "leastconn",
+        "backend",
+        "server"
+      ],
+      "quality": 1.0,
+      "total_time": 30.42,
+      "passed": true,
+      "response_length": 1607
+    },
+    {
+      "id": "std_timeout_http",
+      "question": "Comment configurer le timeout http-request ?",
+      "keywords_expected": [
+        "timeout",
+        "http-request",
+        "http-request-timeout"
+      ],
+      "keywords_found": [
+        "timeout",
+        "http-request"
+      ],
+      "quality": 0.67,
+      "total_time": 24.17,
+      "passed": false,
+      "response_length": 996
+    },
+    {
+      "id": "std_frontend_http",
+      "question": "Comment configurer un frontend HTTP sur le port 80 ?",
+      "keywords_expected": [
+        "frontend",
+        "bind",
+        "port",
+        "80",
+        "http"
+      ],
+      "keywords_found": [
+        "frontend",
+        "bind",
+        "port",
+        "80",
+        "http"
+      ],
+      "quality": 1.0,
+      "total_time": 28.68,
+      "passed": true,
+      "response_length": 1461
+    },
+    {
+      "id": "std_backend_server",
+      "question": "Comment ajouter un serveur dans un backend HAProxy ?",
+      "keywords_expected": [
+        "server",
+        "backend",
+        "address",
+        "port",
+        "check"
+      ],
+      "keywords_found": [
+        "server",
+        "backend",
+        "port",
+        "check"
+      ],
+      "quality": 0.8,
+      "total_time": 25.41,
+      "passed": true,
+      "response_length": 1381
+    },
+    {
+      "id": "std_acl_hdr",
+      "question": "Comment créer une ACL basée sur un header HTTP ?",
+      "keywords_expected": [
+        "acl",
+        "hdr",
+        "header",
+        "http-request"
+      ],
+      "keywords_found": [
+        "acl",
+        "hdr",
+        "header",
+        "http-request"
+      ],
+      "quality": 1.0,
+      "total_time": 30.58,
+      "passed": true,
+      "response_length": 1337
+    },
+    {
+      "id": "std_ssl_verify",
+      "question": "Comment vérifier le certificat SSL d'un serveur backend ?",
+      "keywords_expected": [
+        "ssl",
+        "verify",
+        "ca-file",
+        "cafile",
+        "certificate"
+      ],
+      "keywords_found": [
+        "ssl",
+        "verify",
+        "ca-file",
+        "certificate"
+      ],
+      "quality": 0.8,
+      "total_time": 32.25,
+      "passed": true,
+      "response_length": 1827
+    },
+    {
+      "id": "std_stats_enable",
+      "question": "Comment activer les statistiques HAProxy ?",
+      "keywords_expected": [
+        "stats",
+        "enable",
+        "uri",
+        "listen"
+      ],
+      "keywords_found": [
+        "stats",
+        "enable",
+        "uri"
+      ],
+      "quality": 0.75,
+      "total_time": 36.33,
+      "passed": false,
+      "response_length": 1720
+    },
+    {
+      "id": "std_log_global",
+      "question": "Comment configurer les logs globaux dans HAProxy ?",
+      "keywords_expected": [
+        "log",
+        "global",
+        "syslog",
+        "facility"
+      ],
+      "keywords_found": [
+        "log",
+        "global"
+      ],
+      "quality": 0.5,
+      "total_time": 26.11,
+      "passed": false,
+      "response_length": 1053
+    },
+    {
+      "id": "std_tcp_request",
+      "question": "Comment configurer un proxy TCP pur dans HAProxy ?",
+      "keywords_expected": [
+        "mode",
+        "tcp",
+        "frontend",
+        "backend"
+      ],
+      "keywords_found": [
+        "mode",
+        "tcp",
+        "frontend",
+        "backend"
+      ],
+      "quality": 1.0,
+      "total_time": 34.17,
+      "passed": true,
+      "response_length": 1715
+    },
+    {
+      "id": "full_httpchk_method",
+      "question": "Comment spécifier la méthode HTTP pour un health check ?",
+      "keywords_expected": [
+        "option httpchk",
+        "GET",
+        "POST",
+        "HEAD",
+        "method"
+      ],
+      "keywords_found": [
+        "option httpchk",
+        "GET",
+        "POST",
+        "method"
+      ],
+      "quality": 0.8,
+      "total_time": 32.21,
+      "passed": true,
+      "response_length": 1025
+    },
+    {
+      "id": "full_httpchk_uri",
+      "question": "Comment spécifier l'URI pour un health check HTTP ?",
+      "keywords_expected": [
+        "option httpchk",
+        "uri",
+        "path",
+        "GET"
+      ],
+      "keywords_found": [
+        "uri"
+      ],
+      "quality": 0.25,
+      "total_time": 43.05,
+      "passed": false,
+      "response_length": 1546
+    },
+    {
+      "id": "full_httpchk_version",
+      "question": "Comment spécifier la version HTTP pour un health check ?",
+      "keywords_expected": [
+        "HTTP",
+        "version",
+        "1.0",
+        "1.1",
+        "2"
+      ],
+      "keywords_found": [
+        "HTTP",
+        "version",
+        "1.0",
+        "1.1",
+        "2"
+      ],
+      "quality": 1.0,
+      "total_time": 36.42,
+      "passed": true,
+      "response_length": 1437
+    },
+    {
+      "id": "full_check_inter",
+      "question": "Comment configurer l'intervalle entre les health checks ?",
+      "keywords_expected": [
+        "inter",
+        "check",
+        "interval",
+        "server"
+      ],
+      "keywords_found": [
+        "inter",
+        "check",
+        "interval",
+        "server"
+      ],
+      "quality": 1.0,
+      "total_time": 24.05,
+      "passed": true,
+      "response_length": 1081
+    },
+    {
+      "id": "full_check_fall_rise",
+      "question": "Comment configurer les paramètres fall et rise pour un check ?",
+      "keywords_expected": [
+        "fall",
+        "rise",
+        "check",
+        "server"
+      ],
+      "keywords_found": [
+        "fall",
+        "rise",
+        "check",
+        "server"
+      ],
+      "quality": 1.0,
+      "total_time": 39.03,
+      "passed": true,
+      "response_length": 1378
+    },
+    {
+      "id": "full_backend_name",
+      "question": "Comment nommer un backend dans HAProxy ?",
+      "keywords_expected": [
+        "backend",
+        "name",
+        "section"
+      ],
+      "keywords_found": [
+        "backend",
+        "name",
+        "section"
+      ],
+      "quality": 1.0,
+      "total_time": 25.03,
+      "passed": true,
+      "response_length": 1079
+    },
+    {
+      "id": "full_balance_roundrobin",
+      "question": "Comment configurer l'algorithme roundrobin ?",
+      "keywords_expected": [
+        "balance",
+        "roundrobin",
+        "algorithm"
+      ],
+      "keywords_found": [
+        "balance",
+        "roundrobin",
+        "algorithm"
+      ],
+      "quality": 1.0,
+      "total_time": 28.78,
+      "passed": true,
+      "response_length": 1025
+    },
+    {
+      "id": "full_balance_source",
+      "question": "Comment configurer l'algorithme source pour la persistance ?",
+      "keywords_expected": [
+        "balance",
+        "source",
+        "ip",
+        "persistence"
+      ],
+      "keywords_found": [
+        "source",
+        "ip"
+      ],
+      "quality": 0.5,
+      "total_time": 26.41,
+      "passed": false,
+      "response_length": 1251
+    },
+    {
+      "id": "full_balance_uri",
+      "question": "Comment configurer l'algorithme uri pour le load balancing ?",
+      "keywords_expected": [
+        "balance",
+        "uri",
+        "url",
+        "hash"
+      ],
+      "keywords_found": [
+        "balance",
+        "uri",
+        "hash"
+      ],
+      "quality": 0.75,
+      "total_time": 31.12,
+      "passed": false,
+      "response_length": 1399
+    },
+    {
+      "id": "full_server_weight",
+      "question": "Comment configurer le poids d'un serveur ?",
+      "keywords_expected": [
+        "weight",
+        "server",
+        "balance"
+      ],
+      "keywords_found": [
+        "weight",
+        "server",
+        "balance"
+      ],
+      "quality": 1.0,
+      "total_time": 27.35,
+      "passed": true,
+      "response_length": 1337
+    },
+    {
+      "id": "full_server_backup",
+      "question": "Comment configurer un serveur de backup ?",
+      "keywords_expected": [
+        "backup",
+        "server",
+        "failover"
+      ],
+      "keywords_found": [
+        "backup",
+        "server",
+        "failover"
+      ],
+      "quality": 1.0,
+      "total_time": 41.92,
+      "passed": true,
+      "response_length": 2481
+    },
+    {
+      "id": "full_server_disabled",
+      "question": "Comment désactiver temporairement un serveur ?",
+      "keywords_expected": [
+        "disabled",
+        "server",
+        "disable"
+      ],
+      "keywords_found": [
+        "server",
+        "disable"
+      ],
+      "quality": 0.67,
+      "total_time": 26.48,
+      "passed": false,
+      "response_length": 1127
+    },
+    {
+      "id": "full_server_check_port",
+      "question": "Comment spécifier un port personnalisé pour les health checks ?",
+      "keywords_expected": [
+        "port",
+        "check",
+        "server",
+        "health"
+      ],
+      "keywords_found": [
+        "port",
+        "check",
+        "server",
+        "health"
+      ],
+      "quality": 1.0,
+      "total_time": 27.93,
+      "passed": true,
+      "response_length": 1341
+    },
+    {
+      "id": "full_acl_host",
+      "question": "Comment créer une ACL basée sur le host HTTP ?",
+      "keywords_expected": [
+        "acl",
+        "hdr",
+        "host",
+        "domain"
+      ],
+      "keywords_found": [
+        "acl",
+        "hdr",
+        "host"
+      ],
+      "quality": 0.75,
+      "total_time": 31.1,
+      "passed": false,
+      "response_length": 1305
+    },
+    {
+      "id": "full_acl_method",
+      "question": "Comment créer une ACL basée sur la méthode HTTP ?",
+      "keywords_expected": [
+        "acl",
+        "method",
+        "GET",
+        "POST",
+        "PUT"
+      ],
+      "keywords_found": [
+        "acl",
+        "method",
+        "GET",
+        "POST"
+      ],
+      "quality": 0.8,
+      "total_time": 30.68,
+      "passed": true,
+      "response_length": 1802
+    },
+    {
+      "id": "full_acl_status",
+      "question": "Comment créer une ACL basée sur le status code de réponse ?",
+      "keywords_expected": [
+        "acl",
+        "status",
+        "code",
+        "response"
+      ],
+      "keywords_found": [
+        "acl",
+        "status",
+        "code",
+        "response"
+      ],
+      "quality": 1.0,
+      "total_time": 37.66,
+      "passed": true,
+      "response_length": 1544
+    },
+    {
+      "id": "full_acl_src",
+      "question": "Comment créer une ACL basée sur l'IP source ?",
+      "keywords_expected": [
+        "acl",
+        "src",
+        "source",
+        "ip",
+        "subnet"
+      ],
+      "keywords_found": [
+        "acl",
+        "src",
+        "source",
+        "ip"
+      ],
+      "quality": 0.8,
+      "total_time": 29.92,
+      "passed": true,
+      "response_length": 1036
+    },
+    {
+      "id": "full_acl_dst",
+      "question": "Comment créer une ACL basée sur l'IP de destination ?",
+      "keywords_expected": [
+        "acl",
+        "dst",
+        "destination",
+        "ip"
+      ],
+      "keywords_found": [
+        "acl"
+      ],
+      "quality": 0.25,
+      "total_time": 42.34,
+      "passed": false,
+      "response_length": 2609
+    },
+    {
+      "id": "full_acl_port",
+      "question": "Comment créer une ACL basée sur le port de destination ?",
+      "keywords_expected": [
+        "acl",
+        "dst_port",
+        "port",
+        "destination"
+      ],
+      "keywords_found": [
+        "acl",
+        "port",
+        "destination"
+      ],
+      "quality": 0.75,
+      "total_time": 36.01,
+      "passed": false,
+      "response_length": 1299
+    },
+    {
+      "id": "full_acl_beg",
+      "question": "Comment utiliser path_beg pour matcher un début de chemin ?",
+      "keywords_expected": [
+        "path_beg",
+        "acl",
+        "path",
+        "begin"
+      ],
+      "keywords_found": [
+        "path_beg",
+        "acl",
+        "path"
+      ],
+      "quality": 0.75,
+      "total_time": 28.42,
+      "passed": false,
+      "response_length": 1038
+    },
+    {
+      "id": "full_acl_end",
+      "question": "Comment utiliser path_end pour matcher une fin de chemin ?",
+      "keywords_expected": [
+        "path_end",
+        "acl",
+        "path",
+        "end"
+      ],
+      "keywords_found": [
+        "path_end",
+        "acl",
+        "path",
+        "end"
+      ],
+      "quality": 1.0,
+      "total_time": 36.95,
+      "passed": true,
+      "response_length": 1180
+    },
+    {
+      "id": "full_acl_regex",
+      "question": "Comment utiliser une expression régulière dans une ACL ?",
+      "keywords_expected": [
+        "acl",
+        "regex",
+        "regexp",
+        "pattern"
+      ],
+      "keywords_found": [
+        "acl",
+        "regex",
+        "pattern"
+      ],
+      "quality": 0.75,
+      "total_time": 29.56,
+      "passed": false,
+      "response_length": 1503
+    },
+    {
+      "id": "full_acl_negation",
+      "question": "Comment négativer une condition ACL avec ! ?",
+      "keywords_expected": [
+        "!",
+        "not",
+        "acl",
+        "negation",
+        "unless"
+      ],
+      "keywords_found": [
+        "!",
+        "not",
+        "acl"
+      ],
+      "quality": 0.6,
+      "total_time": 28.06,
+      "passed": false,
+      "response_length": 1299
+    },
+    {
+      "id": "full_stick_type",
+      "question": "Comment déclarer le type d'une stick-table ?",
+      "keywords_expected": [
+        "stick-table",
+        "type",
+        "ip",
+        "string",
+        "integer"
+      ],
+      "keywords_found": [
+        "stick-table",
+        "type",
+        "ip",
+        "string",
+        "integer"
+      ],
+      "quality": 1.0,
+      "total_time": 29.37,
+      "passed": true,
+      "response_length": 1065
+    },
+    {
+      "id": "full_stick_size",
+      "question": "Comment spécifier la taille d'une stick-table ?",
+      "keywords_expected": [
+        "stick-table",
+        "size",
+        "entries",
+        "m"
+      ],
+      "keywords_found": [
+        "stick-table",
+        "size",
+        "entries",
+        "m"
+      ],
+      "quality": 1.0,
+      "total_time": 28.05,
+      "passed": true,
+      "response_length": 1516
+    },
+    {
+      "id": "full_stick_expire",
+      "question": "Comment configurer l'expiration des entrées stick-table ?",
+      "keywords_expected": [
+        "stick-table",
+        "expire",
+        "time",
+        "s",
+        "m"
+      ],
+      "keywords_found": [
+        "stick-table",
+        "expire",
+        "time",
+        "s",
+        "m"
+      ],
+      "quality": 1.0,
+      "total_time": 28.74,
+      "passed": true,
+      "response_length": 1339
+    },
+    {
+      "id": "full_stick_store",
+      "question": "Comment spécifier les compteurs à stocker dans une stick-table ?",
+      "keywords_expected": [
+        "stick-table",
+        "store",
+        "conn_rate",
+        "http_req_rate"
+      ],
+      "keywords_found": [
+        "stick-table",
+        "store"
+      ],
+      "quality": 0.5,
+      "total_time": 41.24,
+      "passed": false,
+      "response_length": 2034
+    },
+    {
+      "id": "full_track_sc",
+      "question": "Comment utiliser track-sc pour tracker une connexion ?",
+      "keywords_expected": [
+        "track-sc",
+        "stick",
+        "counter",
+        "sc"
+      ],
+      "keywords_found": [
+        "track-sc",
+        "sc"
+      ],
+      "quality": 0.5,
+      "total_time": 32.85,
+      "passed": false,
+      "response_length": 1784
+    },
+    {
+      "id": "full_http_req_rate",
+      "question": "Comment mesurer le taux de requêtes HTTP avec http_req_rate ?",
+      "keywords_expected": [
+        "http_req_rate",
+        "stick-table",
+        "store",
+        "period"
+      ],
+      "keywords_found": [
+        "http_req_rate"
+      ],
+      "quality": 0.25,
+      "total_time": 26.74,
+      "passed": false,
+      "response_length": 1353
+    },
+    {
+      "id": "full_conn_rate",
+      "question": "Comment mesurer le taux de connexions avec conn_rate ?",
+      "keywords_expected": [
+        "conn_rate",
+        "stick-table",
+        "store",
+        "period"
+      ],
+      "keywords_found": [
+        "conn_rate"
+      ],
+      "quality": 0.25,
+      "total_time": 31.05,
+      "passed": false,
+      "response_length": 1735
+    },
+    {
+      "id": "full_deny_429",
+      "question": "Comment retourner un 429 Too Many Requests avec deny ?",
+      "keywords_expected": [
+        "deny",
+        "deny_status",
+        "429",
+        "http-request"
+      ],
+      "keywords_found": [
+        "deny",
+        "429",
+        "http-request"
+      ],
+      "quality": 0.75,
+      "total_time": 30.71,
+      "passed": false,
+      "response_length": 1064
+    },
+    {
+      "id": "full_ssl_cert",
+      "question": "Comment spécifier un certificat SSL dans un bind ?",
+      "keywords_expected": [
+        "ssl",
+        "crt",
+        "certificate",
+        "pem"
+      ],
+      "keywords_found": [
+        "ssl",
+        "crt",
+        "pem"
+      ],
+      "quality": 0.75,
+      "total_time": 23.84,
+      "passed": false,
+      "response_length": 1172
+    },
+    {
+      "id": "full_ssl_crt_list",
+      "question": "Comment utiliser une liste de certificats avec crt-list ?",
+      "keywords_expected": [
+        "crt-list",
+        "ssl",
+        "certificates",
+        "list"
+      ],
+      "keywords_found": [
+        "crt-list",
+        "ssl",
+        "list"
+      ],
+      "quality": 0.75,
+      "total_time": 25.84,
+      "passed": false,
+      "response_length": 1410
+    },
+    {
+      "id": "full_ssl_ca_file",
+      "question": "Comment spécifier un fichier CA pour la vérification SSL ?",
+      "keywords_expected": [
+        "ca-file",
+        "cafile",
+        "verify",
+        "ssl"
+      ],
+      "keywords_found": [
+        "ca-file",
+        "cafile",
+        "verify",
+        "ssl"
+      ],
+      "quality": 1.0,
+      "total_time": 25.19,
+      "passed": true,
+      "response_length": 1427
+    },
+    {
+      "id": "full_ssl_verify_required",
+      "question": "Comment rendre la vérification client SSL obligatoire ?",
+      "keywords_expected": [
+        "verify",
+        "required",
+        "ssl",
+        "client"
+      ],
+      "keywords_found": [
+        "verify",
+        "required",
+        "ssl",
+        "client"
+      ],
+      "quality": 1.0,
+      "total_time": 26.32,
+      "passed": true,
+      "response_length": 1182
+    },
+    {
+      "id": "full_ssl_sni",
+      "question": "Comment HAProxy gère-t-il SNI pour les certificats multiples ?",
+      "keywords_expected": [
+        "sni",
+        "ssl",
+        "certificate",
+        "bind"
+      ],
+      "keywords_found": [
+        "sni",
+        "ssl",
+        "certificate",
+        "bind"
+      ],
+      "quality": 1.0,
+      "total_time": 32.0,
+      "passed": true,
+      "response_length": 1736
+    },
+    {
+      "id": "full_ssl_force_tlsv",
+      "question": "Comment forcer une version TLS spécifique ?",
+      "keywords_expected": [
+        "force-tlsv",
+        "tls",
+        "version",
+        "ssl"
+      ],
+      "keywords_found": [
+        "force-tlsv",
+        "tls",
+        "version",
+        "ssl"
+      ],
+      "quality": 1.0,
+      "total_time": 30.22,
+      "passed": true,
+      "response_length": 1164
+    },
+    {
+      "id": "full_ssl_default_bind",
+      "question": "Comment configurer SSL par défaut pour tous les binds ?",
+      "keywords_expected": [
+        "default-bind",
+        "ssl",
+        "global"
+      ],
+      "keywords_found": [
+        "ssl",
+        "global"
+      ],
+      "quality": 0.67,
+      "total_time": 38.7,
+      "passed": false,
+      "response_length": 1628
+    },
+    {
+      "id": "full_ssl_backend_verify",
+      "question": "Comment vérifier SSL côté backend dans HAProxy ?",
+      "keywords_expected": [
+        "verify",
+        "ssl",
+        "backend",
+        "ca-file"
+      ],
+      "keywords_found": [
+        "verify",
+        "ssl",
+        "backend"
+      ],
+      "quality": 0.75,
+      "total_time": 28.23,
+      "passed": false,
+      "response_length": 1234
+    },
+    {
+      "id": "full_timeout_connect",
+      "question": "Comment configurer le timeout connect ?",
+      "keywords_expected": [
+        "timeout",
+        "connect",
+        "connection"
+      ],
+      "keywords_found": [
+        "timeout",
+        "connect"
+      ],
+      "quality": 0.67,
+      "total_time": 25.42,
+      "passed": false,
+      "response_length": 952
+    },
+    {
+      "id": "full_timeout_client",
+      "question": "Comment configurer le timeout client ?",
+      "keywords_expected": [
+        "timeout",
+        "client",
+        "client-fin"
+      ],
+      "keywords_found": [
+        "timeout",
+        "client"
+      ],
+      "quality": 0.67,
+      "total_time": 36.41,
+      "passed": false,
+      "response_length": 1109
+    },
+    {
+      "id": "full_timeout_server",
+      "question": "Comment configurer le timeout server ?",
+      "keywords_expected": [
+        "timeout",
+        "server",
+        "server-fin"
+      ],
+      "keywords_found": [
+        "server"
+      ],
+      "quality": 0.33,
+      "total_time": 43.88,
+      "passed": false,
+      "response_length": 2647
+    },
+    {
+      "id": "full_timeout_queue",
+      "question": "Comment configurer le timeout queue ?",
+      "keywords_expected": [
+        "timeout",
+        "queue",
+        "waiting"
+      ],
+      "keywords_found": [
+        "timeout",
+        "queue"
+      ],
+      "quality": 0.67,
+      "total_time": 32.46,
+      "passed": false,
+      "response_length": 1270
+    },
+    {
+      "id": "full_timeout_tunnel",
+      "question": "Comment configurer le timeout tunnel pour TCP ?",
+      "keywords_expected": [
+        "timeout",
+        "tunnel",
+        "tcp",
+        "inactivity"
+      ],
+      "keywords_found": [
+        "timeout",
+        "tunnel",
+        "tcp"
+      ],
+      "quality": 0.75,
+      "total_time": 35.16,
+      "passed": false,
+      "response_length": 1923
+    },
+    {
+      "id": "full_log_stdout",
+      "question": "Comment envoyer les logs vers stdout dans HAProxy ?",
+      "keywords_expected": [
+        "log",
+        "stdout",
+        "fd@",
+        "global"
+      ],
+      "keywords_found": [
+        "log",
+        "stdout",
+        "global"
+      ],
+      "quality": 0.75,
+      "total_time": 27.4,
+      "passed": false,
+      "response_length": 1101
+    }
+  ]
+}

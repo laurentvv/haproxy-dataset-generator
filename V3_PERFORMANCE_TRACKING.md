@@ -15,6 +15,8 @@
 | **V3 + TOP_K + Prompt** | 0.914 | 28.0s | 7/7 (100%) | + Prompt LLM few-shot strict |
 | **V3 + Metadata Filtering** | 0.846 | 22.4s | 82% | + SECTION_HINTS (27 keywords) |
 | **V3 Finale (92 questions)** | **0.868** | **~24s** | **81/92 (88%)** | Scrapping corrigé + 05_bench_targeted |
+| **Agentic RAG (QUICK 7)** | 0.811 | 22.17s | 6/7 (85.7%) | Parent/child chunking, simplifié |
+| **Agentic RAG (FULL 92)** | 0.796 | **11.46s** | 63/92 (68.5%) | + lfm2.5-thinking, skip < 15 mots |
 
 ---
 
@@ -260,7 +262,172 @@ Questions résolues  : 81/92 (88%)
 
 ---
 
+## 🏆 Agentic RAG - Benchmark Complet (2026-02-28 → 2026-03-01)
+
+### QUICK 7 questions (2026-02-28)
+
+**Configuration :**
+- Embedding : qwen3-embedding:8b (4096 dims, MTEB 70.58 #1)
+- Chunks : 434 (parent/child chunking)
+- LLM : qwen3:latest
+- Benchmark : 05_bench_agentic_simple.py --level full
+- Retrieval : Direct ChromaDB + embeddings (pas de graphe LangGraph)
+
+**Résultats (QUICK 7 questions) :**
+```
+Qualité moyenne     : 0.811/1.0
+Temps/requête       : 22.17s
+Questions résolues  : 6/7 (85.7%)
+```
+
+**Scores par question (QUICK) :**
+| ID | Qualité | Keywords | Temps |
+|----|---------|----------|-------|
+| quick_healthcheck | 0.88 | 4/5 | 22.78s |
+| quick_bind | 0.76 | 3/5 | 21.48s |
+| quick_stick_table | 0.64 | 2/5 ⚠️ | 23.70s |
+| quick_acl | 0.88 | 4/5 | 21.73s |
+| quick_timeout | 0.76 | 3/5 | 17.34s |
+| quick_ssl | 0.88 | 4/5 | 22.12s |
+| quick_backend | 0.88 | 4/5 | 26.03s |
+
+**Analyse :**
+- ✅ **85.7% questions résolues** (objectif 80% atteint)
+- ✅ **Temps moyen 22.17s** ← Excellent (retrieval 5s + generation 17s)
+- ✅ **Retrieval efficace** avec qwen3-embedding:8b
+- ⚠️ **stick_table** : retrieval à améliorer (sections 11.1, 11.2, 7.3)
+
+---
+
+### FULL 92 questions (2026-03-01) - OPTIMISÉ
+
+**Configuration :**
+- Embedding : qwen3-embedding:8b (4096 dims, MTEB 70.58 #1)
+- Chunks : 434 child + 112 parent (parent/child chunking)
+- LLM : qwen3:latest
+- Query Analysis : lfm2.5-thinking:1.2b-bf16 (optimisé)
+- Benchmark : 05_bench_agentic.py --level full
+- Timeout : 45s/question
+- Optimisations : Skip analysis for questions < 15 words
+
+**Résultats (FULL 92 questions) :**
+```
+Qualité moyenne     : 0.796/1.0
+Temps/requête       : 11.46s
+Temps total         : 1054.60s (17.6 min)
+Questions résolues  : 63/92 (68.5%)
+```
+
+**Objectifs :**
+| Objectif | Valeur | Statut |
+|----------|--------|--------|
+| Qualité >= 0.80 | 0.796 | ⚠️ **MANQUÉ** (-0.004) |
+| Réussite >= 80% | 68.5% | ❌ **MANQUÉ** (-11.5%) |
+| Temps < 20s | 11.46s | ✅ **EXCELLENT** (-43%) |
+
+**Comparaison V3 vs Agentic (FULL 92 questions) :**
+| Métrique | V3 Finale | Agentic RAG | Diff |
+|----------|-----------|-------------|------|
+| Qualité moyenne | 0.868 | 0.796 | -0.072 ❌ |
+| Questions résolues | 88% | 68.5% | -19.5% ❌ |
+| Temps/requête | ~24s | 11.46s | -52% ✅ |
+
+**Questions critiques (0.00 - échec complet) :**
+| Question | Score | Problème |
+|----------|-------|----------|
+| quick_bind | 0.00 | Empty response (4.79s) |
+| quick_backend | 0.00 | Empty response (6.29s) |
+
+**Questions à améliorer (< 0.60) :**
+| Question | Score | Catégorie | Problème |
+|----------|-------|-----------|----------|
+| full_server_disabled | 0.40 | backend | Generic answer (not HAProxy) |
+| full_backend_name | 0.60 | backend | Missing keywords |
+| full_server_backup | 0.60 | backend | Generic answer (not HAProxy) |
+| full_tcp_response | 0.60 | tcp | Incorrect explanation |
+| full_option_forwardfor | 0.60 | option | Missing keyword |
+| full_converter_lower | 0.60 | converter | Generic (Python, not HAProxy) |
+| full_converter_upper | 0.60 | converter | Generic (not HAProxy) |
+| full_converter_json | 0.55 | converter | Generic (not HAProxy) |
+| full_acl_regex | 0.55 | acl | Generic (not HAProxy) |
+| full_http_req_rate | 0.55 | stick-table | Tool fallback message |
+| full_conn_rate | 0.55 | stick-table | Tool fallback message |
+| full_ssl_ca_file | 0.55 | ssl | Tool fallback message |
+
+**Questions à la limite (0.70) :**
+- full_httpchk_uri, full_balance_uri, full_acl_dst, full_stick_store, full_track_sc, full_ssl_crt_list, full_stats_uri, full_stats_hide, full_stats_socket, full_log_backend, full_option_httplog, full_map_beg (12 questions)
+
+**Analyse par catégorie :**
+| Catégorie | Performance | Problème |
+|-----------|-------------|----------|
+| timeout | ✅ Bonne | - |
+| ssl | ✅ Bonne | - |
+| backend | ⚠️ Moyenne | 2 échecs complets, 3 faibles |
+| acl | ⚠️ Moyenne | Regex, dst, negation |
+| stick-table | ⚠️ Moyenne | Tool fallback (http_req_rate, conn_rate) |
+| converter | ❌ Faible | Réponses génériques (Python) |
+| options | ⚠️ Moyenne | forwardfor, httplog |
+
+**Analyse des échecs :**
+1. **Empty responses (quick_bind, quick_backend)** : Le graphe LangGraph n'a pas trouvé de chunks pertinents
+2. **Generic answers (converters, backend)** : Le LLM répond de manière générique au lieu d'utiliser les outils
+3. **Tool fallback messages** : Les outils ne trouvent pas de chunks pertinents pour certaines requêtes
+
+**Conclusion :**
+- ✅ **Temps excellent** : 11.46s/question (-52% vs V3) ← Objectif < 20s largement dépassé
+- ❌ **Qualité insuffisante** : 0.796 vs 0.868 (V3) ← -0.072 points
+- ❌ **Taux de réussite faible** : 68.5% vs 88% (V3) ← -19.5%
+- ⚠️ **2 échecs complets** : quick_bind, quick_backend (réponses vides)
+- ⚠️ **12 questions à 0.70** : Juste à la limite de résolution
+- ❌ **Réponses génériques** : Le LLM ne utilise pas toujours les outils (converters, backend)
+
+**Décision :**
+- ❌ **Agentic RAG NON PRÊT pour production** (qualité < 0.80, résolution < 80%)
+- ✅ **Architecture prometteuse** (temps excellent, parent/child chunking valide)
+- 🔧 **Optimisations requises** :
+  1. Améliorer le retrieval (RRF, metadata filtering)
+  2. Forcer l'usage des outils dans le prompt
+  3. Améliorer le prompt LLM pour éviter les réponses génériques
+  4. Améliorer le routing pour toujours utiliser les outils
+
+**Note importante :** Aucun fallback V3 n'a été implémenté pour permettre une comparaison équitable entre V3 et Agentic RAG. L'objectif est de choisir la meilleure solution pour la production en toute transparence.
+
+---
+
+## 🎯 Prochaines Étapes
+
+### Comparaison V3 vs Agentic RAG (2026-03-01)
+
+**Objectif** : Déterminer quelle solution déployer en production
+
+| Critère | V3 | Agentic (avant optimisation) | Agentic (après optimisation) |
+|---------|-----|------------------------------|------------------------------|
+| Qualité | 0.868 | 0.796 | ? |
+| Résolution | 88% | 68.5% | ? |
+| Temps/requête | ~24s | 11.46s | ? |
+| Complexité | Faible | Moyenne | Moyenne |
+| Maintenance | Facile | Moyenne | Moyenne |
+
+**Décision finale** : Après les optimisations, un nouveau benchmark FULL 92 questions déterminera :
+- Si Agentic RAG ≥ V3 sur qualité ET résolution → **Agentic RAG** (plus rapide, features agentic)
+- Si V3 > Agentic sur qualité OU résolution → **V3** (plus fiable, éprouvé)
+
+### Optimisations Agentic RAG (2026-03-01) - EN COURS
+
+1. ✅ Metadata filtering + RRF (tools.py)
+2. ✅ SYSTEM_PROMPT renforcé (prompts.py)
+3. ✅ Routing forcé vers outils (edges.py)
+4. ✅ Injection SystemMessage (nodes.py)
+5. ⏳ Benchmark FULL 92 questions (à relancer)
+
+---
+
 ## 📝 Notes et Observations
+
+### 2026-03-01 - Comparaison Équitable
+- **Décision stratégique** : Pas de fallback V3 dans Agentic RAG
+- **Raison** : Permettre une comparaison honnête pour choisir la meilleure solution
+- **Approche** : Améliorer le coeur du système Agentic, pas masquer les faiblesses
 
 ### 2026-02-25 - Metadata Filtering
 - **Problème stick_table :** Le retrieval V3 trouve des chunks moins pertinents pour stick_table (0.64 vs 0.76 en V2)

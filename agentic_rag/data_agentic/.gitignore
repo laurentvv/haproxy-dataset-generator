@@ -1,0 +1,5 @@
+# Données générées
+*.jsonl
+*.json
+*.pkl
+*.csv
