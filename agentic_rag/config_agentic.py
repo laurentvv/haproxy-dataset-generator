@@ -32,18 +32,26 @@ HIERARCHY_REPORT_PATH = DATA_DIR / 'hierarchy_report.json'
 SCRAPING_DIFF_REPORT_PATH = DATA_DIR / 'scraping_diff_report.json'
 
 # Configuration chunking parent/child
+# Stratégie parent/child pour le RAG :
+# - Parent : Document complet (max 4000 chars) pour le contexte
+# - Child : Chunk plus petit (500 chars) pour la recherche vectorielle
+# Chaque child référence son parent pour permettre la récupération du contexte complet
 CHUNKING_CONFIG: dict[str, Any] = {
-    'parent_max_tokens': 4000,
-    'child_max_tokens': 500,
-    'chunk_overlap': 50,
-    'min_chunk_size': 100,
+    'parent_max_tokens': 4000,      # Taille max d'un parent en caractères
+    'child_max_tokens': 500,        # Taille max d'un child en caractères
+    'chunk_overlap': 50,             # Chevauchement entre chunks consécutifs
+    'min_chunk_size': 100,           # Taille min d'un chunk à considérer
+    'min_child_size': 50,            # Taille min d'un child pour être conservé (évite les fragments trop courts)
+    'max_children_per_parent': 20,   # Limite max d'enfants par parent (évite les parents trop volumineux)
 }
 
 # Variables pour le chunking
 CHILD_CHUNK_SIZE = CHUNKING_CONFIG['child_max_tokens']
 CHILD_CHUNK_OVERLAP = CHUNKING_CONFIG['chunk_overlap']
-MIN_PARENT_SIZE = 100
+MIN_PARENT_SIZE = CHUNKING_CONFIG['min_chunk_size']  # Utilise la valeur centralisée
 MAX_PARENT_SIZE = CHUNKING_CONFIG['parent_max_tokens']
+MIN_CHILD_SIZE = CHUNKING_CONFIG['min_child_size']  # Ajouté pour éviter les magic numbers
+MAX_CHILDREN_PER_PARENT = CHUNKING_CONFIG['max_children_per_parent']  # Ajouté pour éviter les magic numbers
 CHUNKS_CHILD_PATH = DATA_DIR / 'chunks_child.json'
 
 # Configuration ChromaDB

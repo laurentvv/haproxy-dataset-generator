@@ -63,32 +63,52 @@ def generate_embeddings_batch(
     
     Returns:
         Liste des embeddings
+    
+    Raises:
+        RuntimeError: Si l'embedding échoue après MAX_RETRIES tentatives
     """
     all_embeddings = []
     
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i:i + batch_size]
-        logger.debug(f"  Batch {i//batch_size + 1}/{(len(texts) + batch_size - 1)//batch_size}")
+        batch_num = i // batch_size + 1
+        total_batches = (len(texts) + batch_size - 1) // batch_size
+        logger.debug(f"  Batch {batch_num}/{total_batches}")
         
         try:
             batch_embeddings = embeddings_model.embed_documents(batch_texts)
             all_embeddings.extend(batch_embeddings)
         except Exception as e:
-            logger.warning(f"Erreur batch {i//batch_size}: {e}")
-            # Tenter de retry avec des pauses
+            logger.warning(f"Erreur batch {batch_num}: {e}")
+            # Tenter de retry avec des pauses exponentielles
             for retry in range(MAX_RETRIES):
-                time.sleep(2 ** retry)  # Pause exponentielle
+                time.sleep(2 ** retry)  # Pause exponentielle: 1s, 2s, 4s
                 try:
                     batch_embeddings = embeddings_model.embed_documents(batch_texts)
                     all_embeddings.extend(batch_embeddings)
-                    logger.info(f"  Batch {i//batch_size + 1} réussi après {retry + 1} tentative(s)")
+                    logger.info(f"  Batch {batch_num} réussi après {retry + 1} tentative(s)")
                     break
                 except Exception as retry_error:
                     if retry == MAX_RETRIES - 1:
-                        logger.error(f"Échec batch {i//batch_size + 1} après {MAX_RETRIES} tentatives")
-                        # Ajouter des embeddings nuls pour maintenir l'alignement
-                        all_embeddings.extend([[0.0] * 768] * len(batch_texts))
+                        # Échec définitif - logger les détails et lever une exception
+                        logger.error(f"Échec batch {batch_num} après {MAX_RETRIES} tentatives")
+                        logger.error(f"Erreur finale: {retry_error}")
+                        logger.error(f"Nombre de textes dans le batch: {len(batch_texts)}")
+                        logger.error(f"Position dans la liste: {i}/{len(texts)}")
+                        # Afficher un échantillon des textes pour investigation
+                        sample_size = min(2, len(batch_texts))
+                        logger.error(f"Échantillon des textes concernés:")
+                        for j in range(sample_size):
+                            text_preview = batch_texts[j][:100] + "..." if len(batch_texts[j]) > 100 else batch_texts[j]
+                            logger.error(f"  [{j}] {text_preview}")
+                        
+                        raise RuntimeError(
+                            f"Impossible de générer les embeddings pour le batch {batch_num} "
+                            f"après {MAX_RETRIES} tentatives. "
+                            f"Erreur: {retry_error}"
+                        ) from retry_error
                     else:
+                        logger.debug(f"  Tentative {retry + 1}/{MAX_RETRIES} échouée: {retry_error}")
                         continue
     
     return all_embeddings
@@ -220,7 +240,17 @@ def main() -> int:
     print(f'   ⏱️  Temps estimé: ~{len(texts_to_embed) * 0.5:.0f}s')
     
     start_time = time.time()
-    all_embeddings = generate_embeddings_batch(embeddings_model, texts_to_embed, BATCH_SIZE)
+    try:
+        all_embeddings = generate_embeddings_batch(embeddings_model, texts_to_embed, BATCH_SIZE)
+    except RuntimeError as e:
+        logger.error(f"Erreur critique lors de la génération des embeddings: {e}")
+        logger.error("L'indexation a été arrêtée pour éviter de corrompre la base de données.")
+        logger.error("Vérifiez que:")
+        logger.error("  1. Ollama est en cours d'exécution (ollama serve)")
+        logger.error(f"  2. Le modèle {EMBEDDING_MODEL} est disponible (ollama pull {EMBEDDING_MODEL})")
+        logger.error("  3. Vous avez suffisamment de mémoire disponible")
+        logger.error("  4. Le serveur Ollama est accessible (http://localhost:11434)")
+        return 1
     elapsed = time.time() - start_time
     
     print(f'   ✓ {len(all_embeddings)} embeddings générés en {elapsed:.1f}s')
@@ -234,6 +264,12 @@ def main() -> int:
     # Vérifier la dimension des embeddings
     embedding_dim = len(all_embeddings[0])
     print(f'   ✓ Dimension des embeddings: {embedding_dim}')
+    
+    # Vérifier que les embeddings ne contiennent pas de valeurs nulles
+    null_count = sum(1 for emb in all_embeddings if all(v == 0.0 for v in emb))
+    if null_count > 0:
+        logger.warning(f"⚠️  {null_count} embeddings contiennent uniquement des zéros")
+        logger.warning("   Cela peut indiquer un problème avec le modèle d'embedding")
 
     # ─────────────────────────────────────────────────────────────
     # 7. Ajouter les documents avec embeddings à ChromaDB

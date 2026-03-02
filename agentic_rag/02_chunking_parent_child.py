@@ -31,7 +31,9 @@ from agentic_rag.config_agentic import (
     CHILD_CHUNK_OVERLAP,
     CHILD_CHUNK_SIZE,
     CHUNKS_CHILD_PATH,
+    MAX_CHILDREN_PER_PARENT,
     MAX_PARENT_SIZE,
+    MIN_CHILD_SIZE,
     MIN_PARENT_SIZE,
     PARENT_STORE_DIR,
     SCRAPED_PAGES_PATH,
@@ -44,10 +46,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
 )
 logger = logging.getLogger(__name__)
-
-# Seuils de qualité
-MIN_CHILD_SIZE = 50  # Un child trop court est ignoré
-MAX_CHILDREN_PER_PARENT = 20  # Limite pour éviter les parents trop gros
 
 
 def main() -> int:
