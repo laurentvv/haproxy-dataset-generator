@@ -66,6 +66,7 @@ venv.bak/
 # IDEs
 .idea/
 .vscode/
+.qwen/
 *.swp
 *.swo
 *~
@@ -121,4 +122,4 @@ desktop.ini
 credentials
 *.credentials
 uv.lock
-uv.lock
+

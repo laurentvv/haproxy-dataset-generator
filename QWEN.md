@@ -8,12 +8,12 @@ This project implements a **RAG (Retrieval-Augmented Generation) system** for HA
 2. **Agentic RAG Pipeline** (`agentic_rag/`) - LangGraph-based multi-agent system with parent/child chunking
 
 **Tech Stack:**
-- **Python**: 3.12+ (managed via `uv`)
+- **Python**: 3.13+ (managed via `uv`)
 - **LLM**: Ollama (qwen3:latest, gemma3:latest, qwen3-embedding:8b)
 - **Vector DB**: ChromaDB
 - **Lexical Search**: BM25
 - **Reranking**: FlashRank
-- **UI**: Gradio 6.6.0
+- **UI**: Gradio 6.8.0
 - **Agent Framework**: LangGraph (agentic pipeline only)
 - **Linting/Formatting**: ruff
 
