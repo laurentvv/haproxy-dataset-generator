@@ -27,6 +27,8 @@ if sys.platform == "win32":
 
 import requests
 
+from config import ollama_config, benchmark_config
+
 
 # ── Questions de test ─────────────────────────────────────────────────────────
 TEST_QUESTIONS = [
@@ -53,13 +55,8 @@ TEST_QUESTIONS = [
 
 # ── Modèles à tester ──────────────────────────────────────────────────────────
 # Modèles de génération de texte (pas d'embedding, pas d'OCR, pas de vision)
-DEFAULT_MODELS = [
-    "gemma3:latest",  # 3.3 GB - Bon équilibre qualité/vitesse
-    "gemma3n:latest",  # 7.5 GB - Nouveau gemma (plus grand)
-    "qwen3:latest",  # 5.2 GB - Excellent en français
-    "hf.co/tantk/Nanbeige4.1-3B-GGUF:Q4_K_M",  # 2.4 GB - Modèle GGUF compact
-    "lfm2.5-thinking:1.2b-bf16",  # 2.3 GB - Petit mais rapide
-]
+# Utiliser les modèles par défaut depuis config.py
+DEFAULT_MODELS = benchmark_config.default_benchmark_models
 
 # Modèles à exclure (embedding, OCR, etc.)
 EXCLUDED_PATTERNS = [
@@ -115,14 +112,10 @@ frontend http
 </context>"""
 
 
-def get_ollama_url() -> str:
-    return os.getenv("OLLAMA_URL", "http://localhost:11434")
-
-
 def list_available_models() -> list[str]:
     """Liste les modèles disponibles dans Ollama (filtre embedding/OCR)."""
     try:
-        response = requests.get(f"{get_ollama_url()}/api/tags", timeout=10)
+        response = requests.get(f"{ollama_config.url}/api/tags", timeout=10)
         response.raise_for_status()
         all_models = [m["name"] for m in response.json().get("models", [])]
 
@@ -152,7 +145,7 @@ def unload_model() -> bool:
         # Ollama décharge automatiquement les modèles après inactivité
         # On peut forcer avec un appel vide
         requests.post(
-            f"{get_ollama_url()}/api/generate",
+            f"{ollama_config.url}/api/generate",
             json={"model": "", "prompt": ""},
             timeout=5,
         )
@@ -172,7 +165,7 @@ def load_model(model_name: str) -> bool:
     try:
         # Petit appel pour charger le modèle
         response = requests.post(
-            f"{get_ollama_url()}/api/generate",
+            f"{ollama_config.url}/api/generate",
             json={
                 "model": model_name,
                 "prompt": "Hello",
@@ -237,7 +230,7 @@ def benchmark_model(
                 # Construire un prompt simple pour GGUF
                 prompt = f"System: {SYSTEM_PROMPT}\n\nUser: {question}\n\nAssistant:"
                 response = requests.post(
-                    f"{get_ollama_url()}/api/generate",
+                    f"{ollama_config.url}/api/generate",
                     json={
                         "model": model_name,
                         "prompt": prompt,
@@ -257,7 +250,7 @@ def benchmark_model(
             else:
                 # Format standard pour les modèles natifs Ollama
                 response = requests.post(
-                    f"{get_ollama_url()}/api/chat",
+                    f"{ollama_config.url}/api/chat",
                     json={
                         "model": model_name,
                         "messages": messages,
@@ -487,7 +480,7 @@ def main():
     # Vérifier Ollama
     print("🔍 Vérification d'Ollama...")
     try:
-        response = requests.get(f"{get_ollama_url()}/api/tags", timeout=10)
+        response = requests.get(f"{ollama_config.url}/api/tags", timeout=10)
         response.raise_for_status()
         available_models = [m["name"] for m in response.json().get("models", [])]
         print(f"✅ {len(available_models)} modèles disponibles")

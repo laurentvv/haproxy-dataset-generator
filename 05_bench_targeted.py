@@ -25,6 +25,9 @@ import io
 import time
 import requests
 
+# Import configuration depuis config.py
+from config import ollama_config, llm_config
+
 # Fix encoding Windows
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
@@ -41,8 +44,8 @@ get_questions_by_level = bench_questions.get_questions_by_level
 
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-DEFAULT_MODEL = "qwen3:latest"
-OLLAMA_URL = "http://localhost:11434"
+DEFAULT_MODEL = llm_config.default_model
+OLLAMA_URL = ollama_config.url
 
 SYSTEM_PROMPT = """Tu es un expert HAProxy 3.2.
 

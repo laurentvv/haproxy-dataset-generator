@@ -22,7 +22,12 @@ import numpy as np
 from pathlib import Path
 
 # Import configuration (must be before logging_config to avoid circular imports)
-from config import ollama_config, retrieval_config, validation_config
+from config import (
+    ollama_config,
+    retrieval_config,
+    validation_config,
+    boosting_config,
+)
 
 # Use centralized logging configuration
 from logging_config import setup_logging
@@ -235,36 +240,36 @@ CHUNKS_PKL = INDEX_DIR / "chunks.pkl"
 #
 # IA Keyword Boost:
 #   - Boosts chunks where IA-extracted keywords match the query
-#   - Weight: 0.3 (moderate impact, keywords are reliable but not definitive)
+#   - Weight: from config (moderate impact, keywords are reliable but not definitive)
 #   - Formula: weight * (matching_keywords / total_keywords)
-IA_KEYWORD_BOOST_WEIGHT = 0.3
+IA_KEYWORD_BOOST_WEIGHT = boosting_config.metadata_boost * 0.3
 
 # IA Synonym Boost:
 #   - Boosts chunks where IA-extracted synonyms match the query
-#   - Weight: 0.2 (lower impact, synonyms are less precise than keywords)
+#   - Weight: from config (lower impact, synonyms are less precise than keywords)
 #   - Formula: weight * (matching_synonyms / total_synonyms)
-IA_SYNONYM_BOOST_WEIGHT = 0.2
+IA_SYNONYM_BOOST_WEIGHT = boosting_config.metadata_boost * 0.2
 
 # IA Category Boost:
 #   - Boosts chunks based on category matching between query and chunk
-#   - Direct match: 0.5 (high impact, category is a strong signal)
-#   - Related match: 0.3 (moderate impact, for semantically related categories)
-#   - General match: 0.2 (low impact, for broad categories like ACL)
-CATEGORY_BOOST_DIRECT = 0.5
-CATEGORY_BOOST_RELATED = 0.3
-CATEGORY_BOOST_GENERAL = 0.2
+#   - Direct match: from config (high impact, category is a strong signal)
+#   - Related match: from config * 0.6 (moderate impact, for semantically related categories)
+#   - General match: from config * 0.4 (low impact, for broad categories like ACL)
+CATEGORY_BOOST_DIRECT = boosting_config.section_boost
+CATEGORY_BOOST_RELATED = boosting_config.section_boost * 0.6
+CATEGORY_BOOST_GENERAL = boosting_config.section_boost * 0.4
 
 # Title Boost:
 #   - Boosts chunks where strong keywords appear in the title
-#   - Weight: 0.3 per matching keyword (cumulative)
+#   - Weight: from config per matching keyword (cumulative)
 #   - Strong keywords: ["stick-table", "track-sc", "http_req_rate", "conn_rate", "deny", "acl"]
-TITLE_BOOST_WEIGHT = 0.3
+TITLE_BOOST_WEIGHT = boosting_config.title_boost * 0.3
 
 # Match Ratio Boost:
 #   - Boosts chunks based on keyword matching ratio in content/title
-#   - Weight: 0.5 (moderate impact, measures overall keyword relevance)
+#   - Weight: from config (moderate impact, measures overall keyword relevance)
 #   - Formula: weight * (matches / total_expanded_keywords)
-MATCH_RATIO_BOOST_WEIGHT = 0.5
+MATCH_RATIO_BOOST_WEIGHT = boosting_config.content_boost * 0.5
 
 
 # ── Metadata Filtering V3+ ───────────────────────────────────────────────────

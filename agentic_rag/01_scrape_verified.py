@@ -1,371 +1,391 @@
 #!/usr/bin/env python3
 """
-Étape 1 : Scraping HAProxy docs avec vérification pas-à-pas.
+Étape 1 : Scraping HAProxy docs avec crawl4ai pour agentic_rag.
 
-WORKFLOW :
-  1. Compter les données du projet principal (data/sections_enriched.jsonl)
-  2. Lire 01_scrape.py du projet principal pour récupérer URLs + sélecteurs
-  3. Scraper les mêmes pages en ajoutant l'extraction de hiérarchie
-  4. Sauvegarder scraped_pages.json
-  5. Afficher un rapport détaillé et ATTENDRE validation utilisateur
-  6. Seulement si OK → générer hierarchy_report.json et comparer avec référence
+Ce script utilise crawl4ai (AsyncWebCrawler) pour scraper la documentation HAProxy
+et génère un fichier JSON avec des métadonnées riches pour le chunking parent/child.
 """
 
+import asyncio
 import json
-import logging
+import re
 import sys
+import time
 from pathlib import Path
+from typing import Any
 
-# Ajouter le répertoire parent au path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-# Configurer l'encodage UTF-8 pour la sortie standard
+# Configuration de l'encodage UTF-8 pour la sortie standard (Windows)
 if sys.platform == 'win32':
     import io
-
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
-from agentic_rag.config_agentic import (
-    DATA_DIR,
-    SCRAPED_PAGES_DIR,
-    SCRAPED_PAGES_PATH,
-    SCRAPER_CONFIG,
-)
-from agentic_rag.scraper.compare_with_reference import ReferenceComparator
-from agentic_rag.scraper.haproxy_scraper import HAProxyScraper
-from agentic_rag.scraper.html_structure_analyzer import HTMLStructureAnalyzer
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 
-# Configuration du logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-)
-logger = logging.getLogger(__name__)
+# Configuration des URLs à scraper
+URLS = [
+    "https://docs.haproxy.org/3.2/intro.html",
+    "https://docs.haproxy.org/3.2/configuration.html",
+    "https://docs.haproxy.org/3.2/management.html",
+]
+
+# Chemins de sortie (basés sur config_agentic.py)
+OUTPUT_DIR = Path(__file__).parent / "data_agentic" / "scraped_pages"
+OUTPUT_FILE = OUTPUT_DIR / "scraped_3.2.json"
 
 
-def count_reference_data() -> tuple[int, list[dict]]:
+def parse_markdown_sections(markdown: str, base_url: str) -> list[dict[str, Any]]:
     """
-    Compte les données du projet principal pour avoir une référence.
-    
-    Returns:
-        Tuple (nombre d'entrées, échantillon de 3 entrées pour structure)
-    """
-    # Fichier de référence principal
-    ref_path = Path(__file__).parent.parent / 'data' / 'sections_enriched.jsonl'
-    
-    if not ref_path.exists():
-        print(f"⚠️  Fichier de référence non trouvé: {ref_path}")
-        return 0, []
-    
-    # Charger les données JSONL
-    reference_data = []
-    with open(ref_path, encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                try:
-                    entry = json.loads(line)
-                    reference_data.append(entry)
-                except json.JSONDecodeError:
-                    continue
-    
-    count = len(reference_data)
-    sample = reference_data[:3] if reference_data else []
-    
-    return count, sample
-
-
-def print_reference_report(count: int, sample: list[dict]) -> None:
-    """Affiche le rapport de référence."""
-    print("\n" + "=" * 60)
-    print("📊 RÉFÉRENCE PROJET PRINCIPAL")
-    print("=" * 60)
-    print(f"   Fichier : data/sections_enriched.jsonl")
-    print(f"   Nombre d'entrées : {count}")
-    
-    if sample:
-        print(f"\n   Structure d'une entrée (échantillon) :")
-        for i, entry in enumerate(sample[:1], 1):
-            if isinstance(entry, dict):
-                print(f"      Clés : {list(entry.keys())}")
-                print(f"      Exemple URL : {entry.get('url', 'N/A')[:80]}...")
-                print(f"      Exemple title : {entry.get('title', 'N/A')[:60]}...")
-    
-    print("\n" + "=" * 60)
-
-
-def print_scraping_report(pages: list, reference_count: int) -> None:
-    """
-    Affiche un rapport lisible pour validation humaine.
+    Découpe le markdown généré par crawl4ai en sections basées sur les titres numérotés de HAProxy.
     
     Args:
-        pages: Liste des pages scrapées
-        reference_count: Nombre de pages de référence
+        markdown: Contenu markdown généré par crawl4ai
+        base_url: URL de base de la page
+        
+    Returns:
+        Liste de sections avec métadonnées riches
     """
-    # Stats globales
-    total = len(pages)
-    coverage_pct = (total / reference_count * 100) if reference_count else 0
+    sections = []
+
+    # Extraire le titre de la page parente
+    parent_title = extract_page_title(markdown, base_url)
+
+    # Regex pour capturer les titres de section avec ancre générés par crawl4ai
+    # Format: # [3.4.1.](url#3.4.1) Titre
+    pattern = r'^(#+) \s*\[(.*?)\]\(.*?#(.*?)\)\s*(.*?)$'
+
+    matches = list(re.finditer(pattern, markdown, re.MULTILINE))
+
+    if not matches:
+        # Pas de sections trouvées, créer une section unique avec tout le contenu
+        return [{
+            "url": base_url,
+            "title": parent_title,
+            "content": markdown.strip(),
+            "parent_url": base_url,
+            "parent_title": parent_title,
+            "depth": 1,
+            "section_path": [parent_title],
+            "anchor": None,
+            "source_file": None
+        }]
+
+    # Ajouter l'introduction si elle existe
+    if matches[0].start() > 0:
+        intro_content = markdown[:matches[0].start()].strip()
+        if intro_content:
+            sections.append({
+                "url": base_url,
+                "title": f"{parent_title} - Introduction",
+                "content": intro_content,
+                "parent_url": base_url,
+                "parent_title": parent_title,
+                "depth": 1,
+                "section_path": [parent_title, "Introduction"],
+                "anchor": None,
+                "source_file": None
+            })
+
+    # Traiter chaque section
+    for i, match in enumerate(matches):
+        anchor_text = match.group(2).strip()
+        anchor_id = match.group(3).strip()
+        title_text = match.group(4).strip()
+
+        # Construire le titre complet
+        full_title = f"{anchor_text} {title_text}".strip()
+        if not title_text:
+            full_title = anchor_text
+
+        # Extraire le contenu de la section
+        start_pos = match.end()
+        end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(markdown)
+        content = markdown[start_pos:end_pos].strip()
+
+        # Calculer la profondeur à partir du titre numéroté
+        depth = calculate_depth(anchor_text)
+
+        # Construire le chemin de section
+        section_path = build_section_path(anchor_text, parent_title)
+
+        if content:
+            sections.append({
+                "url": f"{base_url}#{anchor_id}",
+                "title": full_title,
+                "content": content,
+                "parent_url": base_url,
+                "parent_title": parent_title,
+                "depth": depth,
+                "section_path": section_path,
+                "anchor": anchor_id,
+                "source_file": None
+            })
+
+    return sections
+
+
+def extract_page_title(markdown: str, base_url: str) -> str:
+    """
+    Extrait le titre de la page parente à partir du markdown ou de l'URL.
+    
+    Args:
+        markdown: Contenu markdown
+        base_url: URL de base
+        
+    Returns:
+        Titre de la page parente
+    """
+    # Essayer de trouver le premier titre H1
+    h1_match = re.search(r'^#\s+(.+)$', markdown, re.MULTILINE)
+    if h1_match:
+        return h1_match.group(1).strip()
+    
+    # Extraire depuis l'URL (ex: configuration.html -> Configuration)
+    url_match = re.search(r'/([^/]+)\.html$', base_url)
+    if url_match:
+        return url_match.group(1).replace('-', ' ').title()
+    
+    return "Documentation"
+
+
+def calculate_depth(anchor_text: str) -> int:
+    """
+    Calcule la profondeur d'une section à partir de son titre numéroté.
+    
+    Args:
+        anchor_text: Texte de l'ancre (ex: "3.4.1.")
+        
+    Returns:
+        Profondeur (nombre de niveaux)
+    """
+    # Extraire les nombres du titre numéroté
+    numbers = re.findall(r'\d+', anchor_text)
+    return len(numbers) if numbers else 1
+
+
+def build_section_path(anchor_text: str, parent_title: str) -> list[str]:
+    """
+    Construit le chemin de section pour une section donnée.
+    
+    Args:
+        anchor_text: Texte de l'ancre (ex: "3.4.1.")
+        parent_title: Titre de la page parente
+        
+    Returns:
+        Liste des sections dans le chemin
+    """
+    path = [parent_title]
+    
+    # Extraire les nombres pour construire un chemin hiérarchique
+    numbers = re.findall(r'\d+', anchor_text)
+    if numbers:
+        # Créer des étiquettes pour chaque niveau
+        for i, num in enumerate(numbers):
+            if i == 0:
+                label = f"Section {num}"
+            else:
+                label = f"{'.'.join(numbers[:i+1])}"
+            path.append(label)
+    
+    return path
+
+
+async def scrape_all_async() -> list[dict[str, Any]]:
+    """
+    Scrape toutes les URLs configurées en utilisant crawl4ai.
+    
+    Returns:
+        Liste de toutes les sections scrapées
+    """
+    print(f"[INFO] Démarrage du scraping avec crawl4ai sur {len(URLS)} URLs...")
+
+    browser_config = BrowserConfig(headless=True)
+    run_config = CrawlerRunConfig(
+        cache_mode=CacheMode.BYPASS,
+        excluded_tags=["nav", "footer", "header"]
+    )
+
+    all_sections = []
+
+    async with AsyncWebCrawler(config=browser_config) as crawler:
+        for url in URLS:
+            print(f"[FETCH] Scraping {url}...")
+            result = await crawler.arun(url=url, config=run_config)
+
+            if result.success:
+                sections = parse_markdown_sections(result.markdown, url)
+                all_sections.extend(sections)
+                print(f"[SUCCESS] Extrait {len(sections)} sections depuis {url}")
+            else:
+                print(f"[ERROR] Échec du scraping pour {url}: {result.error_message}")
+
+    return all_sections
+
+
+def validate_sections(sections: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Valide les sections scrapées et génère un rapport.
+    
+    Args:
+        sections: Liste des sections scrapées
+        
+    Returns:
+        Dictionnaire contenant les statistiques de validation
+    """
+    total_sections = len(sections)
+    
+    # Sections avec contenu vide ou trop court
+    empty_content = [s for s in sections if len(s.get("content", "")) < 50]
+    short_content = [s for s in sections if 50 <= len(s.get("content", "")) < 200]
+    
+    # Sections sans métadonnées complètes
+    missing_metadata = []
+    required_fields = ["url", "title", "content", "parent_url", "parent_title", "depth", "section_path", "anchor"]
+    for s in sections:
+        missing = [field for field in required_fields if field not in s or s[field] is None]
+        if missing:
+            missing_metadata.append({"url": s.get("url", "N/A"), "missing": missing})
     
     # Distribution par profondeur
-    by_depth = {}
-    for p in pages:
-        d = p.get("depth", 1)
-        by_depth[d] = by_depth.get(d, 0) + 1
+    depth_distribution = {}
+    for s in sections:
+        depth = s.get("depth", 1)
+        depth_distribution[depth] = depth_distribution.get(depth, 0) + 1
     
-    # Pages avec contenu vide ou trop court
-    empty = [p for p in pages if len(p.get("content", "")) < 50]
-    short = [p for p in pages if 50 <= len(p.get("content", "")) < 200]
+    # Distribution par page parente
+    parent_distribution = {}
+    for s in sections:
+        parent = s.get("parent_title", "Unknown")
+        parent_distribution[parent] = parent_distribution.get(parent, 0) + 1
     
-    # Pages sans section_path
-    no_path = [p for p in pages if not p.get("section_path")]
-    
-    # Top sections scrapées
-    sections = {}
-    for p in pages:
-        sp = p.get("section_path", ["?"])
-        top = sp[0] if sp else "?"
-        sections[top] = sections.get(top, 0) + 1
-    
-    print("\n" + "=" * 60)
-    print("📊 RAPPORT DE SCRAPING — VALIDATION REQUISE")
-    print("=" * 60)
-    
-    print(f"\n📈 Volume :")
-    print(f"   Pages scrapées     : {total}")
-    print(f"   Référence projet   : {reference_count}")
-    print(f"   Couverture         : {coverage_pct:.1f}%")
-    
-    print(f"\n🌲 Hiérarchie (depth) :")
-    for depth, count in sorted(by_depth.items()):
-        label = {1: "pages racine", 2: "sections h2", 3: "sous-sections h3"}
-        print(f"   depth={depth} ({label.get(depth, '?')}) : {count}")
-    
-    print(f"\n📚 Top sections :")
-    for section, count in sorted(sections.items(), key=lambda x: -x[1])[:10]:
-        print(f"   {section:<40} {count} pages")
-    
-    print(f"\n⚠️  Anomalies détectées :")
-    print(f"   Contenu vide (<50 chars)   : {len(empty)}")
-    print(f"   Contenu court (50-200c)    : {len(short)}")
-    print(f"   Sans section_path          : {len(no_path)}")
-    
-    if empty:
-        print(f"\n   URLs vides (exemples) :")
-        for p in empty[:5]:
-            print(f"   ⚠️  {p['url']}")
-    
-    print("\n" + "=" * 60)
-    print("❓ VALIDATION REQUISE AVANT DE CONTINUER")
-    print("=" * 60)
-    print("""
-Vérifiez :
-  1. Le nombre de pages correspond-il à ce que vous attendez ?
-  2. Les sections listées couvrent-elles bien toute la doc HAProxy ?
-  3. Y a-t-il des anomalies à corriger (pages vides, manquantes) ?
-
-→ Répondez O pour continuer vers l'étape 1.2 (analyse hiérarchie)
-→ Répondez N pour corriger le scraper et relancer
-""")
+    return {
+        "total_sections": total_sections,
+        "empty_content": len(empty_content),
+        "short_content": len(short_content),
+        "missing_metadata": len(missing_metadata),
+        "depth_distribution": depth_distribution,
+        "parent_distribution": parent_distribution,
+        "empty_urls": [s["url"] for s in empty_content[:5]] if empty_content else [],
+        "missing_metadata_details": missing_metadata[:5] if missing_metadata else []
+    }
 
 
-def wait_for_human_validation(step_name: str) -> bool:
+def print_validation_report(validation: dict[str, Any], execution_time: float) -> None:
     """
-    Attend une confirmation humaine. Retourne True si OK.
+    Affiche le rapport de validation.
     
     Args:
-        step_name: Nom de l'étape en cours
-    
-    Returns:
-        True si l'utilisateur valide, False sinon
+        validation: Dictionnaire de validation
+        execution_time: Temps d'exécution en secondes
     """
-    while True:
-        try:
-            answer = input(f"[{step_name}] Continuer ? (O/N) : ").strip().upper()
-            if answer == "O":
-                return True
-            elif answer == "N":
-                print("❌ Validation refusée. Corriger le problème puis relancer.")
-                return False
-            else:
-                print("   Répondre O (oui) ou N (non)")
-        except EOFError:
-            # Mode non-interactif (CI, tests) : on passe automatiquement
-            print("   [Mode non-interactif] Passage automatique")
-            return True
+    print("\n" + "=" * 70)
+    print("📊 RAPPORT DE VALIDATION")
+    print("=" * 70)
+    
+    print(f"\n📈 Volume global :")
+    print(f"   Sections totales          : {validation['total_sections']}")
+    print(f"   Temps d'exécution         : {execution_time:.2f}s")
+    
+    print(f"\n📝 Qualité du contenu :")
+    print(f"   Contenu vide (<50 chars)  : {validation['empty_content']}")
+    print(f"   Contenu court (50-200c)   : {validation['short_content']}")
+    
+    print(f"\n🔧 Métadonnées :")
+    print(f"   Métadonnées incomplètes   : {validation['missing_metadata']}")
+    
+    print(f"\n🌲 Distribution par profondeur :")
+    for depth, count in sorted(validation['depth_distribution'].items()):
+        print(f"   depth={depth} : {count} sections")
+    
+    print(f"\n📚 Distribution par page parente :")
+    for parent, count in sorted(validation['parent_distribution'].items(), key=lambda x: -x[1]):
+        print(f"   {parent:<30} : {count} sections")
+    
+    if validation['empty_urls']:
+        print(f"\n⚠️  URLs avec contenu vide (exemples) :")
+        for url in validation['empty_urls']:
+            print(f"      - {url}")
+    
+    if validation['missing_metadata_details']:
+        print(f"\n⚠️  Sections avec métadonnées manquantes (exemples) :")
+        for item in validation['missing_metadata_details']:
+            print(f"      - {item['url']}: {item['missing']}")
+    
+    print("\n" + "=" * 70)
 
 
-def main() -> int:
+def save_sections(sections: list[dict[str, Any]], output_path: Path) -> None:
+    """
+    Sauvegarde les sections dans un fichier JSON.
+    
+    Args:
+        sections: Liste des sections à sauvegarder
+        output_path: Chemin du fichier de sortie
+    """
+    try:
+        # Créer le répertoire si nécessaire
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Sauvegarder en JSON (format tableau)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(sections, f, ensure_ascii=False, indent=2)
+        
+        print(f"\n[SUCCESS] {len(sections)} sections sauvegardées dans {output_path}")
+    except IOError as e:
+        print(f"\n[ERROR] Erreur lors de l'écriture du fichier {output_path}: {e}")
+        sys.exit(1)
+
+
+async def main() -> int:
     """
     Point d'entrée principal.
     
     Returns:
-        Code de retour (0 pour succès, 1 pour erreur).
+        Code de retour (0 pour succès, 1 pour erreur)
     """
-    print("\n" + "=" * 60)
-    print("=== PHASE 1: Scraping + Validation ===")
-    print("=" * 60)
+    print("\n" + "=" * 70)
+    print("=== SCRAPING HAPROXY DOCS AVEC CRAWL4AI POUR AGENTIC_RAG ===")
+    print("=" * 70)
     
-    # Créer le répertoire de données
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    SCRAPED_PAGES_DIR.mkdir(parents=True, exist_ok=True)
+    start_time = time.time()
     
-    # ─────────────────────────────────────────────────────────────
-    # Étape 1.0 : Compter la référence
-    # ─────────────────────────────────────────────────────────────
-    print("\n📌 Étape 1.0 : Comptage de la référence...")
-    reference_count, reference_sample = count_reference_data()
-    
-    if reference_count > 0:
-        print_reference_report(reference_count, reference_sample)
-        
-        # Validation humaine de la référence
-        print("\n❓ Ces chiffres vous semblent corrects par rapport à ce que vous connaissez du projet ?")
-        if not wait_for_human_validation("Référence projet principal"):
-            sys.exit(1)
-    else:
-        print("⚠️  Aucune référence trouvée dans data/ — la couverture sera estimée sans base de comparaison")
-    
-    # ─────────────────────────────────────────────────────────────
-    # Étape 1.1 : Scraping
-    # ─────────────────────────────────────────────────────────────
-    print("\n📡 Étape 1.1 : Démarrage du scraping HAProxy docs 3.2...")
     try:
-        scraper = HAProxyScraper(
-            base_url=SCRAPER_CONFIG['base_url'],
-            version=SCRAPER_CONFIG['version'],
-            output_dir=SCRAPED_PAGES_DIR,
-        )
-        scraped_data = scraper.scrape_all_pages()
-        scraper.save_scraped_data(scraped_data)
-        print(f"✓ {len(scraped_data)} pages scrapées")
+        # Scraper les URLs
+        sections = await scrape_all_async()
+        
+        if not sections:
+            print("\n[ERROR] Aucune section n'a été scrapée. Vérifiez les URLs et la connexion.")
+            return 1
+        
+        # Valider les sections
+        validation = validate_sections(sections)
+        
+        # Sauvegarder les sections
+        save_sections(sections, OUTPUT_FILE)
+        
+        # Afficher le rapport de validation
+        execution_time = time.time() - start_time
+        print_validation_report(validation, execution_time)
+        
+        # Vérifier s'il y a des problèmes critiques
+        if validation['empty_content'] > validation['total_sections'] * 0.1:
+            print("\n⚠️  ATTENTION: Plus de 10% des sections ont un contenu vide.")
+            print("   Vérifiez les URLs et le parsing avant de continuer.")
+        
+        if validation['missing_metadata'] > 0:
+            print("\n⚠️  ATTENTION: Certaines sections ont des métadonnées incomplètes.")
+            print("   Cela pourrait affecter le chunking parent/child.")
+        
+        print("\n✅ Scraping terminé avec succès.")
+        
+        return 0
+        
     except Exception as e:
-        logger.error(f"Erreur lors du scraping: {e}")
+        print(f"\n[ERROR] Erreur lors du scraping: {e}")
+        import traceback
+        traceback.print_exc()
         return 1
-    
-    # Sauvegarde brute immédiate
-    out_path = SCRAPED_PAGES_PATH
-    print(f"💾 Sauvegardé : {out_path}")
-    
-    # ─────────────────────────────────────────────────────────────
-    # Rapport + validation humaine
-    # ─────────────────────────────────────────────────────────────
-    print_scraping_report(scraped_data, reference_count)
-    
-    if not wait_for_human_validation("Scraping"):
-        sys.exit(1)
-    
-    # ─────────────────────────────────────────────────────────────
-    # Étape 1.2 : Analyse hiérarchie (seulement si scraping validé)
-    # ─────────────────────────────────────────────────────────────
-    print("\n🔍 Étape 1.2 : Analyse de la hiérarchie parent/child...")
-    try:
-        analyzer = HTMLStructureAnalyzer(scraped_data_path=SCRAPED_PAGES_PATH)
-        hierarchy_report = analyzer.analyze_hierarchy()
-        analyzer.save_hierarchy_report(hierarchy_report)
-        print("✓ Rapport de hiérarchie généré")
-    except Exception as e:
-        logger.error(f"Erreur lors de l'analyse de hiérarchie: {e}")
-        return 1
-    
-    print(f"\n📊 Rapport hiérarchie :")
-    print(f"   Parent coverage   : {hierarchy_report.get('parent_coverage', 0):.1%}")
-    print(f"   Orphelins         : {hierarchy_report.get('orphan_children', 0)}")
-    print(f"   Avg children/parent : {hierarchy_report.get('avg_children_per_parent', 'N/A')}")
-    
-    # Alerte si couverture insuffisante
-    if hierarchy_report.get("parent_coverage", 0) < 0.90:
-        print(f"\n⚠️  ATTENTION : parent_coverage {hierarchy_report['parent_coverage']:.1%} < 90%")
-        print("   La hiérarchie parent/child est insuffisante pour le RAG.")
-        print("   Causes possibles : pages scrapées trop plates, TOC non parsée.")
-        print("   → Indiquer si vous souhaitez continuer quand même ou corriger.")
-    
-    if not wait_for_human_validation("Hiérarchie parent/child"):
-        sys.exit(1)
-    
-    # ─────────────────────────────────────────────────────────────
-    # Étape 1.3 : Comparaison avec le projet principal
-    # ─────────────────────────────────────────────────────────────
-    print("\n📊 Étape 1.3 : Comparaison avec le projet principal...")
-    try:
-        reference_path = Path(__file__).parent.parent / 'data' / 'sections_enriched.jsonl'
-        comparator = ReferenceComparator(
-            reference_data_path=reference_path,
-            scraped_data_path=SCRAPED_PAGES_PATH,
-        )
-        diff_report = comparator.compare_coverage()
-        comparator.save_diff_report(diff_report)
-        
-        coverage = diff_report.get('coverage_percentage', 0)
-        print(f"✓ Couverture: {coverage:.1f}%")
-        
-        # Affichage détaillé du rapport de comparaison
-        print("\n" + "=" * 60)
-        print("📊 COMPARAISON AGENTIC vs PROJET PRINCIPAL")
-        print("=" * 60)
-        
-        print(f"\n📈 Volume global :")
-        print(f"   Projet principal  : {diff_report.get('reference_entries', 'N/A')} entrées")
-        print(f"   Agentic RAG       : {diff_report.get('agentic_entries', 'N/A')} entrées")
-        print(f"   Couverture contenu: {coverage:.1f}%")
-        
-        missing_urls = diff_report.get('missing_urls', [])
-        missing_sections = diff_report.get('missing_sections', [])
-        
-        if missing_urls:
-            print(f"\n⚠️  URLs manquantes ({len(missing_urls)}) :")
-            for url in sorted(missing_urls)[:10]:
-                print(f"      - {url}")
-            if len(missing_urls) > 10:
-                print(f"      ... et {len(missing_urls)-10} autres")
-        
-        if missing_sections:
-            print(f"\n⚠️  Sections manquantes ({len(missing_sections)}) :")
-            for s in sorted(missing_sections)[:10]:
-                print(f"      - {s}")
-            if len(missing_sections) > 10:
-                print(f"      ... et {len(missing_sections)-10} autres")
-        
-        print("\n" + "=" * 60)
-        
-        # Validation basée sur la couverture
-        if len(missing_urls) == 0 and len(missing_sections) == 0:
-            print("✅ COUVERTURE COMPLÈTE — aucune donnée manquante détectée")
-        elif coverage >= 95:
-            print(f"⚠️  COUVERTURE QUASI-COMPLÈTE ({coverage:.1f}%) — vérifier les manques ci-dessus")
-        else:
-            print(f"❌ COUVERTURE INSUFFISANTE ({coverage:.1f}%) — scraper à corriger avant de continuer")
-        print("=" * 60)
-        
-        if coverage < 95.0:
-            print(f"\n⚠️  WARNING: Couverture < 95% ({coverage:.1f}%)")
-            if not wait_for_human_validation("Couverture insuffisante"):
-                sys.exit(1)
-        
-    except FileNotFoundError as e:
-        logger.warning(f"Fichier de référence non trouvé, validation ignorée: {e}")
-        coverage = 100.0
-    except Exception as e:
-        logger.error(f"Erreur lors de la comparaison: {e}")
-        return 1
-    
-    # ─────────────────────────────────────────────────────────────
-    # Résumé final
-    # ─────────────────────────────────────────────────────────────
-    print("\n" + "=" * 60)
-    print("✅ PHASE 1 VALIDÉE — prêt pour la Phase 2 (chunking)")
-    print("=" * 60)
-    print(f"\n📊 Résumé :")
-    print(f"   - Pages scrapées: {len(scraped_data)}")
-    print(f"   - Couverture: {coverage:.1f}%")
-    print(f"\n💾 Fichiers produits :")
-    print(f"   → {SCRAPED_PAGES_PATH}")
-    print(f"   → {DATA_DIR / 'hierarchy_report.json'}")
-    print(f"   → {DATA_DIR / 'scraping_diff_report.json'}")
-    print("\nValidation humaine requise avant de passer à Phase 2.")
-    
-    return 0
 
 
-if __name__ == '__main__':
-    sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(asyncio.run(main()))

@@ -10,6 +10,9 @@ import time
 from typing import Generator
 import logging
 
+# Import configuration depuis config.py
+from config import ollama_config, llm_config
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,12 +51,10 @@ _llm_limiter = RateLimiter(calls_per_minute=20)
 
 
 # ── Config ───────────────────────────────────────────────────────────────────
-OLLAMA_URL = "http://localhost:11434"
-DEFAULT_MODEL = "gemma3:latest"  # Changé de qwen3:latest à gemma3:latest (plus stable)
-MAX_CONTEXT_CHARS = 4000  # Limite de contexte envoyé au LLM
-LLM_TIMEOUT = int(
-    os.getenv("LLM_TIMEOUT", "300")
-)  # Timeout configurable (défaut: 300s)
+OLLAMA_URL = ollama_config.base_url
+DEFAULT_MODEL = llm_config.default_model
+MAX_CONTEXT_CHARS = llm_config.max_context_chars
+LLM_TIMEOUT = llm_config.llm_timeout
 
 
 # ── Prompt système ────────────────────────────────────────────────────────────

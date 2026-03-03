@@ -63,6 +63,305 @@ Ce projet implémente un **chatbot RAG (Retrieval-Augmented Generation)** pour l
 
 ---
 
+## ⚙️ Configuration Centralisée
+
+Le projet utilise une configuration centralisée via le module [`config.py`](config.py:1) qui sert de **source unique de vérité** pour tous les paramètres configurables.
+
+### Structure de la configuration
+
+La configuration est organisée en **dataclasses** pour une meilleure lisibilité et maintenabilité :
+
+#### [`OllamaConfig`](config.py:14) - Configuration Ollama
+```python
+@dataclass
+class OllamaConfig:
+    url: str = "http://localhost:11434"           # URL du serveur Ollama
+    embed_model: str = "qwen3-embedding:8b"        # Modèle d'embedding
+    llm_model: str = "qwen3.5:9b"                  # Modèle LLM principal
+    fast_model: str = "lfm2.5-thinking:1.2b-bf16"  # Modèle rapide
+    enrich_model: str = "qwen3.5:9b"               # Modèle d'enrichissement
+    timeout: int = 120                              # Timeout par défaut
+    llm_timeout: int = 300                          # Timeout LLM
+    max_retries: int = 3                            # Nombre de tentatives
+    rate_limit_calls_per_minute: int = 30          # Rate limiting
+```
+
+#### [`RetrievalConfig`](config.py:29) - Configuration du retrieval hybride
+```python
+@dataclass
+class RetrievalConfig:
+    top_k_retrieval: int = 50      # Candidats par méthode (vector + BM25)
+    top_k_rrf: int = 30            # Résultats après fusion RRF
+    top_k_rerank: int = 10         # Résultats finaux après reranking
+    rrf_k: int = 60                # Paramètre RRF
+    confidence_threshold: float = 0.0  # Seuil de confiance
+    disable_flashrank: bool = False  # Désactiver FlashRank
+```
+
+#### [`BoostingConfig`](config.py:52) - Configuration du boosting IA metadata
+```python
+@dataclass
+class BoostingConfig:
+    title_boost: float = 2.0        # Boost pour les titres
+    section_boost: float = 1.5      # Boost pour les sections
+    content_boost: float = 1.0      # Boost pour le contenu
+    example_boost: float = 1.2     # Boost pour les exemples
+    warning_boost: float = 1.3     # Boost pour les avertissements
+    metadata_boost: float = 0.8     # Boost pour les metadata
+    max_boost: float = 3.0         # Maximum de boost appliqué
+```
+
+#### [`RerankerConfig`](config.py:68) - Configuration du reranking
+```python
+@dataclass
+class RerankerConfig:
+    enabled: bool = True           # Activer/désactiver le reranking
+    top_k: int = 10                # Nombre de résultats à reranker
+```
+
+#### [`BenchmarkConfig`](config.py:79) - Configuration des benchmarks
+```python
+@dataclass
+class BenchmarkConfig:
+    default_benchmark_models: list[str] = ["qwen3.5:9b", "gemma3:latest"]
+    quick_test_questions: int = 5  # Questions pour test rapide
+    full_test_questions: int = 50  # Questions pour test complet
+```
+
+#### [`ChunkingConfig`](config.py:97) - Configuration du chunking
+```python
+@dataclass
+class ChunkingConfig:
+    min_chunk_chars: int = 300     # Taille minimale d'un chunk
+    max_chunk_chars: int = 800     # Taille maximale d'un chunk
+    overlap_chars: int = 150      # Overlap entre chunks
+    merge_threshold: int = 500     # Seuil pour fusionner sections courtes
+```
+
+#### [`IndexConfig`](config.py:114) - Configuration de l'indexation
+```python
+@dataclass
+class IndexConfig:
+    base_dir: Path = Path.cwd()    # Répertoire de base
+    data_dir: Path = "data"        # Répertoire des données
+    index_dir: Path = "index_v3"   # Répertoire des index
+    chroma_collection: str = "haproxy_docs_v3"  # Collection ChromaDB
+    batch_size: int = 100          # Batch size pour l'embedding
+```
+
+#### [`LLMConfig`](config.py:147) - Configuration de la génération LLM
+```python
+@dataclass
+class LLMConfig:
+    default_model: str = "qwen3.5:9b"  # Modèle par défaut
+    max_context_chars: int = 4000      # Limite de contexte
+    temperature: float = 0.1            # Température (faible = factuel)
+    rate_limit_calls_per_minute: int = 20  # Rate limiting
+```
+
+#### [`ValidationConfig`](config.py:164) - Configuration de la validation
+```python
+@dataclass
+class ValidationConfig:
+    max_query_length: int = 2000           # Longueur max des requêtes
+    max_metadata_length: int = 500         # Longueur max des metadata
+    max_metadata_items: int = 20           # Nombre max d'items
+    max_metadata_item_length: int = 100   # Longueur max par item
+```
+
+#### [`LoggingConfig`](config.py:181) - Configuration du logging
+```python
+@dataclass
+class LoggingConfig:
+    log_level: str = "INFO"      # Niveau de log
+    log_file: str = ""           # Fichier de log (vide = stdout)
+```
+
+### Variables d'environnement
+
+Toutes les configurations peuvent être surchargées via des variables d'environnement :
+
+#### Ollama
+- `OLLAMA_URL` - URL du serveur Ollama (défaut: `http://localhost:11434`)
+- `EMBED_MODEL` - Modèle d'embedding (défaut: `qwen3-embedding:8b`)
+- `LLM_MODEL` - Modèle LLM principal (défaut: `qwen3.5:9b`)
+- `FAST_MODEL` - Modèle rapide (défaut: `lfm2.5-thinking:1.2b-bf16`)
+- `ENRICH_MODEL` - Modèle d'enrichissement (défaut: `qwen3.5:9b`)
+- `OLLAMA_TIMEOUT` - Timeout par défaut en secondes (défaut: `120`)
+- `LLM_TIMEOUT` - Timeout LLM en secondes (défaut: `300`)
+- `OLLAMA_MAX_RETRIES` - Nombre de tentatives (défaut: `3`)
+- `OLLAMA_RATE_LIMIT` - Rate limiting calls/min (défaut: `30`)
+
+#### Retrieval
+- `TOP_K_RETRIEVAL` - Candidats par méthode (défaut: `50`)
+- `TOP_K_RRF` - Résultats après fusion RRF (défaut: `30`)
+- `TOP_K_RERANK` - Résultats finaux (défaut: `10`)
+- `RRF_K` - Paramètre RRF (défaut: `60`)
+- `CONFIDENCE_THRESHOLD` - Seuil de confiance (défaut: `0.0`)
+- `DISABLE_FLASHRANK` - Désactiver FlashRank (défaut: `false`)
+
+#### Boosting
+- `TITLE_BOOST` - Boost pour les titres (défaut: `2.0`)
+- `SECTION_BOOST` - Boost pour les sections (défaut: `1.5`)
+- `CONTENT_BOOST` - Boost pour le contenu (défaut: `1.0`)
+- `EXAMPLE_BOOST` - Boost pour les exemples (défaut: `1.2`)
+- `WARNING_BOOST` - Boost pour les avertissements (défaut: `1.3`)
+- `METADATA_BOOST` - Boost pour les metadata (défaut: `0.8`)
+- `MAX_BOOST` - Maximum de boost (défaut: `3.0`)
+
+#### Reranker
+- `RERANKER_ENABLED` - Activer le reranking (défaut: `true`)
+- `RERANKER_TOP_K` - Nombre de résultats à reranker (défaut: `10`)
+
+#### Benchmark
+- `DEFAULT_BENCHMARK_MODELS` - Modèles par défaut (défaut: `qwen3.5:9b,gemma3:latest`)
+- `QUICK_TEST_QUESTIONS` - Questions test rapide (défaut: `5`)
+- `FULL_TEST_QUESTIONS` - Questions test complet (défaut: `50`)
+
+#### Chunking
+- `MIN_CHUNK_CHARS` - Taille minimale chunk (défaut: `300`)
+- `MAX_CHUNK_CHARS` - Taille maximale chunk (défaut: `800`)
+- `OVERLAP_CHARS` - Overlap entre chunks (défaut: `150`)
+- `MERGE_THRESHOLD` - Seuil fusion sections (défaut: `500`)
+
+#### Index
+- `HAPROXY_RAG_BASE_DIR` - Répertoire de base (défaut: répertoire courant)
+- `DATA_DIR` - Répertoire des données (défaut: `data`)
+- `INDEX_DIR` - Répertoire des index (défaut: `index_v3`)
+- `CHROMA_COLLECTION` - Collection ChromaDB (défaut: `haproxy_docs_v3`)
+- `CHUNKS_FILE` - Fichier des chunks (défaut: `chunks_v2.jsonl`)
+- `BM25_FILE` - Fichier BM25 (défaut: `bm25.pkl`)
+- `CHUNKS_PKL` - Fichier chunks.pkl (défaut: `chunks.pkl`)
+- `EMBED_BATCH_SIZE` - Batch size embedding (défaut: `100`)
+
+#### LLM
+- `DEFAULT_MODEL` - Modèle par défaut (défaut: `qwen3.5:9b`)
+- `MAX_CONTEXT_CHARS` - Limite contexte (défaut: `4000`)
+- `LLM_TEMPERATURE` - Température (défaut: `0.1`)
+- `LLM_RATE_LIMIT` - Rate limiting calls/min (défaut: `20`)
+
+#### Validation
+- `MAX_QUERY_LENGTH` - Longueur max requête (défaut: `2000`)
+- `MAX_METADATA_LENGTH` - Longueur max metadata (défaut: `500`)
+- `MAX_METADATA_ITEMS` - Nombre max items (défaut: `20`)
+- `MAX_METADATA_ITEM_LENGTH` - Longueur max item (défaut: `100`)
+
+#### Logging
+- `LOG_LEVEL` - Niveau de log (défaut: `INFO`)
+- `LOG_FILE` - Fichier de log (défaut: vide = stdout)
+
+### Méthodes utilitaires
+
+#### [`get_model_config(model_type, use_fast=False)`](config.py:219)
+Retourne le modèle approprié selon le type demandé.
+
+```python
+from config import get_model_config
+
+# Récupérer le modèle LLM
+llm_model = get_model_config("llm")  # "qwen3.5:9b"
+
+# Récupérer le modèle rapide
+fast_model = get_model_config("llm", use_fast=True)  # "lfm2.5-thinking:1.2b-bf16"
+
+# Récupérer le modèle d'embedding
+embed_model = get_model_config("embedding")  # "qwen3-embedding:8b"
+
+# Récupérer le modèle d'enrichissement
+enrich_model = get_model_config("enrichment")  # "qwen3.5:9b"
+```
+
+#### [`validate_model_availability(model_name)`](config.py:250)
+Vérifie la disponibilité d'un modèle dans Ollama.
+
+```python
+from config import validate_model_availability
+
+if validate_model_availability("qwen3.5:9b"):
+    print("Le modèle est disponible")
+else:
+    print("Le modèle n'est pas disponible")
+```
+
+#### [`get_available_models(exclude_embeddings=True)`](config.py:274)
+Liste les modèles disponibles dans Ollama.
+
+```python
+from config import get_available_models
+
+# Lister tous les modèles LLM (exclut les embeddings)
+models = get_available_models(exclude_embeddings=True)
+print(f"Modèles disponibles: {models}")
+
+# Lister tous les modèles (y compris les embeddings)
+all_models = get_available_models(exclude_embeddings=False)
+print(f"Tous les modèles: {all_models}")
+```
+
+### Validation de la configuration
+
+Le script [`config_validator.py`](config_validator.py:1) permet de valider la configuration :
+
+```bash
+uv run python config_validator.py
+```
+
+Ce script vérifie :
+- La connexion à Ollama
+- La disponibilité des modèles configurés
+- La cohérence des configurations
+- Affiche un résumé complet de toutes les configurations
+
+### Exemples d'utilisation
+
+#### Utiliser un modèle LLM différent
+```bash
+# Via variable d'environnement
+export LLM_MODEL="gemma3:latest"
+uv run python 04_chatbot.py
+```
+
+#### Désactiver le reranking
+```bash
+export RERANKER_ENABLED="false"
+uv run python 04_chatbot.py
+```
+
+#### Ajuster les paramètres de retrieval
+```bash
+export TOP_K_RETRIEVAL="100"
+export TOP_K_RRF="50"
+export TOP_K_RERANK="20"
+uv run python 04_chatbot.py
+```
+
+#### Utiliser un modèle d'embedding différent
+```bash
+export EMBED_MODEL="bge-m3"
+uv run python 03_indexing.py
+```
+
+### Aliases pour compatibilité ascendante
+
+Pour maintenir la compatibilité avec le code existant, des aliases sont fournis :
+
+```python
+from config import (
+    OLLAMA_URL,           # ollama_config.url
+    EMBED_MODEL,          # ollama_config.embed_model
+    DEFAULT_MODEL,        # llm_config.default_model
+    TOP_K_RETRIEVAL,      # retrieval_config.top_k_retrieval
+    TOP_K_RRF,            # retrieval_config.top_k_rrf
+    TOP_K_RERANK,         # retrieval_config.top_k_rerank
+    RRF_K,                # retrieval_config.rrf_k
+    CONFIDENCE_THRESHOLD, # retrieval_config.confidence_threshold
+)
+```
+
+**Note :** Ces aliases sont marqués pour dépréciation. Il est recommandé d'utiliser directement les instances de dataclasses dans le nouveau code.
+
+---
+
 ## 🛠️ Prérequis
 
 ### **Système**

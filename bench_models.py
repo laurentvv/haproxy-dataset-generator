@@ -30,6 +30,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+from config import benchmark_config
+
 
 # ── Schéma Pydantic ──────────────────────────────────────────────────────────
 class SectionMetadata(BaseModel):
@@ -60,11 +62,10 @@ JSON :"""
 
 
 # ── Modèles à tester ────────────────────────────────────────────────────────
+# Utiliser les modèles par défaut depuis config.py
 MODELS_TO_TEST = [
-    {"name": "gemma3:latest", "size": "3.3 GB", "priority": 1},
-    {"name": "qwen3:4b", "size": "2.5 GB", "priority": 2},
-    {"name": "qwen3:14b", "size": "9.3 GB", "priority": 3},
-    {"name": "gemma3:27b", "size": "17 GB", "priority": 4},
+    {"name": model_name, "size": "N/A", "priority": i + 1}
+    for i, model_name in enumerate(benchmark_config.default_benchmark_models)
 ]
 
 # ── Sections de test (représentatives) ──────────────────────────────────────

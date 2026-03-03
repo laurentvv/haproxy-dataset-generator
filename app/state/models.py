@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal
 
+from config import llm_config
+
 
 @dataclass
 class ChatMessage:
@@ -35,10 +37,10 @@ class ChatConfig:
         temperature: Température de génération
     """
 
-    model: str = "gemma3:latest"
+    model: str = llm_config.default_model
     top_k: int = 5
     show_sources: bool = True
-    temperature: float = 0.1
+    temperature: float = llm_config.temperature
 
 
 @dataclass

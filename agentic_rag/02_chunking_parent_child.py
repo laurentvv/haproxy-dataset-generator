@@ -31,7 +31,9 @@ from agentic_rag.config_agentic import (
     CHILD_CHUNK_OVERLAP,
     CHILD_CHUNK_SIZE,
     CHUNKS_CHILD_PATH,
+    MAX_CHILDREN_PER_PARENT,
     MAX_PARENT_SIZE,
+    MIN_CHILD_SIZE,
     MIN_PARENT_SIZE,
     PARENT_STORE_DIR,
     SCRAPED_PAGES_PATH,
@@ -45,9 +47,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Seuils de qualité
-MIN_CHILD_SIZE = 50  # Un child trop court est ignoré
-MAX_CHILDREN_PER_PARENT = 20  # Limite pour éviter les parents trop gros
+
+def validate_children_coverage(parent_content: str, children: list[dict]) -> dict:
+    """
+    Valide que les children couvrent bien le parent.
+    
+    Args:
+        parent_content: Contenu du parent
+        children: Liste des children créés
+        
+    Returns:
+        Dictionnaire avec les métriques de validation
+    """
+    total_child_length = sum(len(child['content']) for child in children)
+    parent_length = len(parent_content)
+    
+    coverage_ratio = total_child_length / parent_length if parent_length > 0 else 0
+    
+    return {
+        'coverage_ratio': coverage_ratio,
+        'total_children': len(children),
+        'parent_length': parent_length,
+        'total_child_length': total_child_length,
+        'is_valid': 0.8 <= coverage_ratio <= 1.5,  # Tolérance de 20%
+    }
 
 
 def main() -> int:
@@ -93,11 +116,24 @@ def main() -> int:
     parent_manager.clear_store()
     print('   ✓ Parent store nettoyé')
     
+    # Séparateurs optimisés pour la documentation HAProxy
+    # Ordre : paragraphes → indentation (directives HAProxy) → lignes → phrases → mots
+    separators = [
+        '\n\n',           # Paragraphes
+        '\n    ',         # Indentation (directives HAProxy)
+        '\n  ',           # Double indentation
+        '\n',             # Lignes
+        '. ',             # Phrases
+        '; ',             # Points-virgules (configuration)
+        ' ',              # Mots
+        '',               # Caractère vide (dernier recours)
+    ]
+    
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=CHILD_CHUNK_SIZE,
         chunk_overlap=CHILD_CHUNK_OVERLAP,
         length_function=len,
-        separators=['\n\n', '\n', '. ', ' ', ''],
+        separators=separators,
     )
     print(f'   ✓ Text splitter configuré (chunk_size={CHILD_CHUNK_SIZE}, overlap={CHILD_CHUNK_OVERLAP})')
 
@@ -107,6 +143,7 @@ def main() -> int:
     parent_count = 0
     skipped_pages = 0
     total_children = 0
+    coverage_stats = {'valid': 0, 'invalid': 0, 'low_coverage': 0, 'high_coverage': 0}
 
     for i, page in enumerate(valid_pages, 1):
         if i % 20 == 0:
@@ -195,6 +232,26 @@ def main() -> int:
             
             total_children += len(valid_children)
             
+            # Valider la couverture des children
+            valid_children_dict = [
+                {'content': child.page_content} for child in valid_children
+            ]
+            coverage = validate_children_coverage(content, valid_children_dict)
+            
+            if coverage['is_valid']:
+                coverage_stats['valid'] += 1
+            else:
+                coverage_stats['invalid'] += 1
+                if coverage['coverage_ratio'] < 0.8:
+                    coverage_stats['low_coverage'] += 1
+                elif coverage['coverage_ratio'] > 1.5:
+                    coverage_stats['high_coverage'] += 1
+                logger.debug(
+                    f'  ⚠️  Couverture anormale pour {title}: '
+                    f'{coverage["coverage_ratio"]:.2f} '
+                    f'({len(valid_children)} children, {parent_size} chars parent)'
+                )
+            
         except Exception as e:
             logger.error(f'Erreur lors du chunking pour {title}: {e}')
             continue
@@ -246,6 +303,18 @@ def main() -> int:
             print(f'   ⚠️  ATTENTION: Certains enfants sont trop courts')
         else:
             print(f'   ✓ Tous les enfants ont une taille valide (≥ {MIN_CHILD_SIZE} chars)')
+        
+        # Statistiques de couverture
+        print(f'\n=== Couverture des children ===')
+        print(f'   Parents avec couverture valide: {coverage_stats["valid"]}/{parent_count} ({coverage_stats["valid"]/parent_count*100:.1f}%)')
+        if coverage_stats['invalid'] > 0:
+            print(f'   ⚠️  Parents avec couverture invalide: {coverage_stats["invalid"]}/{parent_count}')
+            if coverage_stats['low_coverage'] > 0:
+                print(f'      - Couverture faible (< 0.8): {coverage_stats["low_coverage"]}')
+            if coverage_stats['high_coverage'] > 0:
+                print(f'      - Couverture élevée (> 1.5): {coverage_stats["high_coverage"]}')
+        else:
+            print(f'   ✓ Tous les parents ont une couverture valide')
 
     print('\n✓ Phase 2 terminée avec succès!')
     return 0
