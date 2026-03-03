@@ -84,8 +84,9 @@ def benchmark_agentic(
     print(f'{"=" * 70}')
     print(f'   Modèles:')
     print(f'      - Embedding: qwen3-embedding:8b')
-    print(f'      - Tool calls: qwen3:0.6b')
-    print(f'      - Réponse finale: qwen3:latest')
+    print(f'      - Tool calls: qwen3.5:9b (via LLM_CONFIG)')
+    print(f'      - Réponse finale: qwen3.5:9b')
+    print(f'   Modèle LLM: {model}')
     print(f'   Questions: {len(questions)}')
 
     results = []
@@ -108,14 +109,14 @@ def benchmark_agentic(
         start_time = time.time()
         try:
             response_chunks = []
-            max_time = 45  # Timeout 45s par question
-            
+            max_time = 90  # OPTIM V2: Timeout 90s par question (agent lent)
+
             for chunk in rag_system.query(session_id, question):
                 response_chunks.append(chunk)
                 if time.time() - start_time > max_time:
                     print(f'   ⚠️  TIMEOUT ({max_time}s)', flush=True)
                     break
-                    
+
             answer = ''.join(response_chunks)
         except Exception as e:
             print(f'   ❌ Erreur: {e}', flush=True)

@@ -3,6 +3,7 @@
 import gradio as gr
 
 from app.utils.logging import setup_logging
+from config import llm_config, get_available_models
 
 logger = setup_logging(__name__)
 
@@ -36,15 +37,15 @@ def build_config_panel(
     Returns:
         Tuple (panel, model_dropdown, top_k_slider, show_sources)
     """
-    from llm import DEFAULT_MODEL
-
-    # Utiliser les modèles fournis ou une liste par défaut
+    # Utiliser les modèles fournis ou récupérer les modèles disponibles depuis Ollama
     if available_models is None:
-        available_models = [DEFAULT_MODEL, "qwen2.5:7b", "llama3.1:8b"]
+        available_models = get_available_models()
 
-    # Sélectionner le modèle par défaut
+    # Sélectionner le modèle par défaut depuis config.py
     default_model = (
-        DEFAULT_MODEL if DEFAULT_MODEL in available_models else available_models[0]
+        llm_config.default_model
+        if llm_config.default_model in available_models
+        else available_models[0] if available_models else llm_config.default_model
     )
 
     with gr.Group() as panel:

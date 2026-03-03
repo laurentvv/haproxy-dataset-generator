@@ -435,3 +435,7 @@ def main():
         )
         print(f"    IA Category: {c.get('ia_category', 'N/A')}")
         print(f"    Len: {c['char_len']} | Code: {c['has_code']}")
+
+
+if __name__ == "__main__":
+    main()

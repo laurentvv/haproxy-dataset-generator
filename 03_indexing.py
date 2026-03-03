@@ -17,6 +17,9 @@ import pickle
 import re
 from pathlib import Path
 
+# Import configuration depuis config.py
+from config import ollama_config, index_config, get_model_config
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -77,17 +80,17 @@ def sanitize_metadata_list(
 
 
 # Config V3
-OLLAMA_URL = "http://localhost:11434"
-EMBED_MODEL = "qwen3-embedding:8b"
-CHROMA_COLLECTION = "haproxy_docs_v3"
+OLLAMA_URL = ollama_config.url
+EMBED_MODEL = get_model_config("embedding")
+CHROMA_COLLECTION = index_config.chroma_collection
 
-INDEX_DIR = Path("index_v3")
-CHROMA_DIR = INDEX_DIR / "chroma"
-BM25_PATH = INDEX_DIR / "bm25.pkl"
-CHUNKS_PKL = INDEX_DIR / "chunks.pkl"
+INDEX_DIR = index_config.index_path
+CHROMA_DIR = index_config.chroma_dir
+BM25_PATH = INDEX_DIR / index_config.bm25_file
+CHUNKS_PKL = INDEX_DIR / index_config.chunks_pkl
 
-DATA_DIR = Path("data")
-CHUNKS_PATH = DATA_DIR / "chunks_v2.jsonl"
+DATA_DIR = index_config.data_path
+CHUNKS_PATH = DATA_DIR / index_config.chunks_file
 
 
 # Cache Ollama
@@ -301,8 +304,15 @@ def build_index(chunks: list[dict], batch_size: int = 100):
 
 def main():
     """Script principal."""
+    # Fix encoding Windows
+    import sys
+    import io
+    if sys.platform == "win32":
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+    
     print("=" * 70)
-    print("🔍 Indexation V3 - HAProxy RAG")
+    print("[INFO] Indexation V3 - HAProxy RAG")
     print("=" * 70)
 
     # Verifier dependencies

@@ -5,6 +5,7 @@ Ce module contient tous les paramètres de configuration
 pour les différents composants du système.
 """
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -34,15 +35,18 @@ SCRAPING_DIFF_REPORT_PATH = DATA_DIR / 'scraping_diff_report.json'
 # Configuration chunking parent/child
 # Stratégie parent/child pour le RAG :
 # - Parent : Document complet (max 4000 chars) pour le contexte
-# - Child : Chunk plus petit (500 chars) pour la recherche vectorielle
-# Chaque child référence son parent pour permettre la récupération du contexte complet
+# - Child : Chunk plus petit pour la recherche vectorielle
+# OPTIMISATION V2 : Chunking plus fin pour meilleure granularité
+#   - child_max_chars: 500 → 300 (plus de chunks, meilleure précision)
+#   - chunk_overlap: 100 → 150 (50% pour préserver le contexte)
+#   - min_child_size: 50 → 30 (garder plus de petits chunks pertinents)
 CHUNKING_CONFIG: dict[str, Any] = {
     'parent_max_chars': 4000,       # Taille max d'un parent en caractères
-    'child_max_chars': 500,         # Taille max d'un child en caractères
-    'chunk_overlap': 100,            # Chevauchement entre chunks consécutifs (20% pour mieux préserver le contexte)
-    'min_chunk_size': 100,           # Taille min d'un chunk à considérer
-    'min_child_size': 50,            # Taille min d'un child pour être conservé (évite les fragments trop courts)
-    'max_children_per_parent': 20,   # Limite max d'enfants par parent (évite les parents trop volumineux)
+    'child_max_chars': 300,         # OPTIM: 500 → 300 (plus de granularité)
+    'chunk_overlap': 150,           # OPTIM: 100 → 150 (50% overlap, meilleur contexte)
+    'min_chunk_size': 100,          # Taille min d'un chunk à considérer
+    'min_child_size': 30,           # OPTIM: 50 → 30 (garder petits chunks pertinents)
+    'max_children_per_parent': 30,  # OPTIM: 20 → 30 (plus d'enfants par parent)
 }
 
 # Variables pour le chunking
@@ -74,17 +78,36 @@ LANGGRAPH_CONFIG: dict[str, Any] = {
 }
 
 # Configuration retrieval
-DEFAULT_K_CHILD = 5
-DEFAULT_K_MMR = 5
-MMR_FETCH_K = 20
-SCORE_THRESHOLD = 0.7
+# OPTIMISATION V2 : Plus de résultats pour meilleur retrieval
+DEFAULT_K_CHILD = 10       # OPTIM: 5 → 10 (plus de candidats)
+DEFAULT_K_MMR = 10         # OPTIM: 5 → 10 (diversité MMR)
+MMR_FETCH_K = 30           # OPTIM: 20 → 30 (pool plus large)
+SCORE_THRESHOLD = 0.5      # OPTIM: 0.7 → 0.5 (seuil plus permissif)
+
+# OPTIMISATION V3 : Hybrid retrieval (Vector + BM25 + RRF)
+HYBRID_RETRIEVAL_ENABLED = True
+HYBRID_TOP_K = 15          # Nombre de résultats après fusion RRF
+HYBRID_RRF_K = 60          # Paramètre RRF (comme V3)
+HYBRID_VECTOR_WEIGHT = 0.5  # Poids du vector (0.5 = égal avec BM25)
+HYBRID_BM25_WEIGHT = 0.5    # Poids de BM25
 
 # Configuration LLM
+# Modèles alignés avec le RAG standard (config.py) pour comparaison équitable
 LLM_CONFIG: dict[str, Any] = {
-    'model': 'qwen3:latest',  # Modèle de référence pour les stats de perf
+    'model': os.getenv('LLM_MODEL', 'qwen3.5:9b'),  # Même modèle que RAG standard
     'temperature': 0.1,
     'top_p': 0.9,
     'num_ctx': 4096,
+}
+
+# Configuration Ollama (alignée avec config.py)
+OLLAMA_CONFIG: dict[str, Any] = {
+    'url': os.getenv('OLLAMA_URL', 'http://localhost:11434'),
+    'embed_model': os.getenv('EMBED_MODEL', 'qwen3-embedding:8b'),
+    'llm_model': os.getenv('LLM_MODEL', 'qwen3.5:9b'),
+    'fast_model': os.getenv('FAST_MODEL', 'lfm2.5-thinking:1.2b-bf16'),
+    'timeout': int(os.getenv('OLLAMA_TIMEOUT', '120')),
+    'llm_timeout': int(os.getenv('LLM_TIMEOUT', '300')),
 }
 
 # Configuration Gradio

@@ -1,8 +1,0 @@
-Due to support of many different platforms with different system settings,
-it's impossible for the parser to deduce from the configuration file, if
-binding to privileged ports will be done. So, in the case of insufficient
-privileges (run as non-root) process will terminate only with an alert
-message like below. It's up to a user to recheck its configuration and haproxy
-binary capabilities set.
-
-``

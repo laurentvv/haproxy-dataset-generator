@@ -20,6 +20,8 @@ import ollama
 from pydantic import BaseModel, Field
 from pathlib import Path
 
+from config import get_model_config
+
 
 # ── Schéma Pydantic pour les metadata ────────────────────────────────────────
 class SectionMetadata(BaseModel):
@@ -48,75 +50,124 @@ class SectionMetadata(BaseModel):
 
 
 # ── Prompt pour l'IA ─────────────────────────────────────────────────────────
-SYSTEM_PROMPT = """Tu es un expert HAProxy 3.2.
+USER_PROMPT_TEMPLATE = """Extrais les métadonnées de ce texte HAProxy. Réponds UNIQUEMENT avec du JSON.
 
-Ta tâche : Extraire des métadonnées pour améliorer la recherche sémantique dans un système RAG.
-
-RÈGLES ABSOLUES :
-1. N'INVENTE RIEN - Utilise UNIQUEMENT le contenu fourni
-2. Keywords doivent être OBLIGATOIREMENT dans le texte
-3. Sois précis et technique
-4. Réponds UNIQUEMENT avec le JSON valide, pas de texte avant ou après
-"""
-
-USER_PROMPT_TEMPLATE = """Pour cette section HAProxy, extraire :
-
-1. KEYWORDS (5-10) : Mots-clés techniques présents dans le texte
-2. SYNONYMES (3-5) : Termes associés, variantes (ex: "désactiver" → "disabled", "down")
-3. SUMMARY (1 phrase max) : Résumé ultra-court
-4. CATEGORY : backend, frontend, acl, ssl, timeout, healthcheck, stick-table, logs, stats, general, loadbalancing
-
-Section :
+Texte:
 {section}
 
-Métadonnées JSON :"""
+Format JSON requis:
+{{
+  "keywords": ["5-10 mots du texte"],
+  "synonyms": ["3-5 termes associés"],
+  "summary": "résumé en 1 phrase (<200 chars)",
+  "category": "backend|frontend|acl|ssl|timeout|healthcheck|stick-table|logs|stats|general|loadbalancing"
+}}
+
+JSON:"""
 
 
 # ── Fonction d'enrichissement ────────────────────────────────────────────────
 def generate_metadata(
-    section_content: str, model: str = "gemma3:latest"
+    section_content: str, model: str | None = None
 ) -> SectionMetadata:
     """
     Génère les métadonnées pour une section via Ollama.
 
     Args:
-        section_content: Contenu de la section (max 8000 chars)
-        model: Modèle Ollama à utiliser
+        section_content: Contenu de la section (max 5000 chars)
+        model: Modèle Ollama à utiliser (défaut: modèle d'enrichissement depuis config.py)
 
     Returns:
         SectionMetadata validée par Pydantic
     """
-    # Limiter à 8000 chars pour éviter les timeouts
-    content = section_content[:8000]
+    if model is None:
+        model = get_model_config("enrichment")
+
+    # Stratégie de découpage pour sections longues (> 5000 chars)
+    # On garde le début (titre/intro) + la fin (exemples/conclusion)
+    max_chars = 5000
+    if len(section_content) > max_chars:
+        # Garder 2500 chars du début + 2500 chars de la fin
+        content = section_content[:2500] + "\n\n[...] (section tronquée) [...]\n\n" + section_content[-2500:]
+    else:
+        content = section_content
 
     prompt = USER_PROMPT_TEMPLATE.format(section=content)
 
     try:
+        # qwen3.5:4b : modèle thinking plus rapide que 9b
+        # Paramètres optimisés pour génération JSON
+        # num_ctx réduit à 4096 tokens (suffisant pour 5000 chars de texte)
         response = ollama.chat(
             model=model,
             messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
+                {
+                    "role": "system",
+                    "content": "Extrais les métadonnées JSON du texte. Réponds UNIQUEMENT avec du JSON valide.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
             ],
-            format=SectionMetadata.model_json_schema(),
             options={
-                "temperature": 0.1,  # Bas pour du déterminisme
-                "num_predict": 500,
+                "temperature": 0.6,  # Recommandé pour Qwen3.5 (précis)
+                "num_predict": 3000,  # Thinking + JSON
+                "num_ctx": 4096,  # Contexte réduit (défaut: 32768)
+                "top_p": 0.95,
+                "top_k": 20,
+                "presence_penalty": 1.5,
             },
+            stream=False,
         )
 
-        # Parser la réponse JSON
-        json_content = response["message"]["content"]
+        # qwen3.5:4b est un modèle thinking - la réponse peut être dans 'thinking' ou 'content'
+        json_content = response["message"].get("content", "").strip()
+
+        # Si content est vide, extraire le JSON depuis thinking
+        if not json_content:
+            thinking = response["message"].get("thinking", "")
+            if thinking:
+                # Extraire le JSON du thinking (cherche le premier { et le dernier })
+                start_idx = thinking.find("{")
+                end_idx = thinking.rfind("}") + 1
+                if start_idx != -1 and end_idx > start_idx:
+                    json_content = thinking[start_idx:end_idx]
+
+        # Nettoyer le contenu : garder uniquement le JSON valide
+        # Chercher le premier { et le dernier } pour ignorer texte avant/après
+        if json_content:
+            start_idx = json_content.find("{")
+            end_idx = json_content.rfind("}") + 1
+            if start_idx != -1 and end_idx > start_idx:
+                json_content = json_content[start_idx:end_idx]
+
+        # Nettoyer d'éventuels marqueurs markdown ```json ... ```
+        if "```" in json_content:
+            parts = json_content.split("```")
+            for part in parts:
+                if part.strip().startswith("json"):
+                    json_content = part[4:].strip()
+                    break
+                elif part.strip().startswith("{"):
+                    json_content = part.strip()
+                    break
+            json_content = json_content.rstrip("`").strip()
+
+        # Vérifier que le JSON n'est pas vide
+        if not json_content:
+            raise ValueError("Réponse JSON vide")
+
         metadata = SectionMetadata.model_validate_json(json_content)
 
         return metadata
 
     except Exception as e:
         print(f"  [WARN] Erreur IA: {e}")
-        # Fallback metadata vides
+        # Fallback metadata valides (respectent les contraintes Pydantic)
         return SectionMetadata(
-            keywords=["ha-proxy", "configuration"],
-            synonyms=[],
+            keywords=["ha-proxy", "configuration", "load-balancer", "proxy", "server"],
+            synonyms=["lb", "reverse-proxy", "balancing", "proxy-server"],
             summary="Section de documentation HAProxy.",
             category="general",
         )
@@ -140,7 +191,8 @@ def main():
                 sections.append(json.loads(line))
 
     print(f"[INFO] {len(sections)} sections chargees depuis {input_path}")
-    print("[INFO] Modele IA: gemma3:latest")
+    default_model = get_model_config("enrichment")
+    print(f"[INFO] Modele IA: {default_model}")
     print(
         f"[INFO] Temps estime: ~{len(sections) * 5 // 60} min ({len(sections)} sections x 5s)"
     )

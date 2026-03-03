@@ -317,69 +317,110 @@ def _get_target_sections(query: str) -> list[str]:
 
 
 @tool
-def search_child_chunks(query: str, k: int = DEFAULT_K_CHILD) -> dict:
-    """Recherche vectorielle dans les chunks enfants de ChromaDB.
-    OPTIMISÉ : + Metadata filtering avec SECTION_HINTS
+def search_child_chunks(query: str, k: int = DEFAULT_K_CHILD, use_hybrid: bool = True) -> dict:
+    """Recherche hybride (Vector + BM25 + RRF) dans les chunks enfants.
+    OPTIMISATION V3 : Hybrid retrieval comme RAG V3 standard
     """
     try:
         from langchain_ollama import OllamaEmbeddings
         embeddings_model = OllamaEmbeddings(model='qwen3-embedding:8b')
-        
+
         # DEBUG: Log the query received from LLM
         print(f"DEBUG search_child_chunks: query='{query}'", flush=True)
-        
+
         query_embedding = embeddings_model.embed_query(query)
         chroma_manager = ChromaManager()
 
-        # Récupérer plus de candidats pour le filtering (3x pour avoir du choix)
-        results = chroma_manager.query_with_embedding(
-            query_embedding=query_embedding, n_results=k * 3
-        )
+        # OPTIM V3 : Utiliser hybrid retrieval (Vector + BM25 + RRF)
+        if use_hybrid:
+            try:
+                from hybrid_retriever import HybridRetriever
+                from config_agentic import HYBRID_TOP_K, HYBRID_RRF_K
+                from pathlib import Path
+                
+                # Charger les chunks depuis ChromaDB pour BM25
+                if not hasattr(search_child_chunks, '_chunks_cache'):
+                    all_results = chroma_manager.query_with_embedding(
+                        query_embedding=query_embedding,
+                        n_results=1000
+                    )
+                    search_child_chunks._chunks_cache = all_results
+                
+                chunks = search_child_chunks._chunks_cache
+                
+                # Chemin vers l'index BM25 sauvegardé
+                bm25_path = Path(__file__).parent.parent / 'index_agentic' / 'bm25_index.pkl'
+                
+                # Créer hybrid retriever avec l'index sauvegardé
+                retriever = HybridRetriever(
+                    chroma_manager,
+                    chunks,
+                    bm25_index_path=str(bm25_path)
+                )
+                
+                # Hybrid search avec RRF
+                results = retriever.hybrid_search(
+                    query=query,
+                    query_embedding=query_embedding,
+                    k=HYBRID_TOP_K,
+                    rrf_k=HYBRID_RRF_K
+                )
+                print(f"DEBUG hybrid_search: {len(results)} résultats hybrides", flush=True)
+                
+            except Exception as e:
+                logger.warning(f'Hybrid retrieval failed: {e}, fallback to vector-only')
+                use_hybrid = False
+
+        # Fallback: Vector search traditionnel
+        if not use_hybrid:
+            # Récupérer plus de candidats pour le filtering (3x pour avoir du choix)
+            results = chroma_manager.query_with_embedding(
+                query_embedding=query_embedding, n_results=k * 3
+            )
 
         # Déterminer sections cibles
         target_sections = _get_target_sections(query)
         logger.info(f'Target sections for query: {target_sections}')
 
-        # Filtrer avec boost de score
-        filtered_results = []
-        for r in results:
-            score = 1.0 - r.get('score', 1.0)
-            metadata = r.get('metadata', {})
+        # Filtrer avec boost de score (seulement si vector-only)
+        if not use_hybrid:
+            filtered_results = []
+            for r in results:
+                score = 1.0 - r.get('score', 1.0)
+                metadata = r.get('metadata', {})
 
-            # Boost score si section cible
-            section_path = metadata.get('section_path', [])
-            section_boost = 0.0
-            for section in section_path:
-                for target in target_sections:
-                    if target in section:
-                        section_boost = 0.15
-                        break
+                # Boost score si section cible
+                section_path = metadata.get('section_path', [])
+                section_boost = 0.0
+                for section in section_path:
+                    for target in target_sections:
+                        if target in section:
+                            section_boost = 0.15
+                            break
 
-            # BOOST CRITIQUE: configuration.html > intro.html > management.html
-            # La documentation technique est dans configuration.html, pas dans intro.html
-            source = metadata.get('source', '')
-            source_boost = 0.0
-            if 'configuration.html' in source:
-                source_boost = 0.25  # Forte priorité à configuration.html
-            elif 'intro.html' in source:
-                source_boost = -0.15  # Pénaliser intro.html (trop générique)
+                # BOOST CRITIQUE: configuration.html > intro.html > management.html
+                source = metadata.get('source', '')
+                source_boost = 0.0
+                if 'configuration.html' in source:
+                    source_boost = 0.25
+                elif 'intro.html' in source:
+                    source_boost = -0.15
 
-            # Threshold dynamique avec boost (plus permissif si pas de résultats)
-            # Ajusté de 0.20 à 0.15 pour être plus permissif et éviter les résultats vides
-            threshold = 0.15
-            total_boost = section_boost + source_boost
-            if len(filtered_results) < k and score + total_boost >= threshold - 0.10:
-                filtered_results.append(r)
-            elif score + total_boost >= threshold:
-                filtered_results.append(r)
+                threshold = 0.15
+                total_boost = section_boost + source_boost
+                if len(filtered_results) < k and score + total_boost >= threshold - 0.10:
+                    filtered_results.append(r)
+                elif score + total_boost >= threshold:
+                    filtered_results.append(r)
 
-        # Si toujours pas de résultats, retourner les meilleurs sans filtering
-        if not filtered_results and results:
-            logger.warning(f'No results after filtering, returning top {k} raw results')
-            filtered_results = results[:k]
+            if not filtered_results and results:
+                logger.warning(f'No results after filtering, returning top {k} raw results')
+                filtered_results = results[:k]
 
-        # Garder top k
-        filtered_results = filtered_results[:k]
+            results = filtered_results[:k]
+        else:
+            # Hybrid déjà trié par RRF
+            filtered_results = results
 
         # Extraire parent_ids et sources
         parent_ids = []

@@ -303,18 +303,18 @@ def main() -> int:
     # 9. Test de recherche vectorielle (avec embeddings Ollama!)
     # ─────────────────────────────────────────────────────────────
     print('\n9. Test de recherche vectorielle...')
-    
+
     test_queries = [
         'HAProxy configuration backend',
         'health check HTTP',
         'SSL termination',
     ]
-    
+
     try:
         for query in test_queries:
             # IMPORTANT: Utiliser le MÊME modèle d'embedding pour la recherche
             query_embedding = embeddings_model.embed_query(query)
-            
+
             # Rechercher avec l'embedding (pas avec le texte brut!)
             results = chroma_manager.query_with_embedding(query_embedding, n_results=3)
             if results:
@@ -332,6 +332,40 @@ def main() -> int:
         return 1
 
     # ─────────────────────────────────────────────────────────────
+    # 10. Sauvegarde de l'index BM25 pour hybrid retrieval
+    # ─────────────────────────────────────────────────────────────
+    print('\n10. Sauvegarde de l\'index BM25 pour hybrid retrieval...')
+    
+    try:
+        import pickle
+        from rank_bm25 import BM25Okapi
+        
+        # Préparer le corpus pour BM25
+        def tokenize(text: str) -> list[str]:
+            return text.lower().split()
+        
+        print(f'   Construction index BM25 avec {len(child_chunks)} chunks...')
+        corpus = []
+        for chunk in child_chunks:
+            content = chunk.get('content', '')
+            metadata = chunk.get('metadata', {})
+            section_path = ' '.join(metadata.get('section_path', []))
+            full_text = f"{content} {section_path}"
+            corpus.append(tokenize(full_text))
+        
+        bm25_index = BM25Okapi(corpus)
+        
+        # Sauvegarder l'index BM25
+        bm25_path = INDEX_DIR / 'bm25_index.pkl'
+        with open(bm25_path, 'wb') as f:
+            pickle.dump(bm25_index, f)
+        
+        print(f'   ✓ Index BM25 sauvegardé: {bm25_path}')
+        
+    except Exception as e:
+        logger.warning(f'Sauvegarde BM25 échouée (optionnel): {e}')
+
+    # ─────────────────────────────────────────────────────────────
     # Résumé final
     # ─────────────────────────────────────────────────────────────
     print('\n' + '=' * 60)
@@ -344,8 +378,9 @@ def main() -> int:
     print(f'   - Dimension: {embedding_dim}')
     print(f'   - Collection: {COLLECTION_NAME}')
     print(f'   - Chemin: {CHROMA_DIR}')
+    print(f'   - Index BM25: {INDEX_DIR / "bm25_index.pkl"}')
     print(f'   - Temps total: {elapsed:.1f}s')
-    
+
     return 0
 
 

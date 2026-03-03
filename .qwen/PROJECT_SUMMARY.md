@@ -1,143 +1,158 @@
-The user wants me to create a comprehensive markdown summary of this conversation session about optimizing an Agentic RAG system for HAProxy documentation. Let me extract the key information:
+The user wants me to create a comprehensive summary of the conversation about debugging and optimizing the 01b_enrich_metadata.py script for HAProxy dataset generation. Let me extract the key information from the conversation.
 
-1. **Overall Goal**: Improve the LangGraph-based Agentic RAG system to achieve ≥80% pass rate on 92 HAProxy benchmark questions
+Key points from the conversation:
+1. Initial task: Debug 01b_enrich_metadata.py to work with qwen3.5:9b
+2. Discovery: qwen3.5:9b is a "thinking" model that separates reasoning from output
+3. Solution: Extract JSON from thinking field if content is empty
+4. Optimization: Switched to qwen3.5:4b (faster, smaller) for metadata extraction
+5. Context optimization: Reduced from 32768 to 4096 tokens
+6. Text truncation: 5000 chars max with smart splitting (beginning + end)
+7. Current status: Script is running, ~20% error rate but all recovered by fallback
 
-2. **Key Knowledge**:
-- Project location: C:\GIT\fork\haproxy-dataset-generator\agentic_rag\
-- V3 RAG achieves 0.868 quality, 88% resolution, ~24s/question (production ready)
-- Agentic RAG initially achieved 0.796 quality, 68.5% resolution, 11.46s/question (needs optimization)
-- Main issues: infinite tool call loops, French queries vs English documentation, incomplete SECTION_HINTS
-- Models tested: qwen3:latest (reference), gemma3:12b (3.1s/question), granite4:7b-a1b-h (0.8s/question but lower quality 70%)
-
-3. **Recent Actions**:
-- Fixed infinite loop bug (tool_call_count not properly enforced)
-- Expanded SECTION_HINTS from 50 to 250+ keywords
-- Added English query requirement in system prompt
-- Reduced max tool calls from 4 to 2 for speed
-- Increased time limit from 30s to 45s
-- Separated quality failures from timeout failures in benchmark output
-- Cleaned up 18 debug/temp files
-
-4. **Current Plan**:
-- Wait for bench_langgraph_92.py to complete
-- Analyze remaining failures
-- Fine-tune SECTION_HINTS and prompts based on results# Project Summary
+Let me create a comprehensive summary.# Project Summary
 
 ## Overall Goal
-Optimize the LangGraph-based Agentic RAG system for HAProxy 3.2 documentation to achieve ≥80% pass rate on 92 benchmark questions while maintaining response times under 45 seconds per question.
+Optimize the HAProxy documentation metadata enrichment pipeline (`01b_enrich_metadata.py`) to work efficiently with smaller, faster LLM models while maintaining quality output.
 
 ## Key Knowledge
 
-### Architecture
-- **Project location**: `C:\GIT\fork\haproxy-dataset-generator\agentic_rag\`
-- **System**: RAG agentic avec LangGraph (parent/child chunking, ChromaDB, tool-based retrieval)
-- **Embedding**: qwen3-embedding:8b (4096 dims, MTEB 70.58)
-- **LLM**: qwen3:latest (référence pour stats de perf)
-- **Vector DB**: ChromaDB avec metadata filtering
+### Model Configuration
+| Model | Usage | Size | Context |
+|-------|-------|------|---------|
+| `qwen3.5:4b` | Metadata enrichment | 3.4 GB | 4096 tokens |
+| `qwen3.5:9b` | Main RAG chatbot | 6.6 GB | 32768 tokens |
+| `qwen3-embedding:8b` | Vector embeddings | 4.7 GB | - |
 
-### Performance Benchmarks (Reference)
-| Version | Qualité | Résolution | Temps/question | Statut |
-|---------|---------|------------|----------------|--------|
-| **V3 Finale** | 0.868 | 88% | ~24s | ✅ PRÊT PROD |
-| **Agentic RAG (initial)** | 0.796 | 68.5% | 11.46s | ❌ À optimiser |
-| **granite4:7b-a1b-h** | ~0.70 | N/A | 0.8s | ⚡ Rapide mais qualité faible |
-| **gemma3:12b** | ~0.80 | N/A | 3.1s | Bon compromis |
-
-### Critical Issues Identified
-1. **Infinite tool call loops**: LLM stuck making 1627+ tool calls (e.g., `full_log_backend`)
-2. **French queries vs English documentation**: Poor retrieval matching
-3. **Incomplete SECTION_HINTS**: Missing 200+ HAProxy keywords
-4. **Empty responses**: Retrieval returning no results for valid queries
-5. **Generic answers**: LLM responding without using tools (Python instead of HAProxy)
+### Technical Discoveries
+- **qwen3.5 is a "thinking" model**: Separates reasoning (`thinking` field) from final output (`content` field)
+- **JSON extraction**: Must extract from `thinking` field when `content` is empty
+- **Context optimization**: 32768 tokens is excessive for metadata extraction; 4096 tokens is sufficient
+- **Text truncation strategy**: For sections >5000 chars, keep first 2500 + last 2500 chars (preserves intro + conclusion)
 
 ### Configuration Files
-- `config_agentic.py`: LLM_CONFIG, CHUNKING_CONFIG, CHROMA_CONFIG
-- `rag_agent/prompts.py`: SYSTEM_PROMPT with English query requirement
-- `rag_agent/tools.py`: SECTION_HINTS (250+ keywords)
-- `rag_agent/nodes.py`: agent_node with tool_call_count limit (max 2)
-- `rag_agent/edges.py`: should_use_tools with priority checks
-- `bench_langgraph_92.py`: 92 questions benchmark with quality/time separation
+- **`config.py`**: Centralized configuration with `ENRICH_MODEL = "qwen3.5:4b"`
+- **`01b_enrich_metadata.py`**: Metadata extraction with Pydantic validation
 
-### Build/Test Commands
-```bash
-# Run full benchmark
-cd agentic_rag
-uv run python bench_langgraph_92.py
-
-# Model speed comparison
-uv run python bench_models_speed.py
-
-# Model quality comparison
-uv run python bench_models_quality.py
-
-# Clear cache
-del /q /s __pycache__\*.pyc
+### Optimal Parameters for qwen3.5:4b
+```python
+options={
+    "temperature": 0.6,
+    "num_predict": 3000,
+    "num_ctx": 4096,  # Reduced from 32768
+    "top_p": 0.95,
+    "top_k": 20,
+    "presence_penalty": 1.5,
+}
 ```
+
+### Performance Metrics
+- **Speed**: ~5-7 seconds/section (vs 10-15s with qwen3.5:9b)
+- **Error rate**: ~20% (all recovered by fallback)
+- **Total time**: ~14-20 minutes for 168 sections
+- **Memory savings**: ~22% GPU memory reduction (7.1GB → 5.5GB)
 
 ## Recent Actions
 
-### Fixes Applied (2026-03-01)
-1. ✅ **Infinite loop prevention**: Max 2 tool calls enforced in nodes.py + edges.py
-2. ✅ **SECTION_HINTS expansion**: 50 → 250+ keywords (ACL, SSL, stats, logs, TCP modes)
-3. ✅ **English query requirement**: System prompt now explicitly requires English keywords for tool calls
-4. ✅ **Retrieval fallback**: More permissive threshold (0.20 → 0.10) + raw results fallback
-5. ✅ **Time limit adjustment**: 30s → 45s (more realistic for RAG with LLM)
-6. ✅ **Benchmark output**: Separated quality failures (<80%) from timeout failures (>45s)
-7. ✅ **Graph flow fix**: should_use_tools now checks AI response content BEFORE tool_call_count
-8. ✅ **Ollama memory management**: Added unload function with keep_alive=0 for model switching
+### [DONE] Debugged qwen3.5:9b compatibility
+- Discovered "thinking" model behavior
+- Implemented JSON extraction from `thinking` field
+- Added markdown code block cleanup
 
-### Cleanup Completed
-- Deleted 18 debug/temp files (debug_*.py, process_*.py, *.md temporaires)
-- Kept production files (00_ to 07_*.py, bench_langgraph_92.py, config files)
+### [DONE] Optimized for qwen3.5:4b
+- Changed `config.py`: `enrich_model = "qwen3.5:4b"`
+- Updated `01b_enrich_metadata.py` parameters
+- Reduced `num_ctx` from 32768 to 4096 tokens
 
-### Model Testing Results
-| Model | Speed (5 questions) | Quality Estimate | Decision |
-|-------|---------------------|------------------|----------|
-| qwen3:latest | 26.1s (5.2s/Q) | 80% | ✅ Reference for stats |
-| gemma3:12b | 15.4s (3.1s/Q) | 80% | Alternative |
-| granite4:7b-a1b-h | 3.8s (0.8s/Q) | 70% | ❌ Quality too low |
+### [DONE] Implemented smart text truncation
+- 5000 chars max per section
+- Preserves beginning (title/intro) + end (examples/conclusion)
+- Handles sections up to 575K chars
 
-### Known Failing Questions (from partial benchmark run)
-| Question | Quality | Time | Problem |
-|----------|---------|------|---------|
-| quick_bind | 60% | 37.8s | Empty retrieval, fallback to raw |
-| quick_stick_table | 60% | 49.4s | French query instead of English |
-| std_tcp_check | 40% | 36.0s | Missing keywords (tcp-check, inter, fall, rise) |
-| std_stick_http_req | 60% | 40.1s | French query persists |
-| std_timeout_http | 67% | 24.2s | 1 keyword missing (acceptable) |
+### [DONE] Enhanced JSON parsing robustness
+- Extract JSON from `thinking` or `content` field
+- Strip markdown code blocks (```json ... ```)
+- Find first `{` and last `}` to ignore surrounding text
+- Fallback metadata on errors
+
+### [IN PROGRESS] Running full enrichment pipeline
+- 168 sections to process
+- Current error rate: ~20% (all handled by fallback)
+- Expected completion: ~14-20 minutes
 
 ## Current Plan
 
-### [IN PROGRESS] Full Benchmark Run
-- `bench_langgraph_92.py` currently executing with qwen3:latest
-- Expected completion: ~40-50 minutes for 92 questions
-- Monitoring for: quality ≥80%, time <45s, no infinite loops
+### [DONE]
+1. Debug 01b_enrich_metadata.py for qwen3.5 compatibility
+2. Optimize context size (32768 → 4096 tokens)
+3. Reduce text limit (8000 → 5000 chars)
+4. Switch to qwen3.5:4b for faster processing
+5. Implement robust JSON extraction
 
-### [TODO] Post-Benchmark Analysis
-1. Collect all questions with quality <80%
-2. Collect all questions with time >45s
-3. Categorize failures:
-   - Retrieval issues (SECTION_HINTS gaps)
-   - Query language issues (French vs English)
-   - Missing documentation chunks
-   - LLM not following instructions
+### [IN PROGRESS]
+1. Run full enrichment pipeline on 168 sections
+   - Command: `uv run python 01b_enrich_metadata.py`
+   - Input: `data/sections.jsonl`
+   - Output: `data/sections_enriched.jsonl`
 
-### [TODO] Targeted Optimizations
-1. **Enrich SECTION_HINTS** for specific failing categories (tcp-check, stick-table rate limiting)
-2. **Strengthen prompt** for English query enforcement with examples
-3. **Adjust retrieval threshold** if too many empty results
-4. **Consider hybrid approach**: V3 fallback for specific question types if Agentic still <80%
+### [TODO]
+1. Verify output file quality
+2. Run `02_chunking.py` to propagate metadata to chunks
+3. Monitor error patterns for potential improvements
+4. Consider prompt engineering to reduce 20% error rate
 
-### [TODO] Final Decision
-- If Agentic RAG ≥80% quality AND ≥80% resolution → Deploy Agentic (faster, agentic features)
-- If V3 > Agentic on quality OR resolution → Keep V3 (more reliable, proven)
+## Commands Reference
+
+```bash
+# Run metadata enrichment
+uv run python 01b_enrich_metadata.py
+
+# Check model status
+ollama ps
+
+# Verify configuration
+uv run python -c "from config import ENRICH_MODEL; print(ENRICH_MODEL)"
+```
+
+## Known Issues
+
+1. **JSON parsing errors (~20%)**: Model sometimes outputs text before/after JSON
+   - Mitigation: Robust extraction + fallback metadata
+   
+2. **Empty responses**: Occasional timeout or model silence
+   - Mitigation: Fallback metadata automatically applied
+
+3. **Very long sections**: Some sections exceed 500K chars
+   - Mitigation: Smart truncation (beginning + end)
 
 ---
 
-**Last Updated**: 2026-03-01
-**Session Status**: Benchmark in progress, awaiting results for final optimization round
+## Recent Updates (2026-03-03)
 
----
+### [DONE] Fixed 02_chunking.py missing entry point
+- Added `if __name__ == "__main__":` block to call `main()`
+- Script was silently exiting without executing
+
+### [DONE] Fixed 03_indexing.py Windows compatibility
+- Changed `ollama_config.base_url` → `ollama_config.url` (attribute name fix)
+- Added Windows UTF-8 encoding fix for stdout/stderr
+- Replaced emoji in print statements with ASCII-safe text
+
+### Pipeline Results
+**Enrichment (01b_enrich_metadata.py)**:
+- 168 sections processed with qwen3.5:4b
+- ~20% JSON parsing errors (all recovered by fallback)
+- Processing time: ~14-20 minutes
+
+**Chunking (02_chunking.py)**:
+- 4949 chunks created (from 168 sections)
+- 100% chunks have IA metadata
+- Average 7.0 IA keywords/chunk
+- Average chunk size: 685 chars (optimal 300-800 range)
+
+**Indexing (03_indexing.py)**:
+- Currently running (~2 hours estimated)
+- Using qwen3-embedding:8b on GPU
+- 4949 chunks to embed
 
 ## Summary Metadata
-**Update time**: 2026-03-01T19:27:55.893Z 
+**Update time**: 2026-03-03T09:45:00Z 
