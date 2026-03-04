@@ -66,6 +66,7 @@ venv.bak/
 # IDEs
 .idea/
 .vscode/
+.qwen/
 *.swp
 *.swo
 *~
@@ -120,3 +121,5 @@ desktop.ini
 *.key
 credentials
 *.credentials
+uv.lock
+
