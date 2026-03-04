@@ -1,30 +1,46 @@
-# HAProxy Dataset Generator - RAG Agentic
+# Plan d'amélioration du README.md - Système RAG Agentic
 
-**Système RAG Agentic pour la documentation HAProxy 3.2 utilisant LangGraph**
+## Objectif
+Améliorer le README.md principal pour détailler plus complètement la solution Agentic RAG, tout le process, l'installation, le lancement et l'interface Gradio.
 
-**Statut :** ✅ **PRÊT POUR PRODUCTION** (2026-03-04)
+## Analyse actuelle
+
+### Points forts du README.md actuel
+- ✅ Vue d'ensemble claire des performances
+- ✅ Installation rapide avec commandes essentielles
+- ✅ Structure du projet bien organisée
+- ✅ Documentation des composants principaux
+- ✅ Configuration des variables d'environnement
+- ✅ Instructions pour les tests et benchmarks
+
+### Points à améliorer
+- ❌ Processus complet du pipeline RAG Agentic pas détaillé
+- ❌ Architecture LangGraph peu expliquée
+- ❌ Hybrid retrieval (Vector + BM25 + RRF) pas documenté
+- ❌ Chunking parent/child hiérarchique pas expliqué
+- ❌ Interface Gradio peu détaillée
+- ❌ Flux de données pas illustré
+- ❌ Étapes individuelles du pipeline pas expliquées
+- ❌ Dépannage limité
+- ❌ Pas de guide de déploiement production détaillé
 
 ---
 
-## 📊 Performances
+## Plan d'amélioration
 
-| Benchmark | Questions | Qualité | Réussite | Temps |
-|-----------|-----------|---------|----------|-------|
-| **FULL** | 92 | **0.914/1.0** 🏆 | **92.4%** 🏆 | 34.6s |
+### 1. Section "🚀 Installation Rapide" → "📦 Installation Complète"
 
----
+#### 1.1 Prérequis détaillés
+```markdown
+## Prérequis
 
-## 📦 Installation Complète
-
-### Prérequis
-
-#### Système
-- **OS**: Linux, macOS, Windows 11+
+### Système
+- **OS**: Linux, macOS, Windows 10+
 - **RAM**: 16 GB minimum (32 GB recommandés)
 - **Stockage**: 10 GB libres
 - **GPU**: NVIDIA avec 8+ GB VRAM (optionnel, pour accélérer Ollama)
 
-#### Logiciels requis
+### Logiciels requis
 - **Python 3.11+**: Pour exécuter le système
 - **uv**: Gestionnaire de paquets Python (alternative à pip)
 - **Ollama**: Pour exécuter les LLM locaux
@@ -52,7 +68,10 @@ curl -fsSL https://ollama.com/install.sh | sh
 # Vérifier l'installation
 ollama --version
 ```
+```
 
+#### 1.2 Installation des modèles Ollama détaillée
+```markdown
 ### Installation des modèles Ollama
 
 Le système RAG Agentic utilise deux modèles Ollama :
@@ -84,29 +103,13 @@ ollama list
 ollama show qwen3-embedding:8b
 ollama show qwen3.5:9b
 ```
-
-### Installation du projet
-
-```bash
-# Installer les dépendances
-uv sync
-
-# Installer les modèles Ollama
-ollama pull qwen3-embedding:8b
-ollama pull qwen3.5:9b
-
-# Reconstruire tout le pipeline (~1h10)
-cd agentic_rag
-uv run python 00_rebuild_agentic.py
-
-# Lancer le chatbot
-uv run python 04_agentic_chatbot.py
 ```
-
-Accédez ensuite à `http://localhost:7861`
 
 ---
 
+### 2. Nouvelle section "🔄 Processus Complet du Pipeline RAG Agentic"
+
+```markdown
 ## 🔄 Processus Complet du Pipeline RAG Agentic
 
 Le système RAG Agentic pour HAProxy 3.2 utilise une architecture avancée avec LangGraph pour fournir des réponses de haute qualité basées sur la documentation officielle.
@@ -249,7 +252,7 @@ START → summarize_conversation → analyze_and_rewrite_query
                                ↙              ↘
                           YES (tools)      NO (end)
                              ↓
-                    ToolNode (search_child_chunks + BM25)
+                     ToolNode (search_child_chunks + BM25)
                              ↓
                           agent → retrieve_parent_chunks
                              ↓
@@ -701,225 +704,13 @@ LLM_CONFIG = {
 
 ---
 
-## 📁 Structure du Projet
+## 📚 Documentation Additionnelle
 
-```
-haproxy-dataset-generator/
-├── agentic_rag/              # ⭐ Système RAG Agentic (PRINCIPAL)
-│   ├── 00_rebuild_agentic.py         # Script de reconstruction complet
-│   ├── 01_scrape_verified.py         # Phase 1: Scraping & Validation
-│   ├── 02_chunking_parent_child.py   # Phase 2: Chunking Parent/Child
-│   ├── 03_indexing_chroma.py         # Phase 3: Indexation ChromaDB + BM25
-│   ├── 04_agentic_chatbot.py         # Phase 4: Chatbot Gradio
-│   ├── 05_bench_agentic.py           # Benchmark du système
-│   ├── config_agentic.py             # Configuration centralisée
-│   ├── rag_agent/                    # Agent LangGraph
-│   │   ├── graph.py                  # Graphe d'agent
-│   │   ├── nodes.py                  # Nœuds du graphe
-│   │   ├── edges.py                  # Transitions entre nœuds
-│   │   ├── tools.py                  # Outils de retrieval
-│   │   ├── prompts.py                # Prompts système
-│   │   ├── graph_state.py            # État du graphe
-│   │   └── schemas.py                # Schémas de données
-│   ├── app/                          # Interface Gradio
-│   │   ├── gradio_app.py             # Application Gradio principale
-│   │   ├── chat_interface.py         # Interface de chat
-│   │   ├── hybrid_rag.py             # Système RAG hybride
-│   │   ├── simple_agentic.py         # Agent simple
-│   │   ├── rag_system.py             # Système RAG
-│   │   ├── simple_rag.py             # RAG simple
-│   │   ├── document_manager.py       # Gestionnaire de documents
-│   │   └── evaluator.py              # Évaluateur de qualité
-│   ├── db/                           # Gestion des bases de données
-│   │   ├── chroma_manager.py         # Gestionnaire ChromaDB
-│   │   └── parent_store_manager.py   # Gestionnaire parent store
-│   ├── scraper/                      # Scraping de la documentation
-│   │   ├── haproxy_scraper.py        # Scraper HAProxy
-│   │   ├── html_structure_analyzer.py # Analyseur HTML
-│   │   └── compare_with_reference.py  # Comparaison avec référence
-│   ├── data_agentic/                 # Données du pipeline
-│   │   ├── scraped_pages/            # Pages scrapées
-│   │   └── chunks_child.json         # Chunks parent/child
-│   ├── index_agentic/                # Index de recherche
-│   │   ├── chroma_db/                # Base ChromaDB
-│   │   └── bm25_index.pkl            # Index BM25
-│   ├── parent_store/                 # Stockage des parents
-│   ├── README_AGENTIC.md             # Documentation du système agentic
-│   └── PERFORMANCE.md                # Suivi des performances
-├── rag/                              # 📦 Système RAG Standard (ARCHIVE)
-│   ├── 00_rebuild_all.py             # Reconstruction complète
-│   ├── 01_scrape.py                   # Scraping BeautifulSoup
-│   ├── 01_scrape_bs4.py              # Scraping BS4 avancé
-│   ├── 01b_enrich_metadata.py        # Enrichissement metadata
-│   ├── 02_chunking.py                # Chunking standard
-│   ├── 03_indexing.py                # Indexation standard
-│   ├── 04_chatbot.py                 # Chatbot standard
-│   ├── 05_bench_targeted.py          # Benchmark ciblé
-│   ├── 06_bench_ollama.py            # Benchmark Ollama
-│   ├── 07_bench_config_correction.py # Benchmark correction config
-│   ├── config.py                     # Configuration RAG standard
-│   ├── llm.py                        # Gestion LLM
-│   ├── retriever_v3.py               # Retriever V3
-│   ├── haproxy_validator.py          # Validateur HAProxy
-│   ├── logging_config.py             # Configuration logging
-│   ├── data/                         # Données RAG standard
-│   │   ├── sections.jsonl            # Sections scrapées
-│   │   └── sections_enriched.jsonl   # Sections enrichies
-│   ├── index_v3/                     # Index V3
-│   │   ├── chroma/                   # ChromaDB V3
-│   │   ├── chunks.pkl                # Chunks V3
-│   │   └── bm25.pkl                  # Index BM25 V3
-│   ├── app/                          # Application Gradio standard
-│   │   ├── main.py                   Point d'entrée
-│   │   ├── services/                 # Services
-│   │   │   ├── chat_service.py       # Service de chat
-│   │   │   ├── llm_service.py        # Service LLM
-│   │   │   └── rag_service.py        # Service RAG
-│   │   ├── state/                    # État de l'application
-│   │   │   ├── manager.py            # Gestionnaire d'état
-│   │   │   └── models.py             # Modèles d'état
-│   │   ├── ui/                       # Interface utilisateur
-│   │   │   ├── layout.py             # Mise en page
-│   │   │   ├── components.py         # Composants UI
-│   │   │   └── styles.py             # Styles CSS
-│   │   └── utils/                    # Utilitaires
-│   │       ├── errors.py             # Gestion d'erreurs
-│   │       ├── logging.py            # Logging
-│   │       └── validators.py         # Validateurs
-│   ├── bench_config_dataset.py       # Benchmark config dataset
-│   ├── bench_models.py               # Benchmark modèles
-│   ├── bench_questions.py            # Benchmark questions
-│   ├── compare_content.py            # Comparaison contenu
-│   ├── compare_rag.py                # Comparaison RAG
-│   ├── compare_rag_vs_agentic.py     # Comparaison RAG vs Agentic
-│   ├── compare_scrapers.py           # Comparaison scrapers
-│   └── README.md                     # Documentation RAG standard
-├── doc/                              # 📚 Documentation Technique
-│   ├── GUIDE_COMPLET.md               # Guide complet du pipeline RAG standard
-│   ├── GUIDE_IMPLEMENTATION_AGENTIC.md # Guide d'implémentation du RAG agentic
-│   ├── PIPELINE_RAG_GENERIC.md       # Guide générique RAG
-│   ├── V3_PERFORMANCE_TRACKING.md    # Historique des performances
-│   ├── AGENTS.md                     # Instructions pour les agents
-│   ├── LEARNING.md                   # Apprentissage et découvertes
-│   ├── QWEN.md                       # Documentation Qwen
-│   ├── BENCHMARK_TIMES.md             # Temps de benchmark
-│   ├── CORRECTION_QUESTIONS_CRITIQUES.md # Correction questions critiques
-│   ├── config_crawl4ai.md            # Configuration crawl4ai
-│   ├── full_config.md                # Configuration complète
-│   ├── intro_crawl4ai.md             # Introduction crawl4ai
-│   └── plans/                        # Plans et spécifications techniques
-│       ├── PLAN_AGENTIC_RAG_HAPROXY.md # Plan architecture agentic
-│       ├── ameliorations_chunking.md # Améliorations chunking
-│       ├── analyse_elements_superflus.md # Analyse éléments superflus
-│       ├── audit_technique_agentic_rag.md # Audit technique
-│       ├── benchmark_dataset_spec.md # Spécifications benchmark dataset
-│       ├── benchmark_improvement_plan.md # Plan amélioration benchmark
-│       ├── benchmark_metrics_spec.md # Spécifications métriques benchmark
-│       ├── benchmark_validator_spec.md # Spécifications validateur benchmark
-│       ├── plan_benchmark_correction_config.md # Plan correction config benchmark
-│       ├── plan_integration_crawl4ai_agentic_rag.md # Plan intégration crawl4ai
-│       ├── plan_reconstruction_04_chatbot.md # Plan reconstruction chatbot
-│       ├── plan_restructuration_projet.md # Plan restructuration projet
-│       └── plan_verification_amelioration_gradio_6.8.0.md # Plan vérification Gradio
-├── plans/                            # 📋 Plans d'amélioration
-│   └── amelioration_readme_agentic_rag.md # Plan d'amélioration README
-├── pyproject.toml                    # Dépendances globales
-├── .python-version                   # Version Python requise
-├── .gitignore                        # Fichiers ignorés par Git
-└── README.md                         # Ce fichier
-```
-
----
-
-## 🎯 Composants Principaux
-
-### agentic_rag/ - Système RAG Agentic
-
-Le système RAG agentic est l'implémentation **principale** et **recommandée** pour la production.
-
-**Avantages :**
-- ✅ Meilleure qualité : **0.914/1.0** (+5.3% vs RAG standard)
-- ✅ Meilleure réussite : **92.4%** (+4.4% vs RAG standard)
-- ✅ Architecture agentic avec LangGraph
-- ✅ Chunking parent/child hiérarchique
-- ✅ Hybrid retrieval (Vector + BM25 + RRF)
-- ✅ Multi-step reasoning
-
-**Documentation :** Voir [`agentic_rag/README_AGENTIC.md`](agentic_rag/README_AGENTIC.md)
-
-### rag/ - Système RAG Standard (Archive)
-
-Le dossier `rag/` contient l'implémentation **RAG standard** du projet.
-
-**Objectif :**
-- 📦 Maintenu comme **archive** pour comparaison
-- 📚 Référence pour comprendre l'évolution du projet
-- 🧪 Tests de régression et validation
-
-**Performances :**
-- Qualité : 0.846/1.0
-- Réussite : 82%
-- Temps : 22.4s
-
-**Documentation :** Voir [`rag/README.md`](rag/README.md)
-
-### doc/ - Documentation Technique
-
-Le dossier `doc/` contient toute la documentation technique du projet :
-
-- `GUIDE_COMPLET.md` : Guide complet du pipeline RAG standard
-- `GUIDE_IMPLEMENTATION_AGENTIC.md` : Guide d'implémentation du RAG agentic
-- `PIPELINE_RAG_GENERIC.md` : Guide générique RAG
-- `V3_PERFORMANCE_TRACKING.md` : Historique des performances
-- `plans/` : Plans et spécifications techniques
-
----
-
-## 📖 Documentation
-
-### Pour le système RAG Agentic (PRINCIPAL)
-
-- **Guide complet :** [`agentic_rag/README_AGENTIC.md`](agentic_rag/README_AGENTIC.md)
-- **Guide d'implémentation :** [`doc/GUIDE_IMPLEMENTATION_AGENTIC.md`](doc/GUIDE_IMPLEMENTATION_AGENTIC.md)
-- **Architecture détaillée :** [`doc/plans/PLAN_AGENTIC_RAG_HAPROXY.md`](doc/plans/PLAN_AGENTIC_RAG_HAPROXY.md)
-- **Suivi des performances :** [`agentic_rag/PERFORMANCE.md`](agentic_rag/PERFORMANCE.md)
-
-### Pour le système RAG Standard (ARCHIVE)
-
-- **Guide complet :** [`rag/README.md`](rag/README.md)
-- **Guide du pipeline :** [`doc/GUIDE_COMPLET.md`](doc/GUIDE_COMPLET.md)
-- **Guide générique RAG :** [`doc/PIPELINE_RAG_GENERIC.md`](doc/PIPELINE_RAG_GENERIC.md)
-
-### Documentation générale
-
-- **Instructions pour les agents :** [`doc/AGENTS.md`](doc/AGENTS.md)
-- **Apprentissage et découvertes :** [`doc/LEARNING.md`](doc/LEARNING.md)
-- **Suivi des performances :** [`doc/V3_PERFORMANCE_TRACKING.md`](doc/V3_PERFORMANCE_TRACKING.md)
-
----
-
-## 🧪 Tests
-
-### Tests RAG Agentic
-
-```bash
-cd agentic_rag
-uv run pytest
-```
-
-### Benchmark RAG Agentic
-
-```bash
-cd agentic_rag
-uv run python 05_bench_agentic.py --level quick
-```
-
-### Benchmark RAG Standard
-
-```bash
-cd rag
-uv run python 05_bench_targeted.py --level quick
-```
+- **[`agentic_rag/README_AGENTIC.md`](agentic_rag/README_AGENTIC.md)**: Guide complet du système RAG Agentic
+- **[`agentic_rag/PERFORMANCE.md`](agentic_rag/PERFORMANCE.md)**: Suivi détaillé des performances et optimisations
+- **[`doc/GUIDE_IMPLEMENTATION_AGENTIC.md`](doc/GUIDE_IMPLEMENTATION_AGENTIC.md)**: Guide d'implémentation du RAG agentic
+- **[`doc/plans/PLAN_AGENTIC_RAG_HAPROXY.md`](doc/plans/PLAN_AGENTIC_RAG_HAPROXY.md)**: Architecture détaillée
+- **[`doc/V3_PERFORMANCE_TRACKING.md`](doc/V3_PERFORMANCE_TRACKING.md)**: Comparaison avec RAG V3
 
 ---
 
@@ -958,12 +749,3 @@ uv run python 05_bench_targeted.py --level quick
 - **Effort** : ~1h
 
 **Cible Finale :** 0.95+/1.0 qualité, 95%+ réussite
-
----
-
-## 📝 License
-
-Projet open-source pour la documentation HAProxy.
-
-**Dernière mise à jour :** 2026-03-04
-**Statut :** ✅ PRÊT POUR PRODUCTION (agentic_rag)
