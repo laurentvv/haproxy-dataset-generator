@@ -1,0 +1,16 @@
+--- RAPPORT DE COUVERTURE ---
+Nombre de sections Référence (Classic RAG): 168
+Nombre de sections Grep RAG (Fichiers MD): 108
+Taux de couverture des URLs: 64.29%
+Exemples d'URLs manquantes (60):
+  - https://docs.haproxy.org/3.2/configuration.html#8.3.1
+  - https://docs.haproxy.org/3.2/configuration.html#8.2.2
+  - https://docs.haproxy.org/3.2/configuration.html#10.1.3
+  - https://docs.haproxy.org/3.2/intro.html#3.4.1
+  - https://docs.haproxy.org/3.2/management.html#9.4.1
+  - https://docs.haproxy.org/3.2/configuration.html#7.3.7
+  - https://docs.haproxy.org/3.2/configuration.html#1.4.1
+  - https://docs.haproxy.org/3.2/intro.html#3.4.5
+  - https://docs.haproxy.org/3.2/configuration.html#2.9.2
+  - https://docs.haproxy.org/3.2/configuration.html#8.2.3
+Taille totale du corpus Grep RAG: 1.79 MB

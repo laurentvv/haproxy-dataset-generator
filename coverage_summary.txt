@@ -1,0 +1,5 @@
+--- RAPPORT DE COUVERTURE ---
+Sections Reference: 168
+Sections Grep RAG: 108
+Couverture URLs: 64.29%
+Taille corpus: 1.79 MB
