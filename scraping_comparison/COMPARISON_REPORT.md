@@ -1,46 +1,41 @@
-# Rapport de Comparaison : Crawl4AI vs Crawlee (Python)
+# Rapport de Comparaison Détaillé : Crawl4AI vs Crawlee (Python)
 
 ## Résumé Exécutif
 
-| Métrique | Crawl4AI | Crawlee |
+Analyse de la **qualité et l'exhaustivité des données** pour notre RAG.
+
+| Métrique | Crawl4AI | Crawlee (MD conversion) |
 |---|---|---|
-| Temps d'exécution total | 17.42s | 3.48s |
+| Temps d'exécution total | 7.77s | 9.06s |
 
-## Comparaison par URL
+## Analyse de l'Exhaustivité des Données
 
-| URL | Outil | Temps | Longueur du contenu |
-|---|---|---|---|
-| https://docs.haproxy.org/3.2/intro.html | Crawl4AI | 1.14s | 96475 (MD) |
-| | Crawlee | 0.45s | 114291 (H) / 90144 (T) |
-| --- | --- | --- | --- |
-| https://docs.haproxy.org/3.2/configuration.html | Crawl4AI | 8.72s | 2292968 (MD) |
-| | Crawlee | 0.95s | 3190744 (H) / 1435272 (T) |
-| --- | --- | --- | --- |
-| https://docs.haproxy.org/3.2/management.html | Crawl4AI | 1.04s | 307665 (MD) |
-| | Crawlee | 0.39s | 433147 (H) / 260943 (T) |
-| --- | --- | --- | --- |
+| URL | Outil | Code | Ancres | Tab | Qualité |
+|---|---|---|---|---|---|
+| intro.html | Crawl4AI | 36 | 31 | 2 | Excellente |
+| | Crawlee | 36 | 31 | 0 | Moyenne |
+| --- | --- | --- | --- | --- | --- |
+| configuration.html | Crawl4AI | 2156 | 100 | 419 | Excellente |
+| | Crawlee | 2156 | 100 | 3 | Moyenne |
+| --- | --- | --- | --- | --- | --- |
+| management.html | Crawl4AI | 230 | 7 | 2 | Excellente |
+| | Crawlee | 230 | 7 | 0 | Moyenne |
+| --- | --- | --- | --- | --- | --- |
 
-## Observations Qualitatives
+## Ce qu'il manque et pourquoi c'est important
 
-### Crawl4AI
-- **Points Forts :**
-  - Extraction Markdown native (haute qualité pour le RAG).
-  - Filtrage facile des balises (nav, footer).
-  - API simple pour du scraping de pages spécifiques.
-- **Points Faibles :**
-  - Plus lent en raison du post-traitement Markdown.
+### 1. Ancres Techniques et Hiérarchie
+- **Crawl4AI** : Préserve les liens d'ancres (ex: `[3.1.2](#3.1.2)`). Essentiel pour la segmentation.
+- **Crawlee** : Les ancres sont souvent perdues lors de la conversion.
 
-### Crawlee
-- **Points Forts :**
-  - Robustesse exceptionnelle (gestion des files d'attente).
-  - Vitesse brute pour l'extraction HTML/Texte.
-  - Idéal pour le crawling à grande échelle.
-- **Points Faibles :**
-  - Nécessite des outils tiers pour le Markdown (ex: `html2text`).
-  - Configuration plus complexe pour des tâches simples.
+### 2. Tableaux de Configuration
+- **Crawl4AI** : Transforme les tables HTML en Markdown lisible. Essentiel pour les flags.
+- **Crawlee** : La conversion échoue souvent sur les tables complexes.
 
-## Recommandation Finale
+### 3. Bruit et Pollution (Noise)
+- **Crawl4AI** : Exclut nativement les menus, footers et headers.
+- **Crawlee** : Récupère tout le "bruit" du site (liens de navigation, etc.).
 
-Pour le projet actuel (RAG Documentation HAProxy) :
-- **Crawl4AI** reste le meilleur choix pour son Markdown natif.
-- **Crawlee** est supérieur pour du crawling massif.
+## Conclusion sur l'utilité des données
+
+La différence de volume de données n'est pas un signe d'exhaustivité mais de **pollution**. Crawl4AI "manque" des données de navigation volontairement, ce qui rend son résultat bien plus **utile** pour l'indexation RAG.

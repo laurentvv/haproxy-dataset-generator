@@ -3,7 +3,9 @@ import json
 import time
 from pathlib import Path
 
+import html2text
 from crawlee.crawlers import PlaywrightCrawler, PlaywrightCrawlingContext
+from markdownify import markdownify as md
 
 URLS = [
     'https://docs.haproxy.org/3.2/intro.html',
@@ -16,7 +18,7 @@ OUTPUT_FILE = OUTPUT_DIR / 'results_crawlee.json'
 
 
 async def main():
-    print('--- Starting Crawlee Benchmark ---')
+    print('--- Starting Crawlee Benchmark with MD Conversion ---')
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     results = []
@@ -39,6 +41,15 @@ async def main():
         content_html = await context.page.content()
         text_only = await context.page.evaluate('() => document.body.innerText')
 
+        # Markdown conversion (2 methods for comparison)
+        # 1. markdownify
+        md_markdownify = md(content_html, heading_style='ATX')
+
+        # 2. html2text
+        h = html2text.HTML2Text()
+        h.ignore_links = False
+        md_html2text = h.handle(content_html)
+
         page_end = time.time()
 
         results.append(
@@ -48,7 +59,11 @@ async def main():
                 'time_seconds': page_end - page_start,
                 'html_length': len(content_html),
                 'text_length': len(text_only),
+                'md_markdownify_length': len(md_markdownify),
+                'md_html2text_length': len(md_html2text),
                 'content': content_html,
+                'markdown': md_markdownify,  # Use markdownify as primary for now
+                'markdown_html2text': md_html2text,
                 'text': text_only,
             }
         )
