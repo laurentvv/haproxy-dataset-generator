@@ -1,6 +1,6 @@
 """
 Outils de retrieval pour le système RAG agentic.
-OPTIMISÉ : + Metadata filtering + SECTION_HINTS
+OPTIMISÉ : + Metadata filtering + SECTION_HINTS + Gemini Embeddings
 """
 
 import logging
@@ -11,13 +11,20 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from langchain_core.tools import tool
 
-from config_agentic import DEFAULT_K_CHILD, SCORE_THRESHOLD
-from db.chroma_manager import ChromaManager
-from db.parent_store_manager import ParentStoreManager
+from agentic_rag.config_agentic import (
+    DEFAULT_K_CHILD,
+    EMBEDDING_MODEL,
+    GOOGLE_API_KEY,
+    HYBRID_RRF_K,
+    HYBRID_TOP_K,
+    INDEX_DIR,
+)
+from agentic_rag.db.chroma_manager import ChromaManager
+from agentic_rag.db.parent_store_manager import ParentStoreManager
 
 logger = logging.getLogger(__name__)
 
-# SECTION_HINTS pour améliorer le retrieval (copié de V3)
+# SECTION_HINTS (conservé pour le filtrage si nécessaire)
 SECTION_HINTS = {
     "backend": ["5.1", "5.2", "5.3", "4.1", "4.3"],
     "server": ["5.1", "5.2", "5.3"],
@@ -49,16 +56,13 @@ SECTION_HINTS = {
     "pem": ["9.1", "9.2", "9.3"],
     "timeout": ["3.1", "3.2", "3.3", "5.2", "5.3"],
     "option": ["5.1", "5.2", "5.3"],
-    # Health check keywords
     "inter": ["5.2", "5.3"],
     "fall": ["5.2", "5.3"],
     "rise": ["5.2", "5.3"],
-    # IP/connection
     "ip": ["11.1", "11.2", "7.3"],
     "connection": ["11.1", "11.2", "7.3"],
     "request": ["7.1", "7.2", "7.3", "11.1", "11.2"],
     "http": ["7.1", "7.2", "7.3", "11.1", "11.2"],
-    # ACL extensions (for failed questions)
     "dst_port": ["7.1", "7.2", "7.3"],
     "port": ["7.1", "7.2", "7.3", "5.1", "5.2"],
     "destination": ["7.1", "7.2", "7.3"],
@@ -77,14 +81,12 @@ SECTION_HINTS = {
     "path_end": ["7.1", "7.2"],
     "regex": ["7.1", "7.2", "7.5"],
     "regexp": ["7.1", "7.2", "7.5"],
-    # Server options
     "weight": ["5.1", "5.2", "5.3"],
     "backup": ["5.1", "5.2", "5.3"],
     "failover": ["5.1", "5.2", "5.3"],
     "disabled": ["5.1", "5.2", "5.3"],
     "disable": ["5.1", "5.2", "5.3"],
     "address": ["5.1", "5.2", "5.3"],
-    # Stats
     "stats": ["3.3", "4.2"],
     "enable": ["3.3", "4.2"],
     "uri": ["3.3", "4.2"],
@@ -95,7 +97,6 @@ SECTION_HINTS = {
     "refresh": ["4.2"],
     "socket": ["4.2"],
     "hide": ["4.2"],
-    # Logs
     "log": ["3.1", "3.2", "8.1"],
     "global": ["3.1", "3.2"],
     "syslog": ["3.1", "3.2"],
@@ -104,13 +105,11 @@ SECTION_HINTS = {
     "stderr": ["3.1", "3.2"],
     "local0": ["3.1", "3.2"],
     "format": ["8.1", "8.2"],
-    # TCP/Mode
     "mode": ["3.1", "3.2", "3.3"],
     "tcp": ["3.1", "3.2", "3.3"],
     "health": ["3.1", "3.2"],
     "layer4": ["3.1", "3.2"],
     "layer7": ["3.1", "3.2"],
-    # SSL extensions
     "verify": ["9.1", "9.2", "9.3"],
     "ca-file": ["9.1", "9.2", "9.3"],
     "cafile": ["9.1", "9.2", "9.3"],
@@ -124,7 +123,6 @@ SECTION_HINTS = {
     "tls": ["9.1", "9.2", "9.3"],
     "version": ["9.1", "9.2", "9.3"],
     "default-bind": ["3.1", "9.1"],
-    # Rate limiting / deny
     "deny_status": ["7.3", "7.4", "7.5"],
     "429": ["7.3", "7.4", "7.5"],
     "too-many": ["7.3", "7.4", "7.5"],
@@ -136,15 +134,12 @@ SECTION_HINTS = {
     "type": ["11.1", "11.2", "7.3"],
     "string": ["11.1", "11.2", "7.3"],
     "integer": ["11.1", "11.2", "7.3"],
-    # Frontend
     "frontend": ["5.1", "5.2", "4.1"],
-    # Algorithm
     "algorithm": ["5.1", "5.2", "5.3"],
     "roundrobin": ["5.1", "5.2", "5.3"],
     "leastconn": ["5.1", "5.2", "5.3"],
     "hash": ["5.1", "5.2", "5.3"],
     "persistence": ["5.3", "11.1", "11.2"],
-    # General
     "name": ["3.1", "5.1"],
     "section": ["3.1", "4.1", "5.1"],
     "interval": ["5.2", "5.3"],
@@ -171,7 +166,6 @@ SECTION_HINTS = {
     "disponible": ["3.1", "3.2", "3.3"],
     "available": ["3.1", "3.2", "3.3"],
     "utiliser": ["3.1", "3.2"],
-    "utiliser": ["7.1", "7.2"],
     "utilize": ["3.1", "3.2"],
     "specify": ["3.1", "3.2"],
     "spécifier": ["3.1", "3.2"],
@@ -238,69 +232,44 @@ SECTION_HINTS = {
     "allow": ["7.3", "7.4"],
     "abort": ["7.3", "7.4"],
     "tarpit": ["7.3", "7.4"],
-    # Converter keywords (missing in 4 questions)
     "converter": ["7.1", "7.2", "7.5"],
     "lower": ["7.1", "7.2"],
     "upper": ["7.1", "7.2"],
-    "url": ["7.1", "7.2", "7.3"],
     "extract": ["7.1", "7.2"],
-    # TCP-check keywords
     "tcp-check": ["5.2", "5.3", "5.4"],
-    "rise": ["5.2", "5.3"],
-    "fall": ["5.2", "5.3"],
-    # Stick-table rate limiting
-    "stick": ["11.1", "11.2", "7.3"],
-    "counter": ["11.1", "11.2", "7.3"],
-    # Timeout keywords
-    "http-request-timeout": ["3.1", "3.2"],
-    "connection": ["3.1", "3.2", "11.1"],
-    "client-fin": ["3.1", "3.2"],
-    "server-fin": ["3.1", "3.2"],
-    "waiting": ["3.1", "3.2"],
-    "inactivity": ["3.1", "3.2"],
-    # ACL keywords
-    "domain": ["7.1", "7.2", "7.3"],
-    "dst": ["7.1", "7.2", "7.3"],
-    "destination": ["7.1", "7.2", "7.3"],
-    "dst_port": ["7.1", "7.2", "7.3"],
-    "begin": ["7.1", "7.2"],
-    "regexp": ["7.1", "7.2", "7.5"],
-    "unless": ["7.1", "7.2", "7.3"],
-    "negation": ["7.1", "7.2"],
-    # SSL/Bind keywords
+    "429": ["7.3", "7.4", "7.5"],
+    "period": ["11.1", "11.2", "7.3"],
+    "entries": ["11.1", "11.2"],
+    "size": ["11.1", "11.2"],
+    "expire": ["11.1", "11.2"],
+    "store": ["11.1", "11.2", "7.3"],
+    "type": ["11.1", "11.2", "7.3"],
+    "string": ["11.1", "11.2", "7.3"],
+    "integer": ["11.1", "11.2", "7.3"],
     "frontend": ["5.1", "5.2", "4.1"],
     "certificates": ["9.1", "9.2", "9.3"],
     "default-bind": ["3.1", "9.1"],
-    # Stats keywords
     "listen": ["4.1", "4.2", "4.3"],
     "enable": ["3.3", "4.2"],
     "realm": ["4.2"],
     "hide": ["4.2"],
     "chmod": ["4.2"],
-    # Log keywords
     "syslog": ["3.1", "3.2"],
     "facility": ["3.1", "3.2"],
     "fd@": ["3.1", "3.2"],
     "custom": ["8.1", "8.2"],
     "disable": ["3.1", "3.2"],
-    # Mode keywords
     "option httpchk": ["5.2", "5.3"],
     "GET": ["5.2", "5.3"],
     "layer4": ["3.1", "3.2"],
     "layer7": ["3.1", "3.2"],
-    # Balance keywords
     "persistence": ["5.3", "11.1", "11.2"],
-    # Server keywords
     "disabled": ["5.1", "5.2", "5.3"],
-    # Deny/rate
     "deny_status": ["7.3", "7.4", "7.5"],
-    # Sections
     "combine": ["4.1", "4.2"],
-    # Maps/vars
     "file": ["7.1", "7.2"],
     "variable": ["7.1", "7.2"],
     "fetch": ["7.1", "7.2"],
-    # HTTP request
     "add": ["7.1", "7.2", "7.4"],
     "remove": ["7.1", "7.2", "7.4"],
 }
@@ -318,79 +287,74 @@ def _get_target_sections(query: str) -> list[str]:
 
 @tool
 def search_child_chunks(query: str, k: int = DEFAULT_K_CHILD, use_hybrid: bool = True) -> dict:
-    """Recherche hybride (Vector + BM25 + RRF) dans les chunks enfants.
-    OPTIMISATION V3 : Hybrid retrieval comme RAG V3 standard
-    """
+    """Recherche hybride (Vector + BM25 + RRF) dans les chunks enfants avec Gemini."""
     try:
-        from langchain_ollama import OllamaEmbeddings
-        embeddings_model = OllamaEmbeddings(model='qwen3-embedding:8b')
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
-        # DEBUG: Log the query received from LLM
-        print(f"DEBUG search_child_chunks: query='{query}'", flush=True)
+        if not GOOGLE_API_KEY:
+            raise ValueError("GOOGLE_API_KEY non configurée")
+
+        embeddings_model = GoogleGenerativeAIEmbeddings(
+            model=EMBEDDING_MODEL,
+            google_api_key=GOOGLE_API_KEY
+        )
+
+        print(f"DEBUG search_child_chunks (Gemini): query='{query}'", flush=True)
 
         query_embedding = embeddings_model.embed_query(query)
         chroma_manager = ChromaManager()
 
-        # OPTIM V3 : Utiliser hybrid retrieval (Vector + BM25 + RRF)
         if use_hybrid:
             try:
                 from hybrid_retriever import HybridRetriever
-                from config_agentic import HYBRID_TOP_K, HYBRID_RRF_K
-                from pathlib import Path
-                
-                # Charger les chunks depuis ChromaDB pour BM25
+
+                # Charger les chunks depuis ChromaDB pour BM25 (cache)
                 if not hasattr(search_child_chunks, '_chunks_cache'):
+                    # Pour Gemini, on récupère un pool plus large
                     all_results = chroma_manager.query_with_embedding(
                         query_embedding=query_embedding,
                         n_results=1000
                     )
                     search_child_chunks._chunks_cache = all_results
-                
+
                 chunks = search_child_chunks._chunks_cache
-                
-                # Chemin vers l'index BM25 sauvegardé
-                bm25_path = Path(__file__).parent.parent / 'index_agentic' / 'bm25_index.pkl'
-                
-                # Créer hybrid retriever avec l'index sauvegardé
+
+                # Utiliser l'index BM25 gemini
+                bm25_path = INDEX_DIR / 'bm25_index_gemini.pkl'
+                if not bm25_path.exists():
+                    bm25_path = INDEX_DIR / 'bm25_index.pkl' # Fallback
+
                 retriever = HybridRetriever(
                     chroma_manager,
                     chunks,
                     bm25_index_path=str(bm25_path)
                 )
-                
-                # Hybrid search avec RRF
+
                 results = retriever.hybrid_search(
                     query=query,
                     query_embedding=query_embedding,
                     k=HYBRID_TOP_K,
                     rrf_k=HYBRID_RRF_K
                 )
-                print(f"DEBUG hybrid_search: {len(results)} résultats hybrides", flush=True)
-                
             except Exception as e:
                 logger.warning(f'Hybrid retrieval failed: {e}, fallback to vector-only')
                 use_hybrid = False
 
-        # Fallback: Vector search traditionnel
         if not use_hybrid:
-            # Récupérer plus de candidats pour le filtering (3x pour avoir du choix)
             results = chroma_manager.query_with_embedding(
                 query_embedding=query_embedding, n_results=k * 3
             )
 
-        # Déterminer sections cibles
         target_sections = _get_target_sections(query)
-        logger.info(f'Target sections for query: {target_sections}')
 
-        # Filtrer avec boost de score (seulement si vector-only)
         if not use_hybrid:
+            # Filtrage post-retrieval pour vector-only
             filtered_results = []
             for r in results:
                 score = 1.0 - r.get('score', 1.0)
                 metadata = r.get('metadata', {})
-
-                # Boost score si section cible
                 section_path = metadata.get('section_path', [])
+
                 section_boost = 0.0
                 for section in section_path:
                     for target in target_sections:
@@ -398,7 +362,6 @@ def search_child_chunks(query: str, k: int = DEFAULT_K_CHILD, use_hybrid: bool =
                             section_boost = 0.15
                             break
 
-                # BOOST CRITIQUE: configuration.html > intro.html > management.html
                 source = metadata.get('source', '')
                 source_boost = 0.0
                 if 'configuration.html' in source:
@@ -406,23 +369,16 @@ def search_child_chunks(query: str, k: int = DEFAULT_K_CHILD, use_hybrid: bool =
                 elif 'intro.html' in source:
                     source_boost = -0.15
 
-                threshold = 0.15
                 total_boost = section_boost + source_boost
-                if len(filtered_results) < k and score + total_boost >= threshold - 0.10:
-                    filtered_results.append(r)
-                elif score + total_boost >= threshold:
+                if score + total_boost >= 0.15:
                     filtered_results.append(r)
 
             if not filtered_results and results:
-                logger.warning(f'No results after filtering, returning top {k} raw results')
                 filtered_results = results[:k]
-
             results = filtered_results[:k]
         else:
-            # Hybrid déjà trié par RRF
             filtered_results = results
 
-        # Extraire parent_ids et sources
         parent_ids = []
         sources = []
         for result in filtered_results:
@@ -434,14 +390,9 @@ def search_child_chunks(query: str, k: int = DEFAULT_K_CHILD, use_hybrid: bool =
             if source and source not in sources:
                 sources.append(source)
 
-        logger.info(f'Retrieved {len(filtered_results)} chunks for query: {query[:50]}...')
-        logger.info(f'Parent IDs: {parent_ids}')
-        logger.info(f'Sources: {sources}')
         return {'chunks': filtered_results, 'parent_ids': parent_ids, 'sources': sources, 'query': query}
     except Exception as e:
         logger.error(f'Error in search_child_chunks: {e}')
-        import traceback
-        logger.error(traceback.format_exc())
         return {'chunks': [], 'parent_ids': [], 'sources': [], 'query': query, 'error': str(e)}
 
 
@@ -449,19 +400,13 @@ def search_child_chunks(query: str, k: int = DEFAULT_K_CHILD, use_hybrid: bool =
 def retrieve_parent_chunks(parent_ids: list[str]) -> dict:
     """Récupère les chunks parents complets à partir de leurs IDs."""
     try:
-        logger.info(f'retrieve_parent_chunks appelé avec: {parent_ids}')
         parent_manager = ParentStoreManager()
         parents = parent_manager.get_parents(parent_ids)
-        logger.info(f'{len(parents)} parents récupérés')
         parent_contents = []
         sources = []
-        total_chars = 0
         for parent in parents:
             if parent:
-                # CORRECTION: 'page_content' au lieu de 'content'
                 content = parent.get('page_content', '') or parent.get('content', '')
-                total_chars += len(content)
-                logger.info(f'Parent {parent.get("id")}: {len(content)} chars')
                 parent_contents.append({
                     'id': parent.get('id'),
                     'content': content,
@@ -470,10 +415,7 @@ def retrieve_parent_chunks(parent_ids: list[str]) -> dict:
                 source = parent.get('metadata', {}).get('source', 'unknown')
                 if source and source not in sources:
                     sources.append(source)
-        logger.info(f'Total: {len(parent_contents)} parents, {total_chars} chars')
-        result = {'parents': parent_contents, 'sources': sources}
-        logger.info(f'retrieve_parent_chunks retourne: {len(parent_contents)} parents')
-        return result
+        return {'parents': parent_contents, 'sources': sources}
     except Exception as e:
         logger.error(f'Error in retrieve_parent_chunks: {e}')
         return {'parents': [], 'sources': [], 'error': str(e)}
@@ -488,7 +430,6 @@ def validate_haproxy_config(config_block: str) -> dict:
         from haproxy_validator import HAProxyValidator
         validator = HAProxyValidator()
         result = validator.validate(config_block)
-        logger.info(f'Validation result: valid={result.is_valid}')
         return {
             'is_valid': result.is_valid,
             'errors': [{'line': e.line, 'message': e.message, 'severity': e.severity.value, 'suggestion': e.suggestion} for e in result.errors],

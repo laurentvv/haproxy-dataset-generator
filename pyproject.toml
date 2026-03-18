@@ -25,6 +25,7 @@ dependencies = [
     "langchain-core>=0.3.0",
     "langchain-text-splitters>=0.3.0",
     "langchain-ollama>=1.0.1",
+    "langchain-google-genai>=2.0.0",
     "langgraph>=1.0.8",
     "langgraph-checkpoint>=2.0.0",
     # LLM local
